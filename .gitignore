@@ -1,0 +1,11 @@
+config.php
+vendor/
+error_log
+*.log
+storage/
+frenzyex_backup/
+*.sql
+*.sql.gz
+*.zip
+*.tgz
+.github/
