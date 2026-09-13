@@ -31,7 +31,7 @@
 با کاربر **root** وارد سرور شوید و این دستور را اجرا کنید:
 
 ```bash
-curl -o install.sh -L https://raw.githubusercontent.com/tronadorobot/mirzabot/main/install.sh && bash install.sh
+curl -o install.sh -L https://raw.githubusercontent.com/Danialnetworker/Mirza_Gateway/main/install.sh && bash install.sh
 ```
 
 منوی زیر ظاهر می‌شود؛ گزینه‌ی **۱ (Install Mirza)** را بزنید:
@@ -66,7 +66,7 @@ curl -o install.sh -L https://raw.githubusercontent.com/tronadorobot/mirzabot/ma
 کنید. گزینه‌ی «Automatic» آخرین نسخه‌ی این مخزن (شاملِ درگاه ترونادو) را نصب
 می‌کند.
 
-> ⚠️ حتماً از همین دستور (مخزن `tronadorobot`) آپدیت کنید. اگر از مخزن اصلی میرزا
+> ⚠️ حتماً از همین دستور (مخزن `Danialnetworker/Mirza_Gateway`) آپدیت کنید. اگر از مخزن اصلی میرزا
 > آپدیت کنید، درگاه ترونادو از روی ربات حذف می‌شود.
 
 ---
@@ -187,7 +187,7 @@ Toman price, like every other gateway.
 On a clean Ubuntu 22.04 / 24.04 server, as root:
 
 ```
-curl -o install.sh -L https://raw.githubusercontent.com/tronadorobot/mirzabot/main/install.sh && bash install.sh
+curl -o install.sh -L https://raw.githubusercontent.com/Danialnetworker/Mirza_Gateway/main/install.sh && bash install.sh
 ```
 
 It is the stock Mirza installer, pointed at this repository for install and
