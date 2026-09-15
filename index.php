@@ -905,7 +905,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             ]
         ]
     ]);
-    if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik") {
+    if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik" || $marzban['type'] == "cloudius") {
         $userpassword = strtr($textbotlang['users']['status']['servicePassword'], ['{subscription_url}' => $DataUserOut['subscription_url']]);
     } else {
         $userpassword = "";
@@ -968,7 +968,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
                 ]
             ]
         ];
-        if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik") {
+        if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik" || $marzban['type'] == "cloudius") {
             unset($keyboardsetting['inline_keyboard'][1][1]);
             unset($keyboardsetting['inline_keyboard'][0]);
         }
@@ -1044,7 +1044,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             unset($keyboarddate['Extra_time']);
             unset($keyboarddate['removeservice']);
         }
-        if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik") {
+        if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik" || $marzban['type'] == "cloudius") {
             unset($keyboarddate['linksub']);
             unset($keyboarddate['config']);
             unset($keyboarddate['extend']);
@@ -3051,7 +3051,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     if ($marzban_list_get['type'] == "WGDashboard") {
         $textbotlang['textbot']['afterText'] = $textbotlang['users']['sell']['created'];
     }
-    $textbotlang['textbot']['afterText'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterText'];
+    $textbotlang['textbot']['afterText'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterText'];
     $textcreatuser = str_replace('{username}', $dataoutput['username'], $textbotlang['textbot']['afterText']);
     $textcreatuser = str_replace('{name_service}', $textbotlang['common']['labels']['test'], $textcreatuser);
     $textcreatuser = str_replace('{location}', $marzban_list_get['name_panel'], $textcreatuser);
@@ -3060,7 +3060,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
     $textcreatuser = str_replace('{links}', $config, $textcreatuser);
     $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
-    if ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+    if ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius") {
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }
@@ -4034,7 +4034,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $Shoppinginfo = json_encode($Shoppinginfo);
     $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "Manualsale" ? $textbotlang['textbot']['manual'] : $textbotlang['textbot']['afterPay'];
     $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "WGDashboard" ? $textbotlang['textbot']['wgDashboard'] : $textbotlang['textbot']['afterPay'];
-    $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
+    $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
     if (intval($info_product['Service_time']) == 0)
         $info_product['Service_time'] = $textbotlang['users']['status']['unlimited'];
     if (intval($info_product['Volume_constraint']) == 0)
@@ -4050,7 +4050,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     if (intval($info_product['Volume_constraint']) == 0) {
         $textcreatuser = str_replace($textbotlang['common']['units']['gigabyte'], "", $textcreatuser);
     }
-    if ($marzban_list_get['type'] == "Manualsale" || $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+    if ($marzban_list_get['type'] == "Manualsale" || $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius") {
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }

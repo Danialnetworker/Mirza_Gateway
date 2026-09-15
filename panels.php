@@ -10,6 +10,7 @@ require_once __DIR__ . '/WGDashboard.php';
 require_once __DIR__ . '/s_ui.php';
 require_once __DIR__ . '/ibsng.php';
 require_once __DIR__ . '/mikrotik.php';
+require_once __DIR__ . '/cloudius.php';
 require_once __DIR__ . '/mirza_agent.php';
 require_once __DIR__ . '/Rebecca.php';
 
@@ -365,6 +366,25 @@ class ManagePanel
             }
             $data_Output = addUser_mikrotik($Get_Data_Panel['name_panel'], $usernameC, $password, $name_group);
             if (isset($data_Output['error'])) {
+                $Output['status'] = 'Unsuccessful';
+                $Output['msg'] = $data_Output['msg'];
+            } else {
+                $Output['status'] = 'successful';
+                $Output['username'] = $usernameC;
+                $Output['subscription_url'] = $password;
+                $Output['configs'] = [];
+            }
+        } elseif ($Get_Data_Panel['type'] == "cloudius") {
+            $password = bin2hex(random_bytes(6));
+            // Cloudius keys plans off a numeric GroupID (panel default in inboundid).
+            $group_id = $Get_Data_Panel['inboundid'];
+            if ($Get_Data_Product['inbounds'] != null) {
+                $group_id = $Get_Data_Product['inbounds'];
+            }
+            $traffic_gb = $data_limit > 0 ? $data_limit / pow(1024, 3) : 0;
+            $days_cloudius = $expire > 0 ? (int) ceil(($expire - time()) / 86400) : 0;
+            $data_Output = addUser_cloudius($Get_Data_Panel['name_panel'], $usernameC, $password, $group_id, $traffic_gb, $days_cloudius);
+            if (empty($data_Output['status'])) {
                 $Output['status'] = 'Unsuccessful';
                 $Output['msg'] = $data_Output['msg'];
             } else {
@@ -967,6 +987,36 @@ class ManagePanel
                     'sub_last_user_agent' => null,
                 );
             }
+        } elseif ($Get_Data_Panel['type'] == "cloudius") {
+            $UsernameData = GetUser_cloudius($Get_Data_Panel['name_panel'], $username);
+            if (empty($UsernameData['status'])) {
+                $Output = array(
+                    'status' => 'Unsuccessful',
+                    'msg' => $UsernameData['msg']
+                );
+            } else {
+                $UsernameData = $UsernameData['data'];
+                $invocie = select("invoice", "*", "username", $username, "select");
+                // Cloudius reports what REMAINS; Mirza wants limit + used.
+                $data_limit = $UsernameData['remained_traffic'];
+                $used_traffic = 0;
+                if ($invocie != false && intval($invocie['Volume']) > 0) {
+                    $data_limit = $invocie['Volume'] * pow(1024, 3);
+                    $used_traffic = max(0, $data_limit - $UsernameData['remained_traffic']);
+                }
+                $Output = array(
+                    'status' => $UsernameData['enable'],
+                    'username' => $UsernameData['username'],
+                    'data_limit' => $data_limit,
+                    'expire' => $UsernameData['expire'],
+                    'online_at' => null,
+                    'used_traffic' => $used_traffic,
+                    'links' => [],
+                    'subscription_url' => $invocie != false ? $invocie['user_info'] : '',
+                    'sub_updated_at' => null,
+                    'sub_last_user_agent' => null,
+                );
+            }
         } elseif ($Get_Data_Panel['type'] == "mirza_agent") {
             $UsernameData = get_user_data_mirza($Get_Data_Panel, $username);
             if (!empty($UsernameData['error'])) {
@@ -1443,6 +1493,19 @@ class ManagePanel
                 );
             } else {
                 deleteUser_mikrotik($Get_Data_Panel['name_panel'], $UsernameData['.id']);
+                $Output = array(
+                    'status' => 'successful',
+                    'username' => $username,
+                );
+            }
+        } elseif ($Get_Data_Panel['type'] == "cloudius") {
+            $deleteData = deleteUser_cloudius($Get_Data_Panel['name_panel'], $username);
+            if (empty($deleteData['status'])) {
+                $Output = array(
+                    'status' => 'Unsuccessful',
+                    'msg' => $deleteData['msg']
+                );
+            } else {
                 $Output = array(
                     'status' => 'successful',
                     'username' => $username,

@@ -1,11 +1,27 @@
-config.php
-vendor/
+# Composer-managed dependencies — installed by install.sh at install/update time.
+# Never commit these; run `composer install` to recreate them.
+/vendor/
+
+# Composer runtime artifacts
+composer.phar
+
+# Runtime / generated files
 error_log
-*.log
-storage/
-frenzyex_backup/
-*.sql
-*.sql.gz
-*.zip
-*.tgz
-.github/
+/storage/**
+!/storage/cache/
+!/storage/.htaccess
+!/storage/cache/.htaccess
+/api/hash.txt
+*.xlsx
+graphify-out
+docs
+/lang/override/
+
+# Runtime credentials - NEVER commit (this repo is public).
+# install.sh regenerates these per installation from the operator's input.
+/config.php
+/panel/inc/config.php
+/vpnbot/Default/config.php
+
+# Upstream CI workflow: PAT has no workflow scope, and it is not needed in this fork.
+/.github/

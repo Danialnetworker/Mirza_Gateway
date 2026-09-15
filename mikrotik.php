@@ -28,7 +28,7 @@ function addUser_mikrotik($name_panel,$username,$password,$group){
     $curl = curl_init();
     $data = array(
         'name' => $username,
-        'password' => $username
+        'password' => $password
     );
     curl_setopt_array($curl, array(
       CURLOPT_URL => $panel['url_panel'].'/rest/user-manager/user/add',

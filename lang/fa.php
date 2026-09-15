@@ -1071,7 +1071,7 @@ https://t.me/%s?start=%s',
                         'deleteRequestApproved2' => '✅ کاربری گرامی درخواست حذف شما با نام کاربری  %s موافقت گردید.',
                         'servicesFound' => '🛍 {countservice} عدد سرویس یافت برای مشاهده و مدیریت سرویس روی یکی از سرویس ها کلیک کنید',
                         'infoUnavailable' => '❌ امکان مشاهده اطلاعات اکانت درحال حاضر وجود ندارد',
-                        'servicePassword' => '🔑 رمز عبور سرویس شما : همان نام کاربری است',
+                        'servicePassword' => '🔑 رمز عبور سرویس شما : <code>{subscription_url}</code>',
                         'configNote' => '✍️ یادداشت کانفیگ : {note}',
                         'lastOnline' => '📶 اخرین زمان اتصال شما : {lastonline}',
                         'subscriptionFile' => 'فایل اشتراک شما',
@@ -2011,6 +2011,7 @@ nowpayments.io
                         'getLoc' => 'برای ویرایش پنل نام پنل را ارسال کنید',
                         'getNameNew' => 'نام جدید پنل را  ارسال کنید',
                         'getPassword' => '🔑 نام کاربری ذخیره شد. رمز عبور  خود را وارد نمایید',
+                'askCloudiusToken' => '🔐 توکن (StaticToken) پنل کلودیوس را وارد کنید\n\nراهنما: در پنل کلودیوس به بخش API بروید و StaticToken را کپی کنید.\nنمونه: <code>#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX#</code>\n\nℹ️ نیازی به نام کاربری نیست؛ توکن به‌تنهایی کافی است.',
                         'getPasswordNew' => 'رمز عبور جدید پنل را ارسال کنید',
                         'getUrlNew' => ' آدرس جدید پنل را  ارسال کنید',
                         'getUsernameNew' => ' نام کاربری جدید پنل را  ارسال کنید',
@@ -3547,7 +3548,7 @@ f,n.n2',
                 'afterPayIbsng' => '✅ سرویس با موفقیت ایجاد شد
 
 👤 نام کاربری سرویس : {username}
-🔑 رمز عبور سرویس :  {username}
+🔑 رمز عبور سرویس :  <code>{password}</code>
 🌿 نام سرویس:  {name_service}
 ‏🇺🇳 لوکیشن: {location}
 ⏳ مدت زمان: {day}  روز
@@ -3983,6 +3984,7 @@ f,n.n2',
                 'maxCustomVolume' => '📍 حداکثر حجم دلخواه',
                 'messagingSection' => '📨 بخش ارسال پیام',
                 'mikrotik' => 'میکروتیک',
+                'cloudius' => 'کلودیوس',
                 'minAmountAqayePardakht' => '⬇️ حداقل مبلغ آقای پرداخت',
                 'minAmountCartToCart' => '⬇️ حداقل مبلغ کارت به کارت',
                 'minAmountCryptoOffline' => '⬇️ حداقل مبلغ رمزارز آفلاین',
@@ -4086,7 +4088,7 @@ f,n.n2',
                 'setEducationStar' => '📚 تنظیم آموزش استار',
                 'setEducationZarinPal' => '📚 تنظیم آموزش زرین پال',
                 'setFirstPrize' => '1️⃣ تنظیم جایزه نفر اول',
-                'setInbound' => '🎛 تنظیم اینباند',
+                'setInbound' => '🎛 تنظیم اینباند یا گروه',
                 'setInboundId' => '💎 تنظیم شناسه اینباند',
                 'setProtocolInbound' => '⚙️ تنظیم پروتکل و اینباند',
                 'setSecondPrize' => '2️⃣ تنظیم جایزه نفر دوم',

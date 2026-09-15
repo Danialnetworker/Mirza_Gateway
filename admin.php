@@ -782,6 +782,11 @@ if (in_array($text, $textadmin) || $datain == "admin") {
         step('add_password_panel', $from_id);
         savedata("save", "username", "null");
         return;
+    } elseif ($userdata['type'] == "cloudius") {
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['askCloudiusToken'], $backadmin, 'HTML');
+        step('add_password_panel', $from_id);
+        savedata("save", "username", "null");
+        return;
     }
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['usernameSet'], $backadmin, 'HTML');
     step('add_username_panel', $from_id);
@@ -896,6 +901,8 @@ if (in_array($text, $textadmin) || $datain == "admin") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteSetGroupNameIbsng'], null, 'HTML');
     } elseif ($userdata['type'] == "mikrotik") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteMikrotikAccounting'], null, 'HTML');
+    } elseif ($userdata['type'] == "cloudius") {
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteCloudiusGroupId'] ?? 'برای کلودیوس از «تنظیم نام گروه» شناسه عددی گروه (GroupID) را وارد کنید. لیست گروه‌ها در «وضعیت پنل» نمایش داده می‌شود.', null, 'HTML');
     } elseif ($userdata['type'] == "hiddify") {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['noteSetAdminUuid'], null, 'HTML');
     } elseif ($userdata['type'] == "s_ui") {
@@ -3675,6 +3682,58 @@ elseif ($datain == "systemsms") {
         } else {
             sendmessage($from_id, $result['msg'], $optionibsng, 'HTML');
         }
+    } elseif ($marzban_list_get['type'] == "cloudius") {
+        $result = login_cloudius($marzban_list_get['url_panel'], $marzban_list_get['username_panel'], $marzban_list_get['password_panel']);
+        if (empty($result['status'])) {
+            sendmessage($from_id, panelErrorText($result['msg']), $option_cloudius, 'HTML');
+        } else {
+            // Full Cloudius dashboard, mirroring the MikroTik status depth.
+            $dash_cl = dashboard_cloudius($marzban_list_get['name_panel']);
+            if (empty($dash_cl['status'])) {
+                sendmessage($from_id, panelErrorText($dash_cl['msg']), $option_cloudius, 'HTML');
+            } else {
+                $d_cl = $dash_cl['data'];
+                // Option (alef): every GroupID so the admin can copy the number.
+                $groups_cl = groups_cloudius($marzban_list_get['name_panel']);
+                $grouptext_cl = "";
+                if (!empty($groups_cl['status'])) {
+                    foreach ($groups_cl['data'] as $g_cl) {
+                        $grouptext_cl .= ($grouptext_cl === "" ? "" : "\n") . "<code>{$g_cl['id']}</code> - {$g_cl['title']}";
+                    }
+                }
+                $stats_cl = "<b>📡 وضعیت پنل Cloudius</b>
+
+";
+                $stats_cl .= "👤 کاربر پنل: <code>{$d_cl['username']}</code>
+";
+                $stats_cl .= "🗓 لایسنس: از {$d_cl['license_from']} تا {$d_cl['license_to']}
+
+";
+                $stats_cl .= "<b>👥 کاربران</b>
+";
+                $stats_cl .= "├ کل: <b>{$d_cl['total_users']}</b> (سقف: {$d_cl['user_limit']})
+";
+                $stats_cl .= "├ فعال: {$d_cl['active_users']}
+";
+                $stats_cl .= "├ غیرفعال: {$d_cl['deactive_users']}
+";
+                $stats_cl .= "└ منقضی: {$d_cl['expired_users']}
+
+";
+                $stats_cl .= "🟢 آنلاین در لحظه: <b>{$d_cl['online_now']}</b> (سقف: {$d_cl['online_limit']})
+";
+                $stats_cl .= "📡 سرورهای RAS: {$d_cl['ras_active']} فعال از {$d_cl['ras_total']}
+";
+                $stats_cl .= "📝 لاگ‌ها: {$d_cl['log_count']}
+";
+                $stats_cl .= "💰 کیف پول: {$d_cl['wallet']}
+
+";
+                $stats_cl .= "<b>📋 گروه‌ها (شناسه - نام):</b>" . ($grouptext_cl ?: "
+-");
+                sendmessage($from_id, $stats_cl, $option_cloudius, 'HTML');
+            }
+        }
     } elseif ($marzban_list_get['type'] == "mikrotik") {
         $result = login_mikrotik($marzban_list_get['url_panel'], $marzban_list_get['username_panel'], $marzban_list_get['password_panel']);
         if (isset($result['error'])) {
@@ -6124,7 +6183,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     ]);
     $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "Manualsale" ? $textbotlang['textbot']['manual'] : $textbotlang['textbot']['afterPay'];
     $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "WGDashboard" ? $textbotlang['textbot']['wgDashboard'] : $textbotlang['textbot']['afterPay'];
-    $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
+    $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
     if (intval($info_product['Service_time']) == 0)
         $info_product['Service_time'] = $textbotlang['users']['status']['unlimited'];
     if (intval($info_product['Volume_constraint']) == 0)
@@ -6140,7 +6199,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     if (intval($info_product['Volume_constraint']) == 0) {
         $textcreatuser = str_replace($textbotlang['Admin']['unit']['gigabytes'], "", $textcreatuser);
     }
-    if ($marzban_list_get['type'] == "Manualsale" || $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+    if ($marzban_list_get['type'] == "Manualsale" || $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius") {
         $textcreatuser = str_replace('{password}', $DataUserOut['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $DataUserOut['subscription_url'], "id_invoice", $randomString);
     }
@@ -6649,7 +6708,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         }
         $textbotlang['textbot']['afterPay'] = $panel['type'] == "Manualsale" ? $textbotlang['textbot']['manual'] : $textbotlang['textbot']['afterPay'];
         $textbotlang['textbot']['afterPay'] = $panel['type'] == "WGDashboard" ? $textbotlang['textbot']['wgDashboard'] : $textbotlang['textbot']['afterPay'];
-        $textbotlang['textbot']['afterPay'] = $panel['type'] == "ibsng" || $panel['type'] == "mikrotik" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
+        $textbotlang['textbot']['afterPay'] = $panel['type'] == "ibsng" || $panel['type'] == "mikrotik" || $panel['type'] == "cloudius" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
         if (intval($text) == 0)
             $text = $textbotlang['users']['status']['unlimited'];
         $textcreatuser = str_replace('{username}', "<code>{$dataoutput['username']}</code>", $textbotlang['textbot']['afterPay']);
@@ -6660,7 +6719,7 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
         $textcreatuser = str_replace('{config}', $output_config_link, $textcreatuser);
         $textcreatuser = str_replace('{links}', $config, $textcreatuser);
         $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
-        if ($panel['type'] == "Manualsale" || $panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
+        if ($panel['type'] == "Manualsale" || $panel['type'] == "ibsng" || $panel['type'] == "mikrotik" || $panel['type'] == "cloudius") {
             $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
             update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
         }
@@ -8766,9 +8825,9 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
             }
             update("marzban_panel", "proxies", json_encode($servies, true), "name_panel", $user['Processing_value']);
         }
-    } elseif ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
+    } elseif ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik" || $panel['type'] == "cloudius") {
         update("marzban_panel", "proxies", $text, "name_panel", $user['Processing_value']);
-        $groupSavedKeyboard = $panel['type'] == "ibsng" ? $optionibsng : $option_mikrotik;
+        $groupSavedKeyboard = $panel['type'] == "ibsng" ? $optionibsng : ($panel['type'] == "cloudius" ? $option_cloudius : $option_mikrotik);
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['groupNameSaved'], $groupSavedKeyboard, 'HTML');
     } elseif ($panel['type'] == "x-ui_single") {
         $data = get_clinets($text, $panel);
@@ -9114,7 +9173,7 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
             $servies[] = $service;
         }
         $datainbound = json_encode($servies);
-    } elseif ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+    } elseif ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius") {
         $datainbound = $text;
     } else {
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['inboundUnsupported'], $shopkeyboard, 'HTML');
@@ -9908,7 +9967,7 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
             ['text' => $textbotlang['keyboard']['inactiveAccount'], 'callback_data' => "none"],
         ];
     }
-    if ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik") {
+    if ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik" || $panel['type'] == "cloudius") {
         unset($Bot_Status['inline_keyboard'][2]);
         unset($Bot_Status['inline_keyboard'][3]);
         unset($Bot_Status['inline_keyboard'][4]);
