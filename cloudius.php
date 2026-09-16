@@ -378,11 +378,12 @@ function GetUser_cloudius($name_panel, $username)
     $row = $user['data'];
     $remainingBytes = cloudius_traffic_to_bytes($row['RemainedTraffic'] ?? 0);
     $remainingDays = isset($row['RemainedTime']) ? (int) $row['RemainedTime'] : 0;
+    // Cloudius returns ExpirationTime as a JALALI string ('1405/07/24 16:39:36').
+    // strtotime() would read that as Gregorian year 1405 and produce a large
+    // NEGATIVE timestamp, which Mirza then renders as year 784. Never parse it -
+    // RemainedTime (days) is the reliable source for both Absolute and Relative.
     $expire = 0;
-    if (!empty($row['ExpirationTime'])) {
-        $expire = strtotime($row['ExpirationTime']);
-    } elseif ($remainingDays > 0) {
-        // Relative plans have no absolute expiry before the first connection.
+    if ($remainingDays > 0) {
         $expire = time() + ($remainingDays * 86400);
     }
 

@@ -17,11 +17,7 @@ graphify-out
 docs
 /lang/override/
 
-# Runtime credentials - NEVER commit (this repo is public).
-# install.sh regenerates these per installation from the operator's input.
+# Runtime credentials - NEVER commit (public repo).
 /config.php
 /panel/inc/config.php
 /vpnbot/Default/config.php
-
-# Upstream CI workflow: PAT has no workflow scope, and it is not needed in this fork.
-/.github/

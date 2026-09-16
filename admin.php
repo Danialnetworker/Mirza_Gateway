@@ -5482,7 +5482,12 @@ elseif ($datain == "systemsms") {
         $Percent = -$Percent;
     }
     $Percent = round($Percent, 2);
-    $text_order .= sprintf($textbotlang['Admin']['order']['serviceSummary'], $status_var, $LastTraffic, $usedTrafficGb, $RemainingVolume, $Percent, $expirationDate, $day, $DataUserOut['subscription_url'], $lastonline, $lastupdate, $DataUserOut['sub_last_user_agent']);
+    $summary_rendered = sprintf($textbotlang['Admin']['order']['serviceSummary'], $status_var, $LastTraffic, $usedTrafficGb, $RemainingVolume, $Percent, $expirationDate, $day, $DataUserOut['subscription_url'], $lastonline, $lastupdate, $DataUserOut['sub_last_user_agent']);
+    $panel_for_order = select("marzban_panel", "*", "name_panel", $OrderUser['Service_location'], "select");
+    if (in_array($panel_for_order['type'] ?? '', ['ibsng', 'mikrotik', 'cloudius'])) {
+        $summary_rendered = str_replace('لینک اشتراک کاربر :', '🔑 رمز عبور سرویس :', $summary_rendered);
+    }
+    $text_order .= $summary_rendered;
     if ($DataUserOut['status'] == "active") {
         $namestatus = $textbotlang['Admin']['manageUser']['btnDisableAccount'];
     } else {

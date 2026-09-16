@@ -375,7 +375,13 @@ class ManagePanel
                 $Output['configs'] = [];
             }
         } elseif ($Get_Data_Panel['type'] == "cloudius") {
-            $password = bin2hex(random_bytes(6));
+            // 5 chars, letters + digits. Long hex passwords are rejected by some
+            // OpenVPN clients. Ambiguous glyphs (0/O, 1/l/I) are excluded.
+            $pw_chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+            $password = '';
+            for ($pw_i = 0; $pw_i < 5; $pw_i++) {
+                $password .= $pw_chars[random_int(0, strlen($pw_chars) - 1)];
+            }
             // Cloudius keys plans off a numeric GroupID (panel default in inboundid).
             $group_id = $Get_Data_Panel['inboundid'];
             if ($Get_Data_Product['inbounds'] != null) {
@@ -1012,7 +1018,9 @@ class ManagePanel
                     'online_at' => null,
                     'used_traffic' => $used_traffic,
                     'links' => [],
-                    'subscription_url' => $invocie != false ? $invocie['user_info'] : '',
+                    'subscription_url' => ($invocie != false && trim((string) $invocie['user_info']) !== '')
+                        ? $invocie['user_info']
+                        : $UsernameData['username'],
                     'sub_updated_at' => null,
                     'sub_last_user_agent' => null,
                 );
