@@ -366,6 +366,37 @@ function addUser_cloudius($name_panel, $username, $password, $group, $traffic = 
 }
 
 /**
+ * Read the CURRENT password from Cloudius.
+ *
+ * User/FetchByUserName masks it ('XXXXX'), but User/Fetch keyed by the numeric
+ * UserID returns it in clear - verified against a manually changed account.
+ * Returns '' when unavailable or still masked.
+ */
+function cloudius_live_password($name_panel, $userId)
+{
+    $userId = (int) $userId;
+    if ($userId <= 0) {
+        return '';
+    }
+
+    $result = cloudius_api($name_panel, 'User/Fetch', array(
+        'UserID' => $userId,
+        'PageNo' => 1,
+        'RowPerPage' => 1,
+    ));
+    if (empty($result['status']) || empty($result['data'][0])) {
+        return '';
+    }
+
+    $pw = (string) ($result['data'][0]['Password'] ?? '');
+    if ($pw === '' || preg_match('/^X+$/i', $pw)) {
+        return '';
+    }
+
+    return $pw;
+}
+
+/**
  * Read a user back in a normalised shape for panels.php.
  */
 function GetUser_cloudius($name_panel, $username)
@@ -401,6 +432,8 @@ function GetUser_cloudius($name_panel, $username)
             'remained_days' => $remainingDays,
             'expire' => $expire,
             'online_count' => (int) ($row['OnlineCount'] ?? 0),
+            // FetchByUserName masks the password; User/Fetch by UserID does not.
+            'password' => cloudius_live_password($name_panel, $row['UserID'] ?? 0),
             'raw' => $row,
         ),
     );

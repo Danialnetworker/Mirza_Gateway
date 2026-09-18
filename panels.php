@@ -379,7 +379,7 @@ class ManagePanel
             // OpenVPN clients. Ambiguous glyphs (0/O, 1/l/I) are excluded.
             $pw_chars = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
             $password = '';
-            for ($pw_i = 0; $pw_i < 5; $pw_i++) {
+            for ($pw_i = 0; $pw_i < 6; $pw_i++) {
                 $password .= $pw_chars[random_int(0, strlen($pw_chars) - 1)];
             }
             // Cloudius keys plans off a numeric GroupID (panel default in inboundid).
@@ -1003,6 +1003,13 @@ class ManagePanel
             } else {
                 $UsernameData = $UsernameData['data'];
                 $invocie = select("invoice", "*", "username", $username, "select");
+                // Prefer the LIVE password from the panel so manual changes show up,
+                // and keep the stored copy in step with it.
+                $cloudius_pw_live = trim((string) ($UsernameData['password'] ?? ''));
+                if ($cloudius_pw_live !== '' && $invocie != false
+                    && trim((string) $invocie['user_info']) !== $cloudius_pw_live) {
+                    update("invoice", "user_info", $cloudius_pw_live, "username", $username);
+                }
                 // Cloudius reports what REMAINS; Mirza wants limit + used.
                 $data_limit = $UsernameData['remained_traffic'];
                 $used_traffic = 0;
@@ -1018,9 +1025,11 @@ class ManagePanel
                     'online_at' => null,
                     'used_traffic' => $used_traffic,
                     'links' => [],
-                    'subscription_url' => ($invocie != false && trim((string) $invocie['user_info']) !== '')
-                        ? $invocie['user_info']
-                        : $UsernameData['username'],
+                    'subscription_url' => $cloudius_pw_live !== ''
+                        ? $cloudius_pw_live
+                        : (($invocie != false && trim((string) $invocie['user_info']) !== '')
+                            ? $invocie['user_info']
+                            : $UsernameData['username']),
                     'sub_updated_at' => null,
                     'sub_last_user_agent' => null,
                 );

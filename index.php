@@ -1037,12 +1037,19 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             'ekhtelal' => array(
                 'text' => $textbotlang['keyboard']['sendDisruptionReport'],
                 'callback_data' => "disorder-"
+            ),
+            'changepwd' => array(
+                'text' => '🔑 تغییر رمز عبور',
+                'callback_data' => "changepwd_"
             )
         );
         if ($nameloc['name_product'] == $textbotlang['common']['labels']['testService1']) {
             unset($keyboarddate['transfor']);
             unset($keyboarddate['Extra_time']);
             unset($keyboarddate['removeservice']);
+        }
+        if ($marzban['type'] != "cloudius") {
+            unset($keyboarddate['changepwd']);
         }
         if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik" || $marzban['type'] == "cloudius") {
             unset($keyboarddate['linksub']);
@@ -1920,6 +1927,63 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             'reply_markup' => $Response
         ]);
     }
+} elseif (preg_match('/changepwd_(\w+)/', $datain, $dataget)) {
+    $id_invoice = $dataget[1];
+    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    if (!invoiceBelongsToUser($nameloc, $from_id)) {
+        return;
+    }
+    $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
+    if (($marzban_list_get['type'] ?? '') != "cloudius") {
+        return;
+    }
+    update("user", "Processing_value", $id_invoice, "id", $from_id);
+    step('change_cloudius_pw', $from_id);
+    $kb_pw = json_encode([
+        'inline_keyboard' => [
+            [['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "product_" . $id_invoice]]
+        ]
+    ]);
+    sendmessage($from_id, "🔑 رمز عبور جدید سرویس خود را ارسال کنید\n\nحداکثر ۶ کاراکتر، فقط حروف و اعداد انگلیسی", $kb_pw, 'html');
+} elseif ($user['step'] == "change_cloudius_pw") {
+    $id_invoice = $user['Processing_value'];
+    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    if (!invoiceBelongsToUser($nameloc, $from_id)) {
+        step('home', $from_id);
+        return;
+    }
+    $kb_pw = json_encode([
+        'inline_keyboard' => [
+            [['text' => $textbotlang['users']['status']['backinfo'], 'callback_data' => "product_" . $id_invoice]]
+        ]
+    ]);
+    $newpw = trim($text);
+    if (!preg_match('/^[a-zA-Z0-9]{1,6}$/', $newpw)) {
+        sendmessage($from_id, "❌ رمز عبور باید حداکثر ۶ کاراکتر و فقط شامل حروف و اعداد انگلیسی باشد.", $kb_pw, 'html');
+        return;
+    }
+    $res_pw = setPassword_cloudius($nameloc['Service_location'], $nameloc['username'], $newpw);
+    if (empty($res_pw['status'])) {
+        sendmessage($from_id, "❌ تغییر رمز انجام نشد: " . ($res_pw['msg'] ?? ''), $kb_pw, 'html');
+        return;
+    }
+    // The bot displays the password from its own db, so keep it in sync.
+    update("invoice", "user_info", $newpw, "id_invoice", $id_invoice);
+    step('home', $from_id);
+    sendmessage($from_id, "✅ رمز عبور سرویس تغییر کرد\n\n🔑 رمز جدید : <code>" . $newpw . "</code>", $kb_pw, 'html');
+    // گزارش تغییر رمز به تاپیک «سایر گزارشات» (topic_other)
+    $report_msg_cl = "🔑 تغییر رمز عبور سرویس\n\n"
+        . "🆔 آیدی تلگرام : <code>" . $from_id . "</code>\n"
+        . "🧾 شماره سفارش : <code>" . $id_invoice . "</code>\n"
+        . "👤 نام کاربری سرویس : <code>" . $nameloc['username'] . "</code>\n"
+        . "🛍 نام محصول : " . $nameloc['name_product'] . "\n"
+        . "🔐 رمز جدید : <code>" . $newpw . "</code>";
+    telegram('sendmessage', [
+        'chat_id' => $setting['Channel_Report'],
+        'message_thread_id' => $otherreport,
+        'text' => $report_msg_cl,
+        'parse_mode' => 'html',
+    ]);
 } elseif (preg_match('/changelink_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
     $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
