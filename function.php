@@ -1610,7 +1610,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
             }
             return;
         }
-        $Shoppinginfo = json_encode([
+        $Shoppinginfo = $marzban_list_get['type'] == "cloudius" ? null : json_encode([
             'inline_keyboard' => [
                 [
                     ['text' => $textbotlang['keyboard']['viewTutorial'], 'callback_data' => "helpbtn"],
@@ -1627,7 +1627,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
         $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? $dataoutput['subscription_url'] : "";
         $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "Manualsale" ? $textbotlang['textbot']['manual'] : $textbotlang['textbot']['afterPay'];
         $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "WGDashboard" ? $textbotlang['textbot']['wgDashboard'] : $textbotlang['textbot']['afterPay'];
-        $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
+        $textbotlang['textbot']['afterPay'] = $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius" ? $textbotlang['textbot']['afterPayIbsng'] : $textbotlang['textbot']['afterPay'];
         if (intval($get_invoice['Service_time']) == 0)
             $get_invoice['Service_time'] = $textbotlang['users']['status']['unlimited'];
         $textcreatuser = str_replace('{username}', $dataoutput['username'], $textbotlang['textbot']['afterPay']);
@@ -1638,7 +1638,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
         $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
         $textcreatuser = str_replace('{links}', $config, $textcreatuser);
         $textcreatuser = str_replace('{links2}', "{$output_config_link}", $textcreatuser);
-        if ($marzban_list_get['type'] == "Manualsale" || $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik") {
+        if ($marzban_list_get['type'] == "Manualsale" || $marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius") {
             $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
             update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $get_invoice['id_invoice']);
         }
