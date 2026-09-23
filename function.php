@@ -1610,7 +1610,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
             }
             return;
         }
-        $Shoppinginfo = $marzban_list_get['type'] == "cloudius" ? null : json_encode([
+        $Shoppinginfo = json_encode([
             'inline_keyboard' => [
                 [
                     ['text' => $textbotlang['keyboard']['viewTutorial'], 'callback_data' => "helpbtn"],
