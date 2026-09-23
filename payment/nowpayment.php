@@ -16,8 +16,8 @@ if (isset($data['payment_status']) && $data['payment_status'] == "finished") {
     $pay = StatusPayment($data['payment_id']);
     if ($pay['payment_status'] != "finished")
         return;
-    $Payment_report = select("Payment_report", "*", "dec_not_confirmed", $pay['invoice_id'], "select");
-    if ($Payment_report) {
+    $Payment_report = select("Payment_report", "*", "id_order", (string) ($pay['order_id'] ?? ''), "select");
+    if ($Payment_report && $Payment_report['Payment_Method'] === "nowpayment" && (string) $Payment_report['dec_not_confirmed'] === (string) ($pay['invoice_id'] ?? '')) {
         if (!claimPaymentPaid($Payment_report['id_order']))
             return;
         try {

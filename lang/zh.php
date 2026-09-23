@@ -159,11 +159,6 @@ return [
                         'agent' => '代理',
                         'normal' => '普通',
                 ],
-                'gateways' => [
-                        'perfectMoney' => 'Perfect Money',
-                        'rial1' => '里亚尔货币支付',
-                        'rial2' => '第二里亚尔货币支付',
-                ],
                 'labels' => [
                         'testServiceName' => '测试服务',
                         'toman' => '托曼',
@@ -229,7 +224,6 @@ return [
                         'blockedfake' => '⭕️ 封禁用户',
                         'changeto' => '❌ 错误 
     通过此网关支付的最低金额为 2 TRON',
-                        'confirmPayAdmin' => '⭕️ 该支付已被确认',
                         'confirmPaying' => '✅ 确认支付',
                         'errorLinkPayment' => '❌ 创建支付链接时出错，请联系客服解决。',
                         'errorprice' => '❌ 错误 
@@ -240,12 +234,12 @@ return [
 💸 如需充值，请输入金额（托曼）：
 ✅ 最低金额 %s 托曼，最高金额 %s 托曼',
                         'linkpayments' => '正在创建支付链接……',
+                        'notEnoughBalance' => '❌ 您的余额不足，请先充值。',
                         'maxpurchasereached' => '❌ 您已达到购买上限。请先为账户充值，然后再购买新服务或续费现有服务',
                         'nowpayments' => '❌ 错误 
     通过此网关支付的最低金额为 1 美元。',
                         'payments' => '支付',
                         'receiptimage' => '🖼 已提交的收据图片',
-                        'refunded' => '金额已退回到您的钱包',
                         'rejectPay' => '❌ 拒绝支付',
                         'selectPayment' => '💵 请选择您的支付方式',
                         'sendReceipt' => '🚀 您的支付收据已发送。经管理员审核通过后，金额将存入您的钱包',
@@ -253,6 +247,8 @@ return [
                         'sending' => '已收到付款，正在审核中，请稍候',
                         'waiting' => '等待支付确认',
                         'zarinpal' => '❌ 错误 
+    通过此网关支付的最低金额为 5000 托曼。',
+                        'variza' => '❌ 错误 
     通过此网关支付的最低金额为 5000 托曼。',
                         'cardEnabledNotice' => '💳 尊敬的用户，卡号已为您激活；现在您可以进行购买。',
                         'cardInstructionAlt' => '如需付款，请将金额存入下方卡号',
@@ -355,12 +351,6 @@ return [
 
 ⚠️  最低金额为 <b>%s</b>，最高为 <b>%s</b> 托曼',
                         'giftDeposit' => '🎁 尊敬的用户，%s 托曼已作为礼物存入您的账户。',
-                        'invoiceExpired' => '⭕️ 尊敬的用户，以下发票因未在指定时间内付款而过期。
-❗️请在任何情况下都不要为此发票支付任何金额，并重新创建发票。
-
-🛒 您的支付方式：%s
-📌 发票代码：<code>%s</code>
-🪙 发票金额：%s 托曼',
                         'giftDepositIranpay' => '🎁 尊敬的用户，%s 托曼已作为礼物存入您的账户。',
                         'invoiceCreated' => '✅ 已创建付款发票。
 
@@ -416,6 +406,14 @@ return [
 ❌ 交易后需要 15 分钟到一小时才能批准交易
 
 ✅ 如有问题，您可以联系客服',
+                        'cubepayCardDetails' => '💳 银行卡转账付款
+
+🔢 卡号：<code>%s</code>
+👤 持卡人：%s
+💰 准确金额：<code>%s</code> 托曼
+⏳ 付款期限：%s 分钟
+
+⚠️ 请务必转账这一准确金额；末尾数字是特意设置的，自动确认依赖于此。',
                         'transactionCreated3' => '✅ 您的交易已创建
         
 🛒 跟踪码：<code>%s</code> 
@@ -1213,7 +1211,6 @@ https://t.me/%s?start=%s',
                 'wheelLuck' => [
                         'alreadyParticipated' => '❌ 您今天已参与过。明天再试试运气吧',
                         'error' => '❌ 获取游戏结果时出错。请稍后再试。',
-                        'featureDisabled' => '❌ 此功能目前已关闭',
                         'notWinner' => '🥲 很遗憾您没有中奖。改天再来试试吧',
                         'wheelWinner' => '⭕️ 用户名为 @%s、数字ID 为 %s 的用户赢得了幸运转盘',
                         'winnerCongratulations' => '🤩 恭喜您中奖了！%s 托曼已添加到您的账户。',
@@ -1221,6 +1218,20 @@ https://t.me/%s?start=%s',
                 ],
         ],
         'Admin' => [
+                'cronHealth' => [
+                        'title' => "⏱ <b>定时任务状态</b>",
+                        'running' => "✅ 定时任务正在运行。",
+                        'stopped' => "❌ 定时任务未运行或已停止。",
+                        'lastRun' => "🕐 上次运行：%s",
+                        'never' => "从未",
+                        'justNow' => "刚刚",
+                        'minutesAgo' => "%s 分钟前",
+                        'disabled' => "已关闭",
+                        'command' => "📌 如需手动设置，请将此行添加到服务器 crontab：\n<code>%s</code>",
+                        'refresh' => "🔄 刷新",
+                        'fix' => "🔧 重新安装定时任务",
+                        'fixed' => "✅ 定时任务已重新安装。",
+                ],
                 'activeBotText' => '使用管理面板功能：
 
 前往底部带有键盘的页面。
@@ -1265,7 +1276,6 @@ https://t.me/%s?start=%s',
                 'notUser' => '未找到具有此ID的用户',
                 'panelAdmin' => '👨‍💼 管理面板',
                 'saved' => '✅ 已保存。',
-                'selectOption' => '📌 请选择一个选项',
                 'selectOption2' => '请选择一个选项',
                 'selectOption3' => '📌 请从下方列表中选择一个选项',
                 'selectOption4' => '请选择下方的一个选项 ',
@@ -1319,19 +1329,17 @@ n2',
 收到的错误：  %s',
                 ],
                 'Discount' => [
-                        'agentCode' => '您想为哪位用户定义此码？
-
-⚠️ 如果想为所有用户定义，请发送文本 <code>allusers</code>',
+                        'giftManage' => "🎁 礼品码管理\n\n• 🎫 已登记的代码：%s\n\n📌 使用每个代码旁边的按钮查看详情或删除。",
+                        'giftDetail' => "🎫 %s\n\n💰 金额：%s 托曼\n🔴 总次数限制：%s\n✅ 已使用：%s 次",
+                        'discountManage' => "🎁 优惠码管理\n\n• 🎫 已登记的代码：%s\n\n📌 使用每个代码旁边的按钮查看详情或删除。",
+                        'discountDetail' => "🎫 %s\n\n🧮 折扣：%s%%\n🎯 用户组：%s\n🧩 适用范围：%s\n🎛 面板：%s\n📦 产品：%s\n🔴 总次数限制：%s\n👤 每位用户限制：%s\n🥇 仅限首次购买：%s\n⏳ 到期：%s\n✅ 已使用：%s 次",
+                        'agentCode' => '🎯 此码适用于哪个用户组？',
                         'errorCode' => '代码无效。代码必须为英文且不含多余字符',
                         'firstDiscount' => '📌 此优惠码应用于首次购买还是所有购买？',
                         'getCode' => '请发送一个礼品码代码',
                         'invalidAgentCode' => '❌ 用户类型无效',
-                        'notCode' => '❌ 错误 
-📝 所选礼品码不存在',
                         'priceCode' => '已收到代码。现在请发送该代码的金额',
                         'priceCodeSell' => '已收到代码。现在请发送该代码的百分比',
-                        'removeCode' => '请选择您想删除的代码',
-                        'removedCode' => '✅ 代码已成功删除。',
                         'saveCode' => '✅ 代码已成功登记',
                         'setLimitUse' => '📌 请发送使用次数限制。
 ⚠️ 该限制适用于所有用户',
@@ -1339,10 +1347,8 @@ n2',
                         'askUserLimit' => '📌 请发送单个用户的使用次数限制。',
                         'askSection' => '📌 优惠码应适用于哪个部分？',
                         'userLimitTooHigh' => '📌 单个用户的使用次数必须小于总限制',
-                        'askProductLocation' => '📌 要为特定产品设置优惠码，请先选择产品位置。
-注意：要选择所有面板，请发送词语 <code>/all</code>',
-                        'askProduct' => '📌 优惠码应适用于哪个产品？请注意，如果您希望优惠码适用于所有产品，请发送词语 all',
-                        'invalidPercent' => '百分比无效',
+                        'askProductLocation' => '🎛 优惠码适用于哪个面板？',
+                        'askProduct' => '📦 优惠码适用于哪个产品？',
                         'created' => '
 🎁 您的优惠码创建成功。
 
@@ -1512,24 +1518,20 @@ n2',
                         'activePanel' => '⭕️ 在此部分，您可以开启或关闭面板的销售功能',
                         'activePanelOff' => '❌ 面板已关闭',
                         'activePanelOn' => '✅ 面板已开启',
+                        'wheelSettings' => "🎲 <b>幸运转盘设置</b>\n\n💰 奖金金额：<b>%s</b> 托曼\n\n📌 点击项目即可开启或关闭。",
+                        'lotterySettings' => "🎁 <b>抽奖设置</b>\n\n🥇 一等奖：<b>%s</b> 托曼\n🥈 二等奖：<b>%s</b> 托曼\n🥉 三等奖：<b>%s</b> 托曼\n\n📌 点击项目即可开启或关闭。",
+                        'categoryTitle' => "<b>%s</b>\n\n📌 点击功能即可开启或关闭。",
                         'botTitle' => '📌 在此部分，您可以指定以下功能是否启用。',
                         'btn' => '📊 机器人统计',
                         'cardStatusOffPv' => '⭕ 私聊中的离线网关状态已关闭',
                         'cardStatusOnPv' => '私聊中的离线网关状态已开启',
                         'cardTitlePv' => '在此部分，您可以停用卡转卡功能，并在私聊中处理卡转卡流程',
-                        'commission' => '机器人启动后赠送功能的启用状态',
-                        'commissionOff' => '佣金功能已停用',
-                        'commissionOn' => '佣金功能已启用',
-                        'discountAffiliates' => '赠送功能的启用状态',
-                        'discountAffiliatesOff' => '赠送功能已停用',
-                        'discountAffiliatesOn' => '赠送功能已启用',
                         'inlinebtns' => '🛡 机器人按钮玻璃态（内联）',
                         'paydirect' => '🎯 直接购买状态',
                         'statusBot' => '📡 机器人状态',
                         'statusCategoryTime' => '⏱ 时间分类',
                         'statusNotifNewUser' => '👤 新用户通知',
                         'statusRole' => '♨️ 规则',
-                        'statusShowAgent' => '👨‍💻 代理申请',
                         'statusSubject' => '状态',
                         'statusTimeExtra' => '⏳ 额外时间',
                         'statusUsernameBtn' => '👤 用户名按钮',
@@ -1573,18 +1575,17 @@ n2',
                         'askBanner' => '⭕️ 请发送您的推荐横幅 
 
 ❌ 横幅必须包含图片',
-                        'joinGiftSaved' => '✅ 推荐金额已成功登记',
-                        'percentSaved' => '✅ 用户的返现比例已成功设置',
-                        'bannerSaved' => '✅ 您的横幅已成功登记。',
                         'invalidBanner' => '❌ 您发送的横幅无效（横幅必须附带图片发送）',
                         'askJoinGift' => '📌 请输入您希望用户每次新增下线时获得的金额',
+                        'settingsTitle' => "🎁 <b>推荐设置</b>\n\n• 🎁 购买后佣金：%s\n• 🎉 佣金：%s\n• 🧮 佣金比例：%s\n• 🎁 启动礼物：%s\n• 💎 启动礼物金额：%s 托曼\n\n📌 点击项目左侧按钮进行修改。",
+                        'invalidNumber' => "❌ 数值必须是数字。",
+                        'saved' => "✅ 已保存。",
                         'askPercent' => '📌 请发送您希望在购买后返现给用户的比例',
                         'titleTopic' => '🎁 佣金报告',
                         'noReferrals' => '❌ 该用户没有下线。',
                         'idsSent' => '📌 已发送与该用户下线相关的 ID。',
                         'userRemoved' => '📌 该用户已从下线中移除。',
                         'referralsDeleted' => '📌 该用户的下线已删除。',
-                        'commissionScope' => '您可以决定佣金是仅为下线的首次购买提供，还是为其所有购买提供。',
                 ],
                 'agent' => [
                         'getTypeAgent' => '📌 如需添加代理，请发送代理类型
@@ -1802,6 +1803,7 @@ trojan://xyz',
                         'deleted' => '📌 所选部分已删除。',
                 ],
                 'gateway' => [
+                        'detail' => "💳 网关：<b>%s</b>\n\n状态：%s\n\n📌 点击按钮以更改状态或设置。",
                         'cubepayFeeOn' => "✅ 已<b>开启</b>向客户收取手续费。\n\n💵 当前数值：<b>%s</b>\n该数值会加到客户的账单上，但用户余额仍按其请求的金额充值。",
                         'cubepayFeeOff' => "❌ 已<b>关闭</b>向客户收取手续费。",
                         'cubepayFeeAsk' => "💵 请发送手续费数值：\n\n▫️ <b>0 到 100</b> → 按<b>百分比</b>收取（可含小数，如 <code>9.9</code>）\n▫️ <b>大于 100</b> → 按<b>固定土曼金额</b>收取（如 <code>5000</code>）\n\n当前数值：<b>%s</b>",
@@ -1830,6 +1832,12 @@ nowpayments.io
                         'askAqayePardakhtMerchant' => '💳 从 Aghaye Pardakht 获取您的商户代码并在此部分输入
         
 您当前的商户代码：%s',
+'askVarizaApiToken' => '💳 请从 Variza 控制面板（个人资料 → API 密钥）输入您的 Variza API 令牌
+
+当前密钥：<code>%s</code>',
+'askVarizaWebhookSecret' => '🔐 请从 Variza 控制面板（个人资料 → Webhook）输入您的 Variza Webhook 密钥
+
+当前密钥：<code>%s</code>',
                         'askZarinpalMerchant' => '💳 从 ZarinPal 获取您的商户代码并在此部分输入
         
 您当前的商户代码：%s',
@@ -2409,7 +2417,9 @@ f,n.n2',
 ✅ 已删除 %s 个未付款订单
 ✅ 已删除 %s 个未激活订单。
 ✅ 已删除 %s 个管理员删除的订单
-✅ 已删除 %s 个测试订单。',
+✅ 已删除 %s 个测试订单。
+✅ 已删除 %s 个用户删除的订单。
+✅ 已删除 %s 个已到期（时间或流量）的订单。',
                         'backupCaption' => '📌 主机器人数据库导出 ',
                         'dailyBot' => '📌 机器人每日运行报告：
 
@@ -2861,11 +2871,6 @@ f,n.n2',
   - 推荐人礼品前余额：%s
  - 推荐人礼品后余额：%s
  ',
-                        'newPayment' => '💵 新付款
-                
-用户数字 ID：%s
-交易金额：%s 
-支付方式：第一里亚尔货币网关',
                         'newPaymentAutoConfirm' => '💵 新付款
         
 用户数字 ID：%s
@@ -3649,7 +3654,7 @@ f,n.n2',
                 'help' => '📚 教程',
                 'iranPay1' => '💸 里亚尔支付网关',
                 'iranPay2' => '💸 第二里亚尔支付网关',
-                'iranPay3' => '💸 cubpay',
+                'iranPay3' => '💸 CubePay',
                 'iranPay4' => '💳 AbanGateway（卡对卡）',
                 'tronado' => '💳 通过 Tronado 卡对卡支付',
                 'manual' => '✅ 服务创建成功
@@ -3706,9 +3711,17 @@ f,n.n2',
 🧑‍🦯 您可以通过按下方按钮并选择您的操作系统来获取连接方法',
                 'wheelLuck' => '🎲 幸运转盘',
                 'zarinPal' => '🟡 ZarinPal',
+                'variza' => '💳 Variza（自动点对点转账',
         ],
         'keyboard' => [
                 'acceptRules' => '✅ 我接受规则',
+                'fxApiKey' => '🔑 FrenzyEx API 密钥',
+                'fxIpnSecret' => '🖋 FrenzyEx IPN 密钥',
+                'fxMinAmount' => '⬇️ FrenzyEx 最低金额',
+                'fxMaxAmount' => '⬆️ FrenzyEx 最高金额',
+                'fxCashback' => '🎁 FrenzyEx 返现',
+                'fxEducation' => '📚 FrenzyEx 教程',
+                'frenzyExLabel' => '🌹 FrenzyEx 卡对卡',
                 'accountCreateLimit' => '🚨 账户创建限制',
                 'activateAccount' => '💡 开启账户',
                 'activateCard' => '💳 激活卡号',
@@ -3756,7 +3769,7 @@ f,n.n2',
                 'apiT' => 'API T',
                 'appDownloadLink' => '🔗 应用下载链接',
                 'appDownloadLinkAlt' => '🔗应用下载链接',
-                'aqayePardakhtGateway' => '🔵 Aghaye Pardakht',
+                'aqayePardakhtGateway' => 'Aghaye Pardakht',
                 'authWithLink' => '🔑 通过链接进行身份认证',
                 'authenticate' => '🔒 身份认证',
                 'authenticateUser' => '用户身份认证',
@@ -3790,13 +3803,13 @@ f,n.n2',
                 'cancelGiftSend' => '❌ 取消发送礼品',
                 'cancelOperation' => '取消操作',
                 'cancelPinnedMessages' => '取消置顶消息',
-                'cartToCartGateway' => '🔌 卡对卡',
+                'cartToCartGateway' => '卡对卡',
                 'cashbackAqayePardakht' => '💰 Aghaye Pardakht 返现',
                 'cashbackCartToCart' => '💰 卡对卡返现',
                 'cashbackIranPay1' => '💰 里亚尔货币返现',
-                'cashbackIranPay2' => '💰 cubpay 返现',
-                'feeStatusIranPay2' => '🧾 cubpay 手续费（开/关）',
-                'feeAmountIranPay2' => '💵 cubpay 手续费数值',
+                'cashbackIranPay2' => '💰 CubePay 返现',
+                'feeStatusIranPay2' => '🧾 CubePay 手续费（开/关）',
+                'feeAmountIranPay2' => '💵 CubePay 手续费数值',
                 'cashbackIranPay3' => '💰 第三里亚尔货币返现',
                 'cashbackNowPayment' => '💰 nowpayment 返现',
                 'cashbackPlisio' => '💰 plisio 返现',
@@ -3841,7 +3854,7 @@ f,n.n2',
                 'cronTest' => '🔓测试定时任务',
                 'cronTime' => '🕚 时间定时任务',
                 'cronVolume' => '🔋 流量定时任务',
-                'cryptoOfflinePayment' => '💵离线货币',
+                'cryptoOfflinePayment' => '离线货币',
                 'currentMonth' => '☀️ 本月 ',
                 'customServiceGroupF' => '♻️ 自定义服务组 f',
                 'customServiceGroupN' => '♻️ 自定义服务组 n',
@@ -3865,9 +3878,7 @@ f,n.n2',
                 'deleteChannel' => '删除频道',
                 'deleteConfig' => '❌ 删除配置 ',
                 'deleteDepartment' => '🔽 删除部门',
-                'deleteDiscountCode' => '❌ 删除优惠码',
                 'deleteEducation' => '❌ 删除教程',
-                'deleteGiftCode' => '❌ 删除礼品码',
                 'deleteNode' => '❌ 删除节点',
                 'deletePanel' => '❌ 删除面板',
                 'deleteProduct' => '❌ 删除产品',
@@ -3875,7 +3886,6 @@ f,n.n2',
                 'deleteService' => '❌ 删除服务',
                 'deleteServiceAlt' => '❌删除服务',
                 'deleteServiceFull' => '🗑 彻底删除服务',
-                'deleteTime' => '⚙️ 删除时间',
                 'deleteUserAffiliates' => '🔄 删除用户的下线',
                 'diamondPayment' => '💎 付款',
                 'disableShowCard' => '💰  停用卡号显示',
@@ -3905,7 +3915,6 @@ f,n.n2',
                 'extraVolumePrice' => '➕ 额外流量价格',
                 'featureStatus' => '⚙️ 功能状态',
                 'financial' => '💎 财务',
-                'firstConnectTime' => '⚙️ 首次连接时间',
                 'firstConnection' => '📊 首次连接',
                 'firstConnectionTest' => '📊 测试账户首次连接',
                 'firstPurchaseBtn' => '首次购买',
@@ -3931,10 +3940,10 @@ f,n.n2',
                 'increaseGroupPrice' => '⬆️ 批量涨价',
                 'infoRefreshed' => '♻️ 信息已更新',
                 'infoUpdated' => '信息已更新',
-                'iranPay1Label' => '📌 第一里亚尔货币',
-                'iranPay2Label' => '📌 cubpay',
-                'iranPay3Label' => '📌第三里亚尔货币',
-                'iranPay4Label' => '📌 AbanGateway',
+                'iranPay1Label' => '第一里亚尔货币',
+                'iranPay2Label' => 'CubePay',
+                'iranPay3Label' => '第三里亚尔货币',
+                'iranPay4Label' => 'AbanGateway',
                 'apiIranPay4' => '🔑 AbanGateway 密钥',
                 'endpointIranPay4' => '🔗 AbanGateway 网关地址',
                 'askEndpointIranPay4' => '🔗 请发送网关地址。\n\nAbanGateway 面板会在密钥旁显示。必须以 https:// 开头。\n\n当前值：%s',
@@ -3988,7 +3997,7 @@ f,n.n2',
                 'maxAmountCartToCart' => '⬆️ 卡对卡最高金额',
                 'maxAmountCryptoOffline' => '⬆️ 离线加密货币最高金额',
                 'maxAmountIranPay1' => '⬆️ 里亚尔货币最高金额',
-                'maxAmountIranPay2' => '⬆️ cubpay 最高金额',
+                'maxAmountIranPay2' => '⬆️ CubePay 最高金额',
                 'maxAmountIranPay3' => '⬆️ 第三里亚尔货币最高金额',
                 'maxAmountNowPayment' => '⬆️ nowpayment 最高金额',
                 'maxAmountPlisio' => '⬆️ plisio 最高金额',
@@ -4003,7 +4012,7 @@ f,n.n2',
                 'minAmountCartToCart' => '⬇️ 卡对卡最低金额',
                 'minAmountCryptoOffline' => '⬇️ 离线加密货币最低金额',
                 'minAmountIranPay1' => '⬇️ 里亚尔货币最低金额',
-                'minAmountIranPay2' => '⬇️ cubpay 最低金额',
+                'minAmountIranPay2' => '⬇️ CubePay 最低金额',
                 'minAmountIranPay3' => '⬇️ 第三里亚尔货币最低金额',
                 'minAmountNowPayment' => '⬇️ nowpayment 最低金额',
                 'minAmountPlisio' => '⬇️ plisio 最低金额',
@@ -4024,10 +4033,9 @@ f,n.n2',
                 'numericIdSequential' => '数字 ID+顺序编号',
                 'offlineGatewayPv' => '💳 私聊中的离线网关',
                 'operation' => '操作',
-                'optimizeBot' => '🗑 优化机器人 ',
+                'optimizeBot' => '🗑 优化机器人',
                 'paidSendReceipt' => '✅ 我已付款 | 发送收据。',
                 'panelFeatureStatus' => '⚙️ 面板功能状态',
-                'panelFeatures' => '🛠 面板功能',
                 'panelName' => '✍️ 面板名称',
                 'panelUptime' => '🎛 面板运行时长',
                 'passargadPanel' => 'Pasargard',
@@ -4095,7 +4103,7 @@ f,n.n2',
                 'setEducationCartToCart' => '📚 设置卡对卡教程',
                 'setEducationCryptoOffline' => '📚 设置离线货币教程 ',
                 'setEducationIranPay1' => '📚 设置第一里亚尔货币教程',
-                'setEducationIranPay2' => '📚 设置 cubpay 教程',
+                'setEducationIranPay2' => '📚 设置 CubePay 教程',
                 'setEducationIranPay3' => '📚 设置第三里亚尔货币教程',
                 'setEducationNowPayment' => '📚 设置 nowpayment 教程',
                 'setEducationPlisio' => '📚 设置 plisio 教程',
@@ -4115,7 +4123,6 @@ f,n.n2',
                 'shopFeatureStatus' => '🛒 商店功能状态',
                 'shopSettings' => '🏬 商店设置',
                 'showCartAfterFirstPay' => '🔒 首次付款后显示卡对卡',
-                'showDice' => '🎰 显示骰子',
                 'showFirstPurchase' => '为首次购买显示',
                 'showHiddenPanels' => '🗑 显示隐藏的面板',
                 'showPanel' => '🖥 显示面板',
@@ -4135,7 +4142,6 @@ f,n.n2',
                 'testAccountVolume' => '💾 测试账户流量',
                 'testServiceTime' => '⏳ 测试服务时间',
                 'time' => '时间',
-                'timeAlert' => '⚙️ 警告时间',
                 'timeDuration' => '⏳ 时间',
                 'today' => '⛅️ 今天',
                 'totalStats' => '⏱️ 总统计',
@@ -4164,13 +4170,35 @@ f,n.n2',
                 'viewTutorial' => '📚 查看使用教程 ',
                 'volume' => '流量',
                 'volume2' => '🔋 流量',
-                'volumeAlert' => '⚙️ 警告流量',
                 'volumeResetType' => '流量重置类型',
+                'apiNowPayment' => 'API NOWPAYMENT',
                 'walletAddress' => '钱包地址',
+                'cronStatus' => '⏱ 定时任务状态',
+                'wheelGameType' => '🎮 游戏类型',
+                'wheelModeDice' => '🎲 骰子',
+                'wheelModeSlot' => '🎰 老虎机',
+                'featureCategoryGeneral' => '🤖 常规',
+                'featureCategorySales' => '🛒 销售与奖励',
+                'featureCategoryCron' => '⏱ 定时任务',
+                'manageDiscountCode' => '🎁 优惠码管理',
+                'purchaseAndRenew' => '购买和续订',
+                'allPanels' => '🌍 所有面板',
+                'allProducts' => '📦 所有产品',
+                'manageGiftCode' => '🎁 礼品码管理',
+                'deleteThisCode' => '❌ 删除此代码',
+                'backToGateways' => '🔙 返回网关列表',
+                'gatewaysGeneralSettings' => '➖➖ 常规设置 ➖➖',
                 'wheelOfLuck' => '🎲 幸运转盘',
                 'yes' => '是',
                 'yesterday' => '☀️ 昨天',
-                'zarinPalGateway' => '🟡 ZarinPal',
+                'zarinPalGateway' => 'ZarinPal',
+                'varizaGateway' => 'Variza',
+'varizaApiToken' => 'Variza API 令牌',
+'varizaWebhookSecret' => 'Variza Webhook 密钥',
+'cashbackVariza' => 'Variza 返现',
+'minAmountVariza' => 'Variza 最低金额',
+'maxAmountVariza' => 'Variza 最高金额',
+'setEducationVariza' => 'Variza 教程',
                 'zarinPalMerchant' => 'ZarinPal 商户',
                 'zeroBalance' => '0️⃣ 余额清零',
                 'panelSetting' => '🎛 面板设置',
@@ -4396,6 +4424,7 @@ f,n.n2',
                 'paymentMethodRialGateway2' => '里亚尔网关 2',
                 'paymentMethodRialGateway3' => '里亚尔网关 3',
                 'paymentMethodTelegramStar' => 'Telegram Stars',
+                'paymentMethodVariza' => 'Variza',
                 'paymentMethodZarinpal' => 'ZarinPal',
                 'paymentSearchBtn' => '总数',
                 'paymentSearchTransactionPlaceholder' => '用户 ID 或交易编号...',
@@ -4777,7 +4806,7 @@ f,n.n2',
 - 👤 用户用户名：@%s
 - 🆔用户数字 ID：%s
 - 💸 交易金额 %s
-- 💳 支付方式：cubpay',
+- 💳 支付方式：CubePay',
                 'reportTronadoGateway' => '💵 新付款
 - 👤 用户名 : @%s
 - 🆔 用户 ID : %s
@@ -4797,6 +4826,13 @@ f,n.n2',
 - 💸 交易金额 %s
 - 📥 已存入的 Tron 金额：%s
 - 💳 支付方式：nowpayment',
+                'reportVariza' => '💵 新付款
+- 👤 用户用户名：@%s
+- 🆔 用户数字 ID：%s
+- 💸 交易金额 %s
+- 🧾 订单 ID：%s
+- 🔗 Variza 支付标识：%s
+- 💳 支付方式：Variza',
                 'invoiceTitle' => '付款发票',
                 'invoiceTransactionNo' => '交易编号：',
                 'invoiceAmount' => '支付金额：',

@@ -118,13 +118,13 @@ function hasAdminSession()
     }
 
     try {
-        $admin = select("admin", "id_admin", "username", $_SESSION['admin_user'], "select");
+        $admin = select("admin", "*", "username", $_SESSION['admin_user'], "select");
     } catch (Exception $e) {
         error_log("Admin session check failed: " . $e->getMessage());
         return false;
     }
 
-    return is_array($admin) && isset($admin['id_admin']);
+    return is_array($admin) && isset($admin['id_admin']) && $admin['rule'] === 'administrator';
 }
 
 function requireApiTokenOrAdminSession($headers)
@@ -173,7 +173,7 @@ function logApiRequest($headers, $data, $action)
             "INSERT IGNORE INTO logs_api (header, data, time, ip, actions) VALUES (?, ?, ?, ?, ?)"
         );
         $stmt->execute([
-            json_encode($headers),
+            json_encode(array_diff_key(array_change_key_case((array) $headers), array_flip(['token', 'authorization', 'cookie']))),
             json_encode($data),
             date('Y/m/d H:i:s'),
             $_SERVER['REMOTE_ADDR'] ?? 'unknown',

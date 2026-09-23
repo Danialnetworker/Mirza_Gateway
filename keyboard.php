@@ -31,7 +31,9 @@ $replacements = [
     'text_Tariff_list' => $textbotlang['textbot']['tariffList'],
     'text_affiliates' => $textbotlang['textbot']['affiliates'],
     'text_wheel_luck' => $textbotlang['textbot']['wheelLuck'],
-    'text_extend' => $textbotlang['textbot']['extend']
+    'text_extend' => $textbotlang['textbot']['extend'],
+    'text_agentpanel' => $textbotlang['textbot']['agentPanel'],
+    'text_requestagent' => $textbotlang['textbot']['requestAgent']
 ];
 $admin_idss = select("admin", "*", "id_admin", $from_id, "count");
 $temp_addtional_key = [];
@@ -41,6 +43,8 @@ if (is_array($keyboardLayout) && isset($keyboardLayout['keyboard']) && is_array(
     $keyboardRows = $keyboardLayout['keyboard'];
 }
 
+$agentPanelAllowed = $users['agent'] != "f";
+$agentRequestAllowed = $users['agent'] == "f";
 if (!empty($keyboardRows)) {
     $allowed_btn_styles = ['primary', 'success', 'danger'];
     foreach ($keyboardRows as $kb_r => $kb_row) {
@@ -48,11 +52,23 @@ if (!empty($keyboardRows)) {
             continue;
         }
         foreach ($kb_row as $kb_c => $kb_btn) {
-            if (is_array($kb_btn) && isset($kb_btn['style']) && !in_array($kb_btn['style'], $allowed_btn_styles, true)) {
+            if (!is_array($kb_btn)) {
+                continue;
+            }
+            if (isset($kb_btn['style']) && !in_array($kb_btn['style'], $allowed_btn_styles, true)) {
                 unset($keyboardRows[$kb_r][$kb_c]['style']);
             }
+            $kb_text = isset($kb_btn['text']) ? $kb_btn['text'] : '';
+            if (($kb_text === "text_agentpanel" && !$agentPanelAllowed) || ($kb_text === "text_requestagent" && !$agentRequestAllowed)) {
+                unset($keyboardRows[$kb_r][$kb_c]);
+            }
+        }
+        $keyboardRows[$kb_r] = array_values($keyboardRows[$kb_r]);
+        if (empty($keyboardRows[$kb_r])) {
+            unset($keyboardRows[$kb_r]);
         }
     }
+    $keyboardRows = array_values($keyboardRows);
 }
 
 if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
@@ -89,16 +105,16 @@ if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
             if ($keyboard['text'] == "text_usertest") {
                 $trace_keyboard[$key][$keyboard_key]['callback_data'] = "usertestbtn";
             }
+            if ($keyboard['text'] == "text_agentpanel") {
+                $trace_keyboard[$key][$keyboard_key]['callback_data'] = "agentpanel";
+            }
+            if ($keyboard['text'] == "text_requestagent") {
+                $trace_keyboard[$key][$keyboard_key]['callback_data'] = "requestagent";
+            }
         }
     }
     if ($admin_idss != 0) {
         $temp_addtional_key[] = ['text' => $textbotlang['Admin']['panelAdmin'], 'callback_data' => "admin"];
-    }
-    if ($users['agent'] != "f") {
-        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['agentPanel'], 'callback_data' => "agentpanel"];
-    }
-    if ($users['agent'] == "f" && $setting['statusagentrequest'] == "onrequestagent") {
-        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['requestAgent'], 'callback_data' => "requestagent"];
     }
     $keyboard = ['inline_keyboard' => []];
     $keyboardcustom = $trace_keyboard;
@@ -109,12 +125,6 @@ if ($setting['inlinebtnmain'] == "oninline" && !empty($keyboardRows)) {
 } else {
     if ($admin_idss != 0) {
         $temp_addtional_key[] = ['text' => $textbotlang['Admin']['panelAdmin']];
-    }
-    if ($users['agent'] != "f") {
-        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['agentPanel']];
-    }
-    if ($users['agent'] == "f" && $setting['statusagentrequest'] == "onrequestagent") {
-        $temp_addtional_key[] = ['text' => $textbotlang['textbot']['requestAgent']];
     }
     $keyboard = ['keyboard' => [], 'resize_keyboard' => true];
     $keyboardcustom = $keyboardRows;
@@ -144,9 +154,9 @@ if ($adminrulecheck['rule'] == "administrator") {
             [['text' => $textbotlang['Admin']['btnKeyboard']['managementPanel']], ['text' => $textbotlang['Admin']['btnKeyboard']['addPanel']]],
             [['text' => $textbotlang['keyboard']['quickSetTimePrice']], ['text' => $textbotlang['keyboard']['quickSetVolumePrice']]],
             [['text' => $textbotlang['Admin']['btnKeyboard']['manageUser']], ['text' => $textbotlang['keyboard']['shopSettings']]],
-            [['text' => $textbotlang['keyboard']['financial']]],
+            [['text' => $textbotlang['keyboard']['financial']], ['text' => $textbotlang['keyboard']['cronStatus']]],
             [['text' => $textbotlang['keyboard']['supportSection']], ['text' => $textbotlang['keyboard']['educationSection']]],
-            [['text' => $textbotlang['keyboard']['botReport']], ['text' => $textbotlang['keyboard']['panelFeatures']]],
+            [['text' => $textbotlang['keyboard']['botReport']]],
             [['text' => $textbotlang['keyboard']['generalSettings']], ['text' => $textbotlang['keyboard']['pendingReceipts']]],
             [['text' => $textbotlang['bottext']['open_button']]],
             [['text' => $textbotlang['users']['backbtn']]]
@@ -174,76 +184,80 @@ if ($adminrulecheck['rule'] == "support") {
     ]);
 }
 $CartManage = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['setCardNumber']], ['text' => $textbotlang['keyboard']['deleteCardNumber']]],
-        [['text' => $textbotlang['keyboard']['supportId'],], ['text' => $textbotlang['keyboard']['offlineGatewayPv']]],
-        [['text' => $textbotlang['keyboard']['disableShowCard']], ['text' => $textbotlang['keyboard']['enableShowCard']]],
-        [['text' => $textbotlang['keyboard']['groupShowCard']]],
-        [['text' => $textbotlang['keyboard']['exportActiveCardUsers']]],
-        [['text' => $textbotlang['keyboard']['cashbackCartToCart']]],
-        [['text' => $textbotlang['keyboard']['showCartAfterFirstPay']]],
-        [['text' => $textbotlang['keyboard']['minAmountCartToCart']], ['text' => $textbotlang['keyboard']['maxAmountCartToCart']]],
-        [['text' => $textbotlang['keyboard']['setEducationCartToCart']]],
-        [['text' => $textbotlang['keyboard']['autoConfirmNoCheck']]],
-        [['text' => $textbotlang['keyboard']['excludeUserAutoConfirm']]],
-        [['text' => $textbotlang['keyboard']['autoConfirmNoCheckTime']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['setCardNumber'], 'callback_data' => "paygwopt-setCardNumber"], ['text' => $textbotlang['keyboard']['deleteCardNumber'], 'callback_data' => "paygwopt-deleteCardNumber"]],
+        [['text' => $textbotlang['keyboard']['supportId'], 'callback_data' => "paygwopt-supportId"], ['text' => $textbotlang['keyboard']['offlineGatewayPv'], 'callback_data' => "paygwopt-offlineGatewayPv"]],
+        [['text' => $textbotlang['keyboard']['disableShowCard'], 'callback_data' => "paygwopt-disableShowCard"], ['text' => $textbotlang['keyboard']['enableShowCard'], 'callback_data' => "paygwopt-enableShowCard"]],
+        [['text' => $textbotlang['keyboard']['groupShowCard'], 'callback_data' => "paygwopt-groupShowCard"]],
+        [['text' => $textbotlang['keyboard']['exportActiveCardUsers'], 'callback_data' => "paygwopt-exportActiveCardUsers"]],
+        [['text' => $textbotlang['keyboard']['cashbackCartToCart'], 'callback_data' => "paygwopt-cashbackCartToCart"]],
+        [['text' => $textbotlang['keyboard']['showCartAfterFirstPay'], 'callback_data' => "paygwopt-showCartAfterFirstPay"]],
+        [['text' => $textbotlang['keyboard']['minAmountCartToCart'], 'callback_data' => "paygwopt-minAmountCartToCart"], ['text' => $textbotlang['keyboard']['maxAmountCartToCart'], 'callback_data' => "paygwopt-maxAmountCartToCart"]],
+        [['text' => $textbotlang['keyboard']['setEducationCartToCart'], 'callback_data' => "paygwopt-setEducationCartToCart"]],
+        [['text' => $textbotlang['keyboard']['autoConfirmNoCheck'], 'callback_data' => "paygwopt-autoConfirmNoCheck"]],
+        [['text' => $textbotlang['keyboard']['excludeUserAutoConfirm'], 'callback_data' => "paygwopt-excludeUserAutoConfirm"]],
+        [['text' => $textbotlang['keyboard']['autoConfirmNoCheckTime'], 'callback_data' => "paygwopt-autoConfirmNoCheckTime"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $trnado = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['apiT']]],
-        [['text' => $textbotlang['keyboard']['cashbackIranPay2']]],
-        [['text' => $textbotlang['keyboard']['feeStatusIranPay2']], ['text' => $textbotlang['keyboard']['feeAmountIranPay2']]],
-        [['text' => $textbotlang['keyboard']['minAmountIranPay2']], ['text' => $textbotlang['keyboard']['maxAmountIranPay2']]],
-        [['text' => $textbotlang['keyboard']['setEducationIranPay2']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['apiT'], 'callback_data' => "paygwopt-apiT"]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay2'], 'callback_data' => "paygwopt-cashbackIranPay2"]],
+        [['text' => $textbotlang['keyboard']['feeStatusIranPay2'], 'callback_data' => "paygwopt-feeStatusIranPay2"], ['text' => $textbotlang['keyboard']['feeAmountIranPay2'], 'callback_data' => "paygwopt-feeAmountIranPay2"]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay2'], 'callback_data' => "paygwopt-minAmountIranPay2"], ['text' => $textbotlang['keyboard']['maxAmountIranPay2'], 'callback_data' => "paygwopt-maxAmountIranPay2"]],
+        [['text' => $textbotlang['keyboard']['setEducationIranPay2'], 'callback_data' => "paygwopt-setEducationIranPay2"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $keyboardzarinpal = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['zarinPalMerchant']]],
-        [['text' => $textbotlang['keyboard']['cashbackZarinPal']]],
-        [['text' => $textbotlang['keyboard']['minAmountZarinPal']], ['text' => $textbotlang['keyboard']['maxAmountZarinPal']]],
-        [['text' => $textbotlang['keyboard']['setEducationZarinPal']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['zarinPalMerchant'], 'callback_data' => "paygwopt-zarinPalMerchant"]],
+        [['text' => $textbotlang['keyboard']['cashbackZarinPal'], 'callback_data' => "paygwopt-cashbackZarinPal"]],
+        [['text' => $textbotlang['keyboard']['minAmountZarinPal'], 'callback_data' => "paygwopt-minAmountZarinPal"], ['text' => $textbotlang['keyboard']['maxAmountZarinPal'], 'callback_data' => "paygwopt-maxAmountZarinPal"]],
+        [['text' => $textbotlang['keyboard']['setEducationZarinPal'], 'callback_data' => "paygwopt-setEducationZarinPal"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
+]);
+$keyboardvariza = json_encode([
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['varizaApiToken'], 'callback_data' => "paygwopt-varizaApiToken"], ['text' => $textbotlang['keyboard']['varizaWebhookSecret'], 'callback_data' => "paygwopt-varizaWebhookSecret"]],
+        [['text' => $textbotlang['keyboard']['cashbackVariza'], 'callback_data' => "paygwopt-cashbackVariza"]],
+        [['text' => $textbotlang['keyboard']['minAmountVariza'], 'callback_data' => "paygwopt-minAmountVariza"], ['text' => $textbotlang['keyboard']['maxAmountVariza'], 'callback_data' => "paygwopt-maxAmountVariza"]],
+        [['text' => $textbotlang['keyboard']['setEducationVariza'], 'callback_data' => "paygwopt-setEducationVariza"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $aqayepardakht = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['setAqayePardakhtMerchant']], ['text' => $textbotlang['keyboard']['cashbackAqayePardakht']]],
-        [['text' => $textbotlang['keyboard']['minAmountAqayePardakht']], ['text' => $textbotlang['keyboard']['maxAmountAqayePardakht']]],
-        [['text' => $textbotlang['keyboard']['setEducationAqayePardakht']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['setAqayePardakhtMerchant'], 'callback_data' => "paygwopt-setAqayePardakhtMerchant"], ['text' => $textbotlang['keyboard']['cashbackAqayePardakht'], 'callback_data' => "paygwopt-cashbackAqayePardakht"]],
+        [['text' => $textbotlang['keyboard']['minAmountAqayePardakht'], 'callback_data' => "paygwopt-minAmountAqayePardakht"], ['text' => $textbotlang['keyboard']['maxAmountAqayePardakht'], 'callback_data' => "paygwopt-maxAmountAqayePardakht"]],
+        [['text' => $textbotlang['keyboard']['setEducationAqayePardakht'], 'callback_data' => "paygwopt-setEducationAqayePardakht"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $NowPaymentsManage = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['apiPlisio']], ['text' => $textbotlang['keyboard']['cashbackPlisio']]],
-        [['text' => $textbotlang['keyboard']['minAmountPlisio']], ['text' => $textbotlang['keyboard']['maxAmountPlisio']]],
-        [['text' => $textbotlang['keyboard']['setEducationPlisio']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['apiPlisio'], 'callback_data' => "paygwopt-apiPlisio"], ['text' => $textbotlang['keyboard']['cashbackPlisio'], 'callback_data' => "paygwopt-cashbackPlisio"]],
+        [['text' => $textbotlang['keyboard']['minAmountPlisio'], 'callback_data' => "paygwopt-minAmountPlisio"], ['text' => $textbotlang['keyboard']['maxAmountPlisio'], 'callback_data' => "paygwopt-maxAmountPlisio"]],
+        [['text' => $textbotlang['keyboard']['setEducationPlisio'], 'callback_data' => "paygwopt-setEducationPlisio"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 // >>> FRENZYEX GATEWAY — installed by install.sh, do not edit inside these markers
 $FrenzyExManage = json_encode([
     'keyboard' => [
         [
-            ['text' => '🔑 کلید API فرنزی‌اکس'],
-            ['text' => '🖋 کلید امضای IPN فرنزی‌اکس'],
+            ['text' => $textbotlang['keyboard']['fxApiKey']],
+            ['text' => $textbotlang['keyboard']['fxIpnSecret']],
         ],
         [
-            ['text' => '⬇️ حداقل مبلغ فرنزی‌اکس'],
-            ['text' => '⬆️ حداکثر مبلغ فرنزی‌اکس'],
+            ['text' => $textbotlang['keyboard']['fxMinAmount']],
+            ['text' => $textbotlang['keyboard']['fxMaxAmount']],
         ],
         [
-            ['text' => '🎁 کش‌بک فرنزی‌اکس'],
-            ['text' => '📚 آموزش فرنزی‌اکس'],
+            ['text' => $textbotlang['keyboard']['fxCashback']],
+            ['text' => $textbotlang['keyboard']['fxEducation']],
         ],
         [
             ['text' => $textbotlang['Admin']['backAdminBtn']],
@@ -255,14 +269,11 @@ $FrenzyExManage = json_encode([
 // <<< FRENZYEX GATEWAY
 $setting_panel = json_encode([
     'keyboard' => [
-        [['text' => $textbotlang['keyboard']['featureStatus']]],
+        [['text' => $textbotlang['keyboard']['featureStatus']], ['text' => $textbotlang['keyboard']['adminSection']]],
         [['text' => $textbotlang['keyboard']['botReports']], ['text' => $textbotlang['keyboard']['channelSettings']]],
-        [['text' => $textbotlang['keyboard']['activateWebPanel']]],
-        [['text' => $textbotlang['keyboard']['optimizeBot']]],
-        [['text' => $textbotlang['keyboard']['adminSection']]],
-        [['text' => $textbotlang['keyboard']['setTestAccountLimitAll']]],
+        [['text' => $textbotlang['keyboard']['activateWebPanel']], ['text' => $textbotlang['keyboard']['setTestAccountLimitAll']]],
         [['text' => $textbotlang['keyboard']['agentMembershipFee']], ['text' => $textbotlang['keyboard']['qrBackground']]],
-        [['text' => $textbotlang['keyboard']['reWebhookAgentBots']]],
+        [['text' => $textbotlang['keyboard']['reWebhookAgentBots']], ['text' => $textbotlang['keyboard']['optimizeBot']]],
         [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
@@ -372,6 +383,18 @@ if (frenzyex_enabled()) {
     ];
 }
 // <<< FRENZYEX GATEWAY
+$variza = getPaySettingValue("variza_status", "offvariza");
+if (
+    $variza == "onvariza"
+    && trim((string) getPaySettingValue("variza_api_token", "")) !== ""
+    && trim((string) getPaySettingValue("variza_api_token", "")) !== "0"
+    && trim((string) getPaySettingValue("variza_webhook_secret", "")) !== ""
+    && trim((string) getPaySettingValue("variza_webhook_secret", "")) !== "0"
+) {
+    $step_payment['inline_keyboard'][] = [
+        ['text' => $textbotlang['textbot']['variza'], 'callback_data' => "variza"]
+    ];
+}
 if ($paymentstatussnotverify == "onverifypay") {
     $step_payment['inline_keyboard'][] = [
         ['text' => $textbotlang['textbot']['paymentNotVerify'], 'callback_data' => "paymentnotverify"]
@@ -425,13 +448,276 @@ $shopkeyboard = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['shopFeatureStatus']]],
         [['text' => $textbotlang['keyboard']['manageCategory']], ['text' => $textbotlang['keyboard']['manageProducts']]],
-        [['text' => $textbotlang['keyboard']['createGiftCode']], ['text' => $textbotlang['keyboard']['deleteGiftCode']]],
-        [['text' => $textbotlang['keyboard']['createDiscountCode']], ['text' => $textbotlang['keyboard']['deleteDiscountCode']]],
+        [['text' => $textbotlang['keyboard']['manageGiftCode']], ['text' => $textbotlang['keyboard']['manageDiscountCode']]],
         [['text' => $textbotlang['keyboard']['minBulkBalance']], ['text' => $textbotlang['keyboard']['renewalCashback']]],
         [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
 ]);
+$wheelFeatures = [
+    'wheelagentfirst' => ['label' => $textbotlang['keyboard']['firstPurchaseWheel'], 'setting' => 'statusfirstwheel', 'on' => '1', 'off' => '0'],
+    'wheelagent' => ['label' => $textbotlang['keyboard']['agentWheelOfLuck'], 'setting' => 'wheelagent', 'on' => '1', 'off' => '0'],
+    'Dice' => ['label' => $textbotlang['keyboard']['wheelGameType'], 'setting' => 'Dice', 'on' => '1', 'off' => '0', 'onText' => $textbotlang['keyboard']['wheelModeDice'], 'offText' => $textbotlang['keyboard']['wheelModeSlot']],
+];
+$lotteryFeatures = [
+    'score' => ['label' => $textbotlang['keyboard']['nightLottery'], 'setting' => 'scorestatus', 'on' => '1', 'off' => '0'],
+    'Lotteryagent' => ['label' => $textbotlang['keyboard']['agentLottery'], 'setting' => 'Lotteryagent', 'on' => '1', 'off' => '0'],
+];
+$featureCategories = [
+    'general' => [
+        'label' => $textbotlang['keyboard']['featureCategoryGeneral'],
+        'features' => [
+            'statusbot' => ['label' => $textbotlang['Admin']['Status']['statusBot'], 'setting' => 'Bot_Status', 'on' => 'botstatuson', 'off' => 'botstatusoff'],
+            'role' => ['label' => $textbotlang['Admin']['Status']['statusRole'], 'setting' => 'roll_Status', 'on' => 'rolleon', 'off' => 'rolleoff'],
+            'notifnew' => ['label' => $textbotlang['Admin']['Status']['statusNotifNewUser'], 'setting' => 'statusnewuser', 'on' => 'onnewuser', 'off' => 'offnewuser'],
+            'usernamebtn' => ['label' => $textbotlang['Admin']['Status']['statusUsernameBtn'], 'setting' => 'NotUser', 'on' => 'onnotuser', 'off' => 'offnotuser'],
+            'inlinebtnmain' => ['label' => $textbotlang['Admin']['Status']['inlinebtns'], 'setting' => 'inlinebtnmain', 'on' => 'oninline', 'off' => 'offinline'],
+            'keyconfig' => ['label' => $textbotlang['keyboard']['configKeyboard'], 'setting' => 'status_keyboard_config', 'on' => '1', 'off' => '0'],
+            'statussupportpv' => ['label' => $textbotlang['keyboard']['supportInPv'], 'setting' => 'statussupportpv', 'on' => 'onpvsupport', 'off' => 'offpvsupport'],
+            'btn_status_category' => ['label' => $textbotlang['keyboard']['educationCategory'], 'setting' => 'categoryhelp', 'on' => '1', 'off' => '0'],
+            'linkappstatus' => ['label' => $textbotlang['keyboard']['appDownloadLinkAlt'], 'setting' => 'linkappstatus', 'on' => '1', 'off' => '0', 'config' => 'linkappsetting'],
+            'Authenticationphone' => ['label' => $textbotlang['Admin']['Status']['Authenticationphone'], 'setting' => 'get_number', 'on' => 'onAuthenticationphone', 'off' => 'offAuthenticationphone'],
+            'Authenticationiran' => ['label' => $textbotlang['Admin']['Status']['Authenticationiran'], 'setting' => 'iran_number', 'on' => 'onAuthenticationiran', 'off' => 'offAuthenticationiran'],
+            'verifystart' => ['label' => $textbotlang['keyboard']['authenticate'], 'setting' => 'verifystart', 'on' => 'onverify', 'off' => 'offverify'],
+            'verifybyuser' => ['label' => $textbotlang['keyboard']['authWithLink'], 'setting' => 'verifybucodeuser', 'on' => 'onverify', 'off' => 'offverify'],
+        ],
+    ],
+    'sales' => [
+        'label' => $textbotlang['keyboard']['featureCategorySales'],
+        'features' => [
+            'bulkbuy' => ['label' => $textbotlang['keyboard']['bulkPurchaseStatus'], 'setting' => 'bulkbuy', 'on' => 'onbulk', 'off' => 'offbulk'],
+            'compycart' => ['label' => $textbotlang['keyboard']['copyCard'], 'setting' => 'statuscopycart', 'on' => '1', 'off' => '0'],
+            'Debtsettlement' => ['label' => $textbotlang['keyboard']['settleDebt'], 'setting' => 'Debtsettlement', 'on' => '1', 'off' => '0'],
+            'changeloc' => ['label' => $textbotlang['keyboard']['locationChangeLimit'], 'setting' => 'statuslimitchangeloc', 'on' => '1', 'off' => '0', 'config' => 'changeloclimit'],
+            'statusnamecustom' => ['label' => $textbotlang['keyboard']['configNote'], 'setting' => 'statusnamecustom', 'on' => 'onnamecustom', 'off' => 'offnamecustom'],
+            'statusnamecustomf' => ['label' => $textbotlang['keyboard']['userNote'], 'setting' => 'statusnoteforf', 'on' => '1', 'off' => '0'],
+            'affiliates' => ['label' => $textbotlang['keyboard']['affiliateGift'], 'config' => 'affiliatesettings'],
+            'wheel_luck' => ['label' => $textbotlang['keyboard']['wheelOfLuck'], 'config' => 'wheelsettings'],
+            'score' => $lotteryFeatures['score'] + ['config' => 'lotterysettings'],
+        ],
+    ],
+    'cron' => [
+        'label' => $textbotlang['keyboard']['featureCategoryCron'],
+        'features' => [
+            'crontest' => ['label' => $textbotlang['keyboard']['cronTest'], 'cron' => 'test'],
+            'cronday' => ['label' => $textbotlang['keyboard']['cronTime'], 'cron' => 'day', 'config' => 'settimecornday'],
+            'cronvolume' => ['label' => $textbotlang['keyboard']['cronVolume'], 'cron' => 'volume', 'config' => 'settimecornvolume'],
+            'on_hold' => ['label' => $textbotlang['keyboard']['cronFirstConnection'], 'cron' => 'on_hold', 'config' => 'setting_on_holdcron'],
+            'notifremove' => ['label' => $textbotlang['keyboard']['cronDelete'], 'cron' => 'remove', 'config' => 'settimecornremove'],
+            'notifremove_volume' => ['label' => $textbotlang['keyboard']['cronDeleteVolume'], 'cron' => 'remove_volume', 'config' => 'settimecornremovevolume'],
+            'uptime_node' => ['label' => $textbotlang['keyboard']['nodeUptime'], 'cron' => 'uptime_node'],
+            'uptime_panel' => ['label' => $textbotlang['keyboard']['panelUptime'], 'cron' => 'uptime_panel'],
+        ],
+    ],
+];
+function featureIsOn($feature, $setting)
+{
+    if (isset($feature['cron'])) {
+        return !empty(json_decode($setting['cron_status'], true)[$feature['cron']]);
+    }
+    return $setting[$feature['setting']] == $feature['on'];
+}
+function featureCategoryKeyboard($categoryKey)
+{
+    global $featureCategories, $textbotlang;
+    $setting = select("setting", "*");
+    $rows = [];
+    $settingsButtons = [];
+    foreach ($featureCategories[$categoryKey]['features'] as $featureKey => $feature) {
+        if (!isset($feature['setting']) && !isset($feature['cron'])) {
+            $settingsButtons[] = ['text' => $feature['label'], 'callback_data' => $feature['config']];
+            continue;
+        }
+        $row = [
+            ['text' => $textbotlang['Admin']['Status'][featureIsOn($feature, $setting) ? 'statuson' : 'statusoff'], 'callback_data' => "feature-$categoryKey-$featureKey"],
+            ['text' => $feature['label'], 'callback_data' => "feature-$categoryKey-$featureKey"],
+        ];
+        if (isset($feature['config'])) {
+            array_unshift($row, ['text' => "⚙️", 'callback_data' => $feature['config']]);
+        }
+        $rows[] = $row;
+    }
+    array_push($rows, ...array_chunk($settingsButtons, 2));
+    $categoryKeys = array_keys($featureCategories);
+    $page = array_search($categoryKey, $categoryKeys);
+    $pageCount = count($categoryKeys);
+    $rows[] = [
+        ['text' => "◀️", 'callback_data' => "featurecat-" . $categoryKeys[($page + $pageCount - 1) % $pageCount]],
+        ['text' => ($page + 1) . " / $pageCount", 'callback_data' => "none"],
+        ['text' => "▶️", 'callback_data' => "featurecat-" . $categoryKeys[($page + 1) % $pageCount]],
+    ];
+    return json_encode(['inline_keyboard' => $rows]);
+}
+function wheelSettingsMenu()
+{
+    global $wheelFeatures, $textbotlang;
+    $setting = select("setting", "*");
+    $rows = [];
+    foreach ($wheelFeatures as $featureKey => $feature) {
+        $isOn = featureIsOn($feature, $setting);
+        $statusText = isset($feature['onText']) ? $feature[$isOn ? 'onText' : 'offText'] : $textbotlang['Admin']['Status'][$isOn ? 'statuson' : 'statusoff'];
+        $rows[] = [
+            ['text' => $statusText, 'callback_data' => "wheel-$featureKey"],
+            ['text' => $feature['label'], 'callback_data' => "wheel-$featureKey"],
+        ];
+    }
+    $rows[] = [
+        ['text' => number_format((int) $setting['wheelـluck_price']), 'callback_data' => "wheelprize"],
+        ['text' => $textbotlang['keyboard']['lotteryWinAmount'], 'callback_data' => "wheelprize"],
+    ];
+    $rows[] = [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "featurecat-sales"]];
+    $text = sprintf($textbotlang['Admin']['Status']['wheelSettings'], number_format((int) $setting['wheelـluck_price']));
+    return [$text, json_encode(['inline_keyboard' => $rows])];
+}
+function lotterySettingsMenu()
+{
+    global $lotteryFeatures, $textbotlang;
+    $setting = select("setting", "*");
+    $rows = [];
+    foreach ($lotteryFeatures as $featureKey => $feature) {
+        $rows[] = [
+            ['text' => $textbotlang['Admin']['Status'][featureIsOn($feature, $setting) ? 'statuson' : 'statusoff'], 'callback_data' => "lottery-$featureKey"],
+            ['text' => $feature['label'], 'callback_data' => "lottery-$featureKey"],
+        ];
+    }
+    $prizes = json_decode($setting['Lottery_prize'], true);
+    foreach (['one' => 'setFirstPrize', 'tow' => 'setSecondPrize', 'theree' => 'setThirdPrize'] as $prizeKey => $labelKey) {
+        $rows[] = [
+            ['text' => number_format((int) ($prizes[$prizeKey] ?? 0)), 'callback_data' => "lotteryprize-$prizeKey"],
+            ['text' => $textbotlang['keyboard'][$labelKey], 'callback_data' => "lotteryprize-$prizeKey"],
+        ];
+    }
+    $rows[] = [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "featurecat-sales"]];
+    $text = sprintf($textbotlang['Admin']['Status']['lotterySettings'], number_format((int) ($prizes['one'] ?? 0)), number_format((int) ($prizes['tow'] ?? 0)), number_format((int) ($prizes['theree'] ?? 0)));
+    return [$text, json_encode(['inline_keyboard' => $rows])];
+}
+function affiliateSettingsMenu()
+{
+    global $textbotlang;
+    $setting = select("setting", "*");
+    $affiliateSetting = select("affiliates", "*", null, null, "select");
+    $commissionText = $textbotlang['Admin']['Status'][$affiliateSetting['status_commission'] == "oncommission" ? 'statuson' : 'statusoff'];
+    $firstBuyText = $affiliateSetting['porsant_one_buy'] == "on_buy_porsant" ? $textbotlang['keyboard']['firstPurchaseBtn'] : $textbotlang['keyboard']['allPurchases'];
+    $startGiftText = $textbotlang['Admin']['Status'][$affiliateSetting['Discount'] == "onDiscountaffiliates" ? 'statuson' : 'statusoff'];
+    $percentText = ($setting['affiliatespercentage'] ?? 0) . "%";
+    $giftAmountText = number_format((int) $affiliateSetting['price_Discount']);
+    $rows = [
+        [['text' => $commissionText, 'callback_data' => "affiliate-commission"], ['text' => $textbotlang['keyboard']['purchaseCommission'], 'callback_data' => "affiliate-commission"]],
+        [['text' => $firstBuyText, 'callback_data' => "affiliate-firstbuy"], ['text' => $textbotlang['keyboard']['firstPurchaseCommission'], 'callback_data' => "affiliate-firstbuy"]],
+        [['text' => $percentText, 'callback_data' => "affiliate-percent"], ['text' => $textbotlang['keyboard']['setAffiliatePercent'], 'callback_data' => "affiliate-percent"]],
+        [['text' => $startGiftText, 'callback_data' => "affiliate-startgift"], ['text' => $textbotlang['keyboard']['startGift'], 'callback_data' => "affiliate-startgift"]],
+        [['text' => $giftAmountText, 'callback_data' => "affiliate-giftamount"], ['text' => $textbotlang['keyboard']['startGiftAmount'], 'callback_data' => "affiliate-giftamount"]],
+        [['text' => $textbotlang['keyboard']['setAffiliateBanner'], 'callback_data' => "affiliate-banner"]],
+        [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "featurecat-sales"]],
+    ];
+    $text = sprintf($textbotlang['Admin']['affiliates']['settingsTitle'], $commissionText, $firstBuyText, $percentText, $startGiftText, $giftAmountText);
+    return [$text, json_encode(['inline_keyboard' => $rows])];
+}
+function cronStatusMenu()
+{
+    global $textbotlang, $domainhosts;
+    require_once __DIR__ . '/cronbot/jobs.php';
+    $labels = $textbotlang['Admin']['cronHealth'];
+    $cronStatus = json_decode((string) @file_get_contents(__DIR__ . '/storage/cron_status.json'), true) ?: [];
+    $setting = select("setting", "*");
+    $timeAgo = fn($time) => time() - $time < 60 ? $labels['justNow'] : sprintf($labels['minutesAgo'], intdiv(time() - $time, 60));
+    $dispatcherRunning = isset($cronStatus['dispatcher']) && time() - $cronStatus['dispatcher'] <= 180;
+    $lines = [];
+    foreach (mirza_cron_jobs() as $job) {
+        [$minute, $hour] = explode(' ', $job['schedule']);
+        $intervalMinutes = str_starts_with($hour, '*/') ? (int) substr($hour, 2) * 60 : (str_starts_with($minute, '*/') ? (int) substr($minute, 2) : 1);
+        $lastRun = $cronStatus['jobs'][$job['job']] ?? null;
+        if ($job['job'] == 'lottery' && intval($setting['scorestatus']) != 1) {
+            $icon = "⏸";
+            $when = $labels['disabled'];
+        } elseif (!$lastRun) {
+            $icon = "❌";
+            $when = $labels['never'];
+        } else {
+            $icon = $lastRun['error'] ? "⚠️" : (time() - $lastRun['time'] <= $intervalMinutes * 120 + 120 ? "✅" : "❌");
+            $when = $timeAgo($lastRun['time']);
+        }
+        $lines[] = "$icon {$job['title']} — $when";
+    }
+    $text = $labels['title'] . "\n\n" . ($dispatcherRunning ? $labels['running'] : $labels['stopped']) . "\n";
+    $text .= sprintf($labels['lastRun'], isset($cronStatus['dispatcher']) ? $timeAgo($cronStatus['dispatcher']) : $labels['never']) . "\n\n";
+    $text .= implode("\n", $lines);
+    if (!$dispatcherRunning) {
+        $text .= "\n\n" . sprintf($labels['command'], htmlspecialchars(mirza_cron_dispatcher_command((string) $domainhosts)));
+    }
+    $keyboard = json_encode([
+        'inline_keyboard' => [
+            [['text' => $labels['refresh'], 'callback_data' => "cronstatus_refresh"], ['text' => $labels['fix'], 'callback_data' => "cronstatus_fix"]],
+        ]
+    ]);
+    return [$text, $keyboard];
+}
+function giftCodesMenu()
+{
+    global $pdo, $textbotlang;
+    $giftCodes = $pdo->query("SELECT code, price FROM Discount")->fetchAll(PDO::FETCH_ASSOC);
+    $rows = [[['text' => $textbotlang['keyboard']['createGiftCode'], 'callback_data' => "giftcode_create"]]];
+    foreach ($giftCodes as $giftCode) {
+        $rows[] = [
+            ['text' => "❌", 'callback_data' => "giftcode_delete_{$giftCode['code']}"],
+            ['text' => "{$giftCode['code']} (" . number_format((int) $giftCode['price']) . ")", 'callback_data' => "giftcode_show_{$giftCode['code']}"],
+        ];
+    }
+    $rows[] = [['text' => $textbotlang['keyboard']['backToShopMenu'], 'callback_data' => "shopmenu_open"]];
+    $text = sprintf($textbotlang['Admin']['Discount']['giftManage'], count($giftCodes));
+    return [$text, json_encode(['inline_keyboard' => $rows])];
+}
+$wheelFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "wheelsettings"]]]]);
+$lotteryFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "lotterysettings"]]]]);
+$affiliateFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "affiliatesettings"]]]]);
+$giftCodeFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "giftcode_list"]]]]);
+$discountCodeFlowKeyboard = json_encode(['inline_keyboard' => [[['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "discountcode_list"]]]]);
+function editFlowMessage($text, $keyboard)
+{
+    global $from_id, $message_id, $datain, $user;
+    $flowMessageId = json_decode($user['Processing_value'], true)['message_id'] ?? $message_id;
+    if ($datain == "") {
+        deletemessage($from_id, $message_id);
+    }
+    Editmessagetext($from_id, $flowMessageId, $text, $keyboard);
+}
+function discountPanelsKeyboard()
+{
+    global $pdo, $textbotlang;
+    $rows = [[['text' => $textbotlang['keyboard']['allPanels'], 'callback_data' => "discountpanel_all"]]];
+    foreach ($pdo->query("SELECT name_panel, code_panel FROM marzban_panel")->fetchAll(PDO::FETCH_ASSOC) as $panel) {
+        $rows[] = [['text' => $panel['name_panel'], 'callback_data' => "discountpanel_{$panel['code_panel']}"]];
+    }
+    $rows[] = [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "discountcode_list"]];
+    return json_encode(['inline_keyboard' => $rows]);
+}
+function discountProductsKeyboard($location)
+{
+    global $pdo, $textbotlang;
+    $stmt = $pdo->prepare("SELECT name_product, code_product FROM product WHERE Location = :location OR Location = '/all'");
+    $stmt->execute([':location' => $location]);
+    $rows = [[['text' => $textbotlang['keyboard']['allProducts'], 'callback_data' => "discountproduct_all"]]];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $product) {
+        $rows[] = [['text' => $product['name_product'], 'callback_data' => "discountproduct_{$product['code_product']}"]];
+    }
+    $rows[] = [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "discountcode_list"]];
+    return json_encode(['inline_keyboard' => $rows]);
+}
+function discountCodesMenu()
+{
+    global $pdo, $textbotlang;
+    $discountCodes = $pdo->query("SELECT codeDiscount, price FROM DiscountSell")->fetchAll(PDO::FETCH_ASSOC);
+    $rows = [[['text' => $textbotlang['keyboard']['createDiscountCode'], 'callback_data' => "discountcode_create"]]];
+    foreach ($discountCodes as $discountCode) {
+        $rows[] = [
+            ['text' => "❌", 'callback_data' => "discountcode_delete_{$discountCode['codeDiscount']}"],
+            ['text' => "{$discountCode['codeDiscount']} ({$discountCode['price']}%)", 'callback_data' => "discountcode_show_{$discountCode['codeDiscount']}"],
+        ];
+    }
+    $rows[] = [['text' => $textbotlang['keyboard']['backToShopMenu'], 'callback_data' => "shopmenu_open"]];
+    $text = sprintf($textbotlang['Admin']['Discount']['discountManage'], count($discountCodes));
+    return [$text, json_encode(['inline_keyboard' => $rows])];
+}
 $keyboard_Category_manage = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['addCategory']], ['text' => $textbotlang['keyboard']['deleteCategory']]],
@@ -793,46 +1079,6 @@ $list_marzban_usertest = json_encode($list_marzban_panel_usertest);
         ];
     }
     $json_list_product_list_admin = json_encode($list_product);
-//--------------------------------------------------
-    $Discount = [];
-    $stmt = $pdo->prepare("SELECT * FROM Discount");
-    $stmt->execute();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $Discount[] = [$row['code']];
-    }
-    $list_Discount = [
-        'keyboard' => [],
-        'resize_keyboard' => true,
-    ];
-    $list_Discount['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backAdminBtn']],
-    ];
-    foreach ($Discount as $button) {
-        $list_Discount['keyboard'][] = [
-            ['text' => $button[0]]
-        ];
-    }
-    $json_list_Discount_list_admin = json_encode($list_Discount);
-//--------------------------------------------------
-    $DiscountSell = [];
-    $stmt = $pdo->prepare("SELECT * FROM DiscountSell");
-    $stmt->execute();
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $DiscountSell[] = [$row['codeDiscount']];
-    }
-    $list_Discountsell = [
-        'keyboard' => [],
-        'resize_keyboard' => true,
-    ];
-    $list_Discountsell['keyboard'][] = [
-        ['text' => $textbotlang['Admin']['backAdminBtn']],
-    ];
-    foreach ($DiscountSell as $button) {
-        $list_Discountsell['keyboard'][] = [
-            ['text' => $button[0]]
-        ];
-    }
-    $json_list_Discount_list_admin_sell = json_encode($list_Discountsell);
 $payment = json_encode([
     'inline_keyboard' => [
         [['text' => $textbotlang['keyboard']['payAndGetService'], 'callback_data' => "confirmandgetservice"]],
@@ -884,6 +1130,7 @@ $MethodUsername = json_encode([
 $optionMarzban = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']], ['text' => $textbotlang['keyboard']['manageNodes']]],
         [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
         [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
         [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
@@ -1001,6 +1248,7 @@ $options_ui = json_encode([
 $optionwg = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
         [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
         [['text' => $textbotlang['keyboard']['editPassword']]],
         [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setInboundId']]],
@@ -1022,6 +1270,7 @@ $optionwg = json_encode([
 $optionmarzneshin = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
         [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
         [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
         [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
@@ -1057,6 +1306,7 @@ $optionManualsale = json_encode([
 $optionX_ui_single = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
         [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
         [['text' => $textbotlang['keyboard']['editPassword']]],
         [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
@@ -1078,6 +1328,7 @@ $optionX_ui_single = json_encode([
 $optionalireza_single = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
         [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
         [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
         [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
@@ -1100,6 +1351,7 @@ $optionalireza_single = json_encode([
 $optionhiddfy = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
+        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
         [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
         [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
         [['text' => $textbotlang['keyboard']['changeUserGroup']]],
@@ -1148,17 +1400,6 @@ if ($setting['statussupportpv'] == "onpvsupport") {
 $adminrule = json_encode([
     'keyboard' => [
         [['text' => "administrator"], ['text' => "Seller"], ['text' => "support"]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$affiliates = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['setAffiliatePercent']]],
-        [['text' => $textbotlang['keyboard']['setAffiliateBanner']]],
-        [['text' => $textbotlang['keyboard']['purchaseCommission']], ['text' => $textbotlang['keyboard']['startGift']]],
-        [['text' => $textbotlang['keyboard']['firstPurchaseCommission']]],
-        [['text' => $textbotlang['keyboard']['startGiftAmount']]],
         [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
@@ -1259,36 +1500,20 @@ if ($setting['inlinebtnmain'] == "oninline") {
 }
 $keyboardagent = json_encode($keyboardagent);
 $Swapinokey = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['setApi']]],
-        [['text' => $textbotlang['keyboard']['cashbackIranPay1']], ['text' => $textbotlang['keyboard']['setEducationIranPay1']]],
-        [['text' => $textbotlang['keyboard']['minAmountIranPay1']], ['text' => $textbotlang['keyboard']['maxAmountIranPay1']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['setApi'], 'callback_data' => "paygwopt-setApi"]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay1'], 'callback_data' => "paygwopt-cashbackIranPay1"], ['text' => $textbotlang['keyboard']['setEducationIranPay1'], 'callback_data' => "paygwopt-setEducationIranPay1"]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay1'], 'callback_data' => "paygwopt-minAmountIranPay1"], ['text' => $textbotlang['keyboard']['maxAmountIranPay1'], 'callback_data' => "paygwopt-maxAmountIranPay1"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 
 $tronnowpayments = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['minAmountCryptoOffline']], ['text' => $textbotlang['keyboard']['maxAmountCryptoOffline']]],
-        [['text' => $textbotlang['keyboard']['setEducationCryptoOffline']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionathmarzban = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']], ['text' => $textbotlang['keyboard']['manageNodes']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionathx_ui = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['minAmountCryptoOffline'], 'callback_data' => "paygwopt-minAmountCryptoOffline"], ['text' => $textbotlang['keyboard']['maxAmountCryptoOffline'], 'callback_data' => "paygwopt-maxAmountCryptoOffline"]],
+        [['text' => $textbotlang['keyboard']['setEducationCryptoOffline'], 'callback_data' => "paygwopt-setEducationCryptoOffline"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $configedit = json_encode([
     'keyboard' => [
@@ -1298,25 +1523,23 @@ $configedit = json_encode([
     'resize_keyboard' => true
 ]);
 $iranpaykeyboard = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['apiIranPay']]],
-        [['text' => $textbotlang['keyboard']['minAmountIranPay3']], ['text' => $textbotlang['keyboard']['maxAmountIranPay3']]],
-        [['text' => $textbotlang['keyboard']['cashbackIranPay3']]],
-        [['text' => $textbotlang['keyboard']['setEducationIranPay3']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['apiIranPay'], 'callback_data' => "paygwopt-apiIranPay"]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay3'], 'callback_data' => "paygwopt-minAmountIranPay3"], ['text' => $textbotlang['keyboard']['maxAmountIranPay3'], 'callback_data' => "paygwopt-maxAmountIranPay3"]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay3'], 'callback_data' => "paygwopt-cashbackIranPay3"]],
+        [['text' => $textbotlang['keyboard']['setEducationIranPay3'], 'callback_data' => "paygwopt-setEducationIranPay3"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $abangatewaykeyboard = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['apiIranPay4']], ['text' => $textbotlang['keyboard']['endpointIranPay4']]],
-        [['text' => $textbotlang['keyboard']['minAmountIranPay4']], ['text' => $textbotlang['keyboard']['maxAmountIranPay4']]],
-        [['text' => $textbotlang['keyboard']['dailyLimitIranPay4']]],
-        [['text' => $textbotlang['keyboard']['cashbackIranPay4']]],
-        [['text' => $textbotlang['keyboard']['setEducationIranPay4']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['apiIranPay4'], 'callback_data' => "paygwopt-apiIranPay4"], ['text' => $textbotlang['keyboard']['endpointIranPay4'], 'callback_data' => "paygwopt-endpointIranPay4"]],
+        [['text' => $textbotlang['keyboard']['minAmountIranPay4'], 'callback_data' => "paygwopt-minAmountIranPay4"], ['text' => $textbotlang['keyboard']['maxAmountIranPay4'], 'callback_data' => "paygwopt-maxAmountIranPay4"]],
+        [['text' => $textbotlang['keyboard']['dailyLimitIranPay4'], 'callback_data' => "paygwopt-dailyLimitIranPay4"]],
+        [['text' => $textbotlang['keyboard']['cashbackIranPay4'], 'callback_data' => "paygwopt-cashbackIranPay4"]],
+        [['text' => $textbotlang['keyboard']['setEducationIranPay4'], 'callback_data' => "paygwopt-setEducationIranPay4"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $tronadokeyboard = json_encode([
     'keyboard' => [
@@ -1373,21 +1596,6 @@ $list_departman = json_encode($list_departman);
 $active_panell = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['botReports']]],
-    ],
-    'resize_keyboard' => true
-]);
-$lottery = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['setFirstPrize']], ['text' => $textbotlang['keyboard']['setSecondPrize']]],
-        [['text' => $textbotlang['keyboard']['setThirdPrize']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$wheelkeyboard = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['lotteryWinAmount']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']]]
     ],
     'resize_keyboard' => true
 ]);
@@ -1560,12 +1768,11 @@ function keyboardTimeCategory($name_panel, $agent, $callback_data = "producttime
     return json_encode($monthkeyboard);
 }
 $Startelegram = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['cashbackStar']], ['text' => $textbotlang['keyboard']['setEducationStar']]],
-        [['text' => $textbotlang['keyboard']['minAmountStar']], ['text' => $textbotlang['keyboard']['maxAmountStar']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['cashbackStar'], 'callback_data' => "paygwopt-cashbackStar"], ['text' => $textbotlang['keyboard']['setEducationStar'], 'callback_data' => "paygwopt-setEducationStar"]],
+        [['text' => $textbotlang['keyboard']['minAmountStar'], 'callback_data' => "paygwopt-minAmountStar"], ['text' => $textbotlang['keyboard']['maxAmountStar'], 'callback_data' => "paygwopt-maxAmountStar"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
 $keyboardchangelimit = json_encode([
     'keyboard' => [
@@ -1593,14 +1800,93 @@ function KeyboardCategoryadmin()
     return json_encode($list_category);
 }
 $nowpayment_setting_keyboard = json_encode([
-    'keyboard' => [
-        [['text' => "API NOWPAYMENT"]],
-        [['text' => $textbotlang['keyboard']['cashbackNowPayment']], ['text' => $textbotlang['keyboard']['setEducationNowPayment']]],
-        [['text' => $textbotlang['keyboard']['minAmountNowPayment']], ['text' => $textbotlang['keyboard']['maxAmountNowPayment']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
+    'inline_keyboard' => [
+        [['text' => $textbotlang['keyboard']['apiNowPayment'], 'callback_data' => "paygwopt-apiNowPayment"]],
+        [['text' => $textbotlang['keyboard']['cashbackNowPayment'], 'callback_data' => "paygwopt-cashbackNowPayment"], ['text' => $textbotlang['keyboard']['setEducationNowPayment'], 'callback_data' => "paygwopt-setEducationNowPayment"]],
+        [['text' => $textbotlang['keyboard']['minAmountNowPayment'], 'callback_data' => "paygwopt-minAmountNowPayment"], ['text' => $textbotlang['keyboard']['maxAmountNowPayment'], 'callback_data' => "paygwopt-maxAmountNowPayment"]],
+        [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
+    ]
 ]);
+// --- Tronado / FrenzyEx as upstream 0.5.8 gateways -------------------------
+// Upstream's registry contract requires an INLINE keyboard: the paygw handler
+// does json_decode($gateway['keyboard'], true)['inline_keyboard'], so a reply
+// keyboard would land there as null and blow up array_unshift().  The buttons
+// carry paygwopt-<word> callbacks; admin.php maps that back to
+// $textbotlang['keyboard'][<word>] and feeds it to the existing text-matched
+// settings chain, which is why the option keys below are language keys.
+$tronado_setting_inline = json_encode([
+    'inline_keyboard' => [
+        [
+            ['text' => $textbotlang['keyboard']['apiTronado'], 'callback_data' => "paygwopt-apiTronado"],
+            ['text' => $textbotlang['keyboard']['ipnKeyTronado'], 'callback_data' => "paygwopt-ipnKeyTronado"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['walletTronado'], 'callback_data' => "paygwopt-walletTronado"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['minAmountTronado'], 'callback_data' => "paygwopt-minAmountTronado"],
+            ['text' => $textbotlang['keyboard']['maxAmountTronado'], 'callback_data' => "paygwopt-maxAmountTronado"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['cashbackTronado'], 'callback_data' => "paygwopt-cashbackTronado"],
+            ['text' => $textbotlang['keyboard']['setEducationTronado'], 'callback_data' => "paygwopt-setEducationTronado"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"],
+        ],
+    ],
+]);
+$frenzyex_setting_inline = json_encode([
+    'inline_keyboard' => [
+        [
+            ['text' => $textbotlang['keyboard']['fxApiKey'], 'callback_data' => "paygwopt-fxApiKey"],
+            ['text' => $textbotlang['keyboard']['fxIpnSecret'], 'callback_data' => "paygwopt-fxIpnSecret"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['fxMinAmount'], 'callback_data' => "paygwopt-fxMinAmount"],
+            ['text' => $textbotlang['keyboard']['fxMaxAmount'], 'callback_data' => "paygwopt-fxMaxAmount"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['fxCashback'], 'callback_data' => "paygwopt-fxCashback"],
+            ['text' => $textbotlang['keyboard']['fxEducation'], 'callback_data' => "paygwopt-fxEducation"],
+        ],
+        [
+            ['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"],
+        ],
+    ],
+]);
+$paymentGateways = [
+    'card' => ['label' => $textbotlang['keyboard']['cartToCartGateway'], 'setting' => 'Cartstatus', 'on' => 'oncard', 'off' => 'offcard', 'keyboard' => $CartManage],
+    'plisio' => ['label' => 'Plisio', 'setting' => 'nowpaymentstatus', 'on' => 'onnowpayment', 'off' => 'offnowpayment', 'keyboard' => $NowPaymentsManage],
+    'nowpayment' => ['label' => 'NOWPayments', 'setting' => 'statusnowpayment', 'on' => '1', 'off' => '0', 'keyboard' => $nowpayment_setting_keyboard],
+    'iranpay1' => ['label' => $textbotlang['keyboard']['iranPay1Label'], 'setting' => 'statusSwapWallet', 'on' => 'onSwapinoBot', 'off' => 'offSwapinoBot', 'keyboard' => $Swapinokey],
+    'iranpay2' => ['label' => $textbotlang['keyboard']['iranPay2Label'], 'setting' => 'statustarnado', 'on' => 'onternado', 'off' => 'offternado', 'keyboard' => $trnado],
+    'iranpay4' => ['label' => $textbotlang['keyboard']['iranPay4Label'], 'setting' => 'statusiranpay4', 'on' => 'oniranpay4', 'off' => 'offiranpay4', 'keyboard' => $abangatewaykeyboard],
+    'iranpay3' => ['label' => $textbotlang['keyboard']['iranPay3Label'], 'setting' => 'statusiranpay3', 'on' => 'oniranpay3', 'off' => 'offiranpay3', 'keyboard' => $iranpaykeyboard],
+    'aqayepardakht' => ['label' => $textbotlang['keyboard']['aqayePardakhtGateway'], 'setting' => 'statusaqayepardakht', 'on' => 'onaqayepardakht', 'off' => 'offaqayepardakht', 'keyboard' => $aqayepardakht],
+    'zarinpal' => ['label' => $textbotlang['keyboard']['zarinPalGateway'], 'setting' => 'zarinpalstatus', 'on' => 'onzarinpal', 'off' => 'offzarinpal', 'keyboard' => $keyboardzarinpal],
+    'variza' => ['label' => $textbotlang['keyboard']['varizaGateway'], 'setting' => 'variza_status', 'on' => 'onvariza', 'off' => 'offvariza', 'keyboard' => $keyboardvariza],
+    'digi' => ['label' => $textbotlang['keyboard']['cryptoOfflinePayment'], 'setting' => 'digistatus', 'on' => 'ondigi', 'off' => 'offdigi', 'keyboard' => $tronnowpayments],
+    'star' => ['label' => 'Star Telegram', 'setting' => 'statusstar', 'on' => '1', 'off' => '0', 'keyboard' => $Startelegram],
+    'tronado' => ['label' => $textbotlang['keyboard']['tronadoLabel'], 'setting' => 'statustronado', 'on' => 'ontronado', 'off' => 'offtronado', 'keyboard' => $tronado_setting_inline],
+    'frenzyex' => ['label' => $textbotlang['keyboard']['frenzyExLabel'], 'setting' => 'statusfrenzyex', 'on' => '1', 'off' => '0', 'keyboard' => $frenzyex_setting_inline],
+];
+function paymentGatewaysKeyboard()
+{
+    global $paymentGateways, $textbotlang;
+    $rows = [];
+    foreach ($paymentGateways as $key => $gateway) {
+        $mark = getPaySettingValue($gateway['setting'], $gateway['off']) == $gateway['on'] ? '✅' : '❌';
+        $rows[] = [['text' => "$mark {$gateway['label']}", 'callback_data' => "paygw-$key"]];
+    }
+    $rows[] = [['text' => $textbotlang['keyboard']['gatewaysGeneralSettings'], 'callback_data' => "none"]];
+    $rows[] = [
+        ['text' => $textbotlang['keyboard']['maxChargeBalance'], 'callback_data' => "maxbalanceaccount"],
+        ['text' => $textbotlang['keyboard']['minChargeBalance'], 'callback_data' => "mainbalanceaccount"],
+    ];
+    $rows[] = [['text' => $textbotlang['keyboard']['walletAddress'], 'callback_data' => "walletaddress"]];
+    return json_encode(['inline_keyboard' => $rows]);
+}
 $Exception_auto_cart_keyboard = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['excludeUser']], ['text' => $textbotlang['keyboard']['removeUserFromList']]],

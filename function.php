@@ -1426,6 +1426,7 @@ function trnado($order_id, $price)
         'price_amount' => $amount_toman,
         'order_id' => $order_id,
         'callback_url' => "https://$domainhosts/payment/iranpay2.php",
+        'redirect_after_payment' => false,
     ], JSON_UNESCAPED_UNICODE));
 
     $response = curl_exec($curl);
@@ -1437,6 +1438,39 @@ function trnado($order_id, $price)
     }
 
     return $decoded;
+}
+
+function cubepayCardDetailsText($payment)
+{
+    global $textbotlang;
+
+    if (empty($payment['show_card_in_bot']) || empty($payment['card']['number'])) {
+        return null;
+    }
+
+    $amount  = intval($payment['pay_amount_toman'] ?? 0);
+    $minutes = intval($payment['expires_in_minutes'] ?? 0);
+    if ($amount < 1 || $minutes < 1) {
+        return null;
+    }
+
+    $holder = trim((string) ($payment['card']['holder'] ?? ''));
+    if ($holder === '') {
+        $holder = '-';
+    }
+
+    $template = $textbotlang['users']['Balance']['cubepayCardDetails'] ?? '';
+    if ($template === '') {
+        return null;
+    }
+
+    return sprintf(
+        $template,
+        htmlspecialchars((string) $payment['card']['number'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($holder, ENT_QUOTES, 'UTF-8'),
+        number_format($amount),
+        $minutes
+    );
 }
 function formatBytes($bytes, $precision = 2): string
 {
@@ -1518,6 +1552,26 @@ function outputlink($text)
     }
 }
 
+function deductBalance($user, $amount)
+{
+    global $pdo;
+    if ($amount <= 0) {
+        return true;
+    }
+    $minBalance = $user['agent'] == "n2" ? (intval($user['maxbuyagent']) != 0 ? -intval($user['maxbuyagent']) : null) : 0;
+    $stmt = $pdo->prepare("UPDATE user SET Balance = Balance - ? WHERE id = ? AND (? IS NULL OR Balance - ? >= ?)");
+    $stmt->execute([$amount, $user['id'], $minBalance, $amount, $minBalance]);
+    return $stmt->rowCount() === 1;
+}
+function addBalance($userId, $amount)
+{
+    global $pdo;
+    if ($amount <= 0) {
+        return;
+    }
+    $stmt = $pdo->prepare("UPDATE user SET Balance = Balance + ? WHERE id = ?");
+    $stmt->execute([$amount, $userId]);
+}
 function claimPaymentPaid($order_id)
 {
     global $pdo;
@@ -2407,34 +2461,16 @@ function activecron()
 {
     global $domainhosts;
 
-    removeCron("https://$domainhosts/cronbot/");
-
-    $phpPath = PHP_BINDIR . '/php';
-    $basePath = __DIR__ . '/cronbot';
-    $cronCommands = [
-        "*/15 * * * * $phpPath $basePath/statusday.php",
-        "*/1 * * * * $phpPath $basePath/croncard.php",
-        "*/1 * * * * $phpPath $basePath/NoticationsService.php",
-        "*/5 * * * * $phpPath $basePath/payment_expire.php",
-        "*/1 * * * * $phpPath $basePath/sendmessage.php",
-        "*/3 * * * * $phpPath $basePath/plisio.php",
-        "*/3 * * * * $phpPath $basePath/tronado.php",
-        "*/1 * * * * $phpPath $basePath/activeconfig.php",
-        "*/1 * * * * $phpPath $basePath/disableconfig.php",
-        "*/1 * * * * $phpPath $basePath/iranpay1.php",
-        "0 */5 * * * $phpPath $basePath/backupbot.php",
-        "*/2 * * * * $phpPath $basePath/gift.php",
-        "*/30 * * * * $phpPath $basePath/expireagent.php",
-        "*/15 * * * * $phpPath $basePath/on_hold.php",
-        "*/2 * * * * $phpPath $basePath/configtest.php",
-        "*/15 * * * * $phpPath $basePath/uptime_node.php",
-        "*/15 * * * * $phpPath $basePath/uptime_panel.php",
-    ];
-    if (intval(select("setting", "*")['scorestatus'] ?? 0) == 1) {
-        $cronCommands[] = "*/1 * * * * $phpPath $basePath/lottery.php";
+    if (!is_string($domainhosts) || $domainhosts === '') {
+        return;
     }
 
-    addCronIfNotExists($cronCommands);
+    require_once __DIR__ . '/cronbot/jobs.php';
+
+    removeCron("https://$domainhosts/cronbot/");
+    removeCron(__DIR__ . '/cronbot/');
+
+    addCronIfNotExists(mirza_cron_dispatcher_command($domainhosts));
 }
 function createInvoice($amount)
 {
@@ -3062,6 +3098,52 @@ function createPayZarinpal($price, $order_id)
     $response = curl_exec($curl);
     curl_close($curl);
     return json_decode($response, true);
+}
+function createPayVariza($price, $order_id)
+{
+    global $domainhosts;
+    $api_token = trim((string) getPaySettingValue('variza_api_token', ''));
+    if ($api_token === '' || $api_token === '0') {
+        return ['error' => 'variza_api_token not set'];
+    }
+    $curl = curl_init();
+    curl_setopt_array($curl, [
+        CURLOPT_URL => 'https://variza.ir/api/v1/pay',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Accept: application/json',
+            'Authorization: Bearer ' . $api_token,
+        ],
+        CURLOPT_POSTFIELDS => json_encode([
+            'amount' => (int) $price,
+            'return_url' => 'https://' . $domainhosts . '/payment/variza.php?order=' . $order_id,
+            'title' => 'Mirza order ' . $order_id,
+            'expires_in' => '1h',
+        ], JSON_UNESCAPED_UNICODE),
+    ]);
+    $response = curl_exec($curl);
+    if ($response === false) {
+        $err = curl_error($curl);
+        curl_close($curl);
+        return ['error' => 'curl: ' . $err];
+    }
+    $httpCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    $decoded = json_decode($response, true);
+    if (!is_array($decoded)) {
+        return ['error' => 'invalid json', 'raw' => $response, 'http_code' => $httpCode];
+    }
+    if ($httpCode < 200 || $httpCode >= 300) {
+        return ['error' => 'http ' . $httpCode, 'raw' => $response, 'decoded' => $decoded, 'http_code' => $httpCode];
+    }
+    return $decoded;
 }
 function createPayaqayepardakht($price, $order_id)
 {

@@ -772,6 +772,14 @@ function mini_purchase(array $data, string $method): void
         ]);
         return;
     }
+    if (!empty($data['custom_username']) && !preg_match('~(?!_)^[a-z][a-z\d_]{2,32}(?<!_)$~i', (string) $data['custom_username'])) {
+        http_response_code(400);
+        echo json_encode(array(
+            'status' => false,
+            'msg' => strip_tags($textbotlang['users']['invalidusername'])
+        ));
+        return;
+    }
     $panel = select("marzban_panel", "*", "code_panel", $data['country_id'] ?? '', "select");
     if (empty($panel)) {
         http_response_code(500);

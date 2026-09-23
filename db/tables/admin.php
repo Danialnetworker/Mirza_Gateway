@@ -12,7 +12,7 @@ return [
             'id_admin' => $schema->context('adminnumber'),
             'rule' => 'administrator',
             'username' => 'admin',
-            'password' => bin2hex(random_bytes(5)),
+            'password' => password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT),
         ],
     ],
     'columns' => [

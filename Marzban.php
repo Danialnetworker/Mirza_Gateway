@@ -421,6 +421,10 @@ function Modifyuser_node($location, $id_node, array $data)
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $location, "select");
     $Check_token = token_panel($marzban_list_get['code_panel']);
     $url = $marzban_list_get['url_panel'] . '/api/node/' . $id_node;
+    $currentNode = json_decode(Get_Node($location, $id_node)['body'] ?? '', true);
+    if (isset($currentNode['api_port'])) {
+        $data += ['api_port' => $currentNode['api_port']];
+    }
     $payload = json_encode($data);
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);

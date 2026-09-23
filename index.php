@@ -48,7 +48,7 @@ $setting = select("setting", "*");
 $ManagePanel = new ManagePanel();
 $keyboard_check = json_decode($setting['keyboardmain'], true);
 if (is_array($keyboard_check) && preg_match('/[\x{600}-\x{6FF}\x{FB50}-\x{FDFF}]/u', $keyboard_check['keyboard'][0][0]['text'])) {
-    $keyboardmain = '{"keyboard":[[{"text":"text_sell"},{"text":"text_extend"}],[{"text":"text_usertest"},{"text":"text_wheel_luck"}],[{"text":"text_Purchased_services"},{"text":"accountwallet"}],[{"text":"text_affiliates"},{"text":"text_Tariff_list"}],[{"text":"text_support"},{"text":"text_help"}]]}';
+    $keyboardmain = '{"keyboard":[[{"text":"text_sell"},{"text":"text_extend"}],[{"text":"text_usertest"},{"text":"text_wheel_luck"}],[{"text":"text_Purchased_services"},{"text":"accountwallet"}],[{"text":"text_affiliates"},{"text":"text_Tariff_list"}],[{"text":"text_support"},{"text":"text_help"}],[{"text":"text_agentpanel"},{"text":"text_requestagent"}]]}';
     update("setting", "keyboardmain", $keyboardmain, null, null);
 }
 
@@ -214,7 +214,7 @@ if (strpos($text, "/start ") !== false && $user['step'] != "gettextSystemMessage
     $affiliatesid = explode(" ", $text)[1];
     if (!in_array($affiliatesid, ['start', "usertest", "/start", "buy", "help"])) {
         isValidInvitationCode($setting, $from_id, $user['verify']);
-        if ($setting['affiliatesstatus'] == "offaffiliates") {
+        if (!check_active_btn($setting['keyboardmain'], "text_affiliates")) {
             sendmessage($from_id, $textbotlang['users']['affiliates']['offaffiliates'], $keyboard, 'HTML');
             return;
         }
@@ -333,7 +333,7 @@ if ($user['joinchannel'] != "active") {
                 if ($marzbanDiscountaffiliates['Discount'] == "onDiscountaffiliates") {
                     $marzbanDiscountaffiliates = select("affiliates", "*", null, null, "select");
                     $Balance_add_user = $useraffiliates['Balance'] + $marzbanDiscountaffiliates['price_Discount'];
-                    update("user", "Balance", $Balance_add_user, "id", $affiliatesid);
+                    addBalance($affiliatesid, $marzbanDiscountaffiliates['price_Discount']);
                     $addbalancediscount = number_format($marzbanDiscountaffiliates['price_Discount'], 0);
                     sendmessage($affiliatesid, strtr($textbotlang['users']['affiliates']['balanceGift'], ['{addbalancediscount}' => $addbalancediscount, '{from_id}' => $from_id]), null, 'html');
                 }
@@ -1816,6 +1816,20 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             return;
         }
     }
+    if ($user['agent'] == "f") {
+        $valurcashbackextend = select("shopSetting", "*", "Namevalue", "chashbackextend", "select")['value'];
+    } else {
+        $valurcashbackextend = json_decode(select("shopSetting", "*", "Namevalue", "chashbackextend_agent", "select")['value'], true)[$user['agent']];
+    }
+    $cashbackextend = 0;
+    if (intval($valurcashbackextend) != 0 and intval($pricelastextend) != 0) {
+        $cashbackextend = ($pricelastextend * $valurcashbackextend) / 100;
+        $pricelastextend = max($pricelastextend - $cashbackextend, 0);
+    }
+    if (!deductBalance($user, $pricelastextend)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
+    }
     if ($datain == "confirmserdiscount") {
         $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
         if ($SellDiscountlimit != false) {
@@ -1834,18 +1848,13 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             }
         }
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (($user['Balance'] - $pricelastextend) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
-    }
     if ($nameloc['name_product'] == $textbotlang['common']['labels']['testService2']) {
         update("invoice", "name_product", $prodcut['name_product'], "id_invoice", $nameloc['id_invoice']);
         update("invoice", "price_product", $prodcut['price_product'], "id_invoice", $nameloc['id_invoice']);
     }
     $extend = $ManagePanel->extend($marzban_list_get['Methodextend'], $prodcut['Volume_constraint'], $prodcut['Service_time'], $nameloc['username'], $prodcut['code_product'], $marzban_list_get['code_panel']);
     if ($extend['status'] == false) {
+        addBalance($from_id, $pricelastextend);
         $extend['msg'] = json_encode($extend['msg']);
         $textreports = sprintf($textbotlang['Admin']['reportgroup']['errorRenewService'], $marzban_list_get['name_panel'], $nameloc['username'], $extend['msg']);
         sendmessage($from_id, $textbotlang['users']['extend']['errorSupport'], null, 'HTML');
@@ -1859,21 +1868,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         return;
     }
-    if ($user['agent'] == "f") {
-        $valurcashbackextend = select("shopSetting", "*", "Namevalue", "chashbackextend", "select")['value'];
-    } else {
-        $valurcashbackextend = json_decode(select("shopSetting", "*", "Namevalue", "chashbackextend_agent", "select")['value'], true)[$user['agent']];
+    if ($cashbackextend) {
+        sendmessage($from_id, sprintf($textbotlang['users']['extend']['giftCharged'], $cashbackextend), null, 'HTML');
     }
-    if (intval($valurcashbackextend) != 0 and intval($pricelastextend) != 0) {
-        $result = ($pricelastextend * $valurcashbackextend) / 100;
-        $pricelastextend = $pricelastextend - $result;
-        if ($pricelastextend < 0) {
-            $pricelastextend = 0;
-        }
-        sendmessage($from_id, sprintf($textbotlang['users']['extend']['giftCharged'], $result), null, 'HTML');
-    }
-    $Balance_Low_user = $user['Balance'] - $pricelastextend;
-    update("user", "Balance", $Balance_Low_user, "id", $from_id);
     $stmt = $pdo->prepare("INSERT IGNORE INTO service_other (id_user, username,value,type,time,price,output,status) VALUES (?, ?, ?, ?,?,?,?,?)");
     $dateacc = date('Y/m/d H:i:s');
     $value = json_encode(array(
@@ -2157,14 +2154,10 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $volumepricelast = $volume - $result;
         sendmessage($from_id, sprintf($textbotlang['users']['Discount']['discountapplied'], $user['pricediscount']), null, 'HTML');
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (($user['Balance'] - $volumepricelast) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
+    if (!deductBalance($user, $volumepricelast)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
     }
-    $Balance_Low_user = $user['Balance'] - $volumepricelast;
-    update("user", "Balance", $Balance_Low_user, "id", $from_id);
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $nameloc['username']);
     $data_for_database = json_encode(array(
         'volume_value' => intval($volume) / intval($extrapricevalue),
@@ -2175,6 +2168,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $data_limit = intval($volume) / intval($extrapricevalue);
     $extra_volume = $ManagePanel->extra_volume($nameloc['username'], $marzban_list_get['code_panel'], $data_limit);
     if ($extra_volume['status'] == false) {
+        addBalance($from_id, $volumepricelast);
         $extra_volume['msg'] = json_encode($extra_volume['msg']);
         $textreports = sprintf($textbotlang['Admin']['reportgroup']['errorExtraVolume'], $marzban_list_get['name_panel'], $nameloc['username'], $extra_volume['msg']);
         sendmessage($from_id, $textbotlang['users']['extraVolume']['serviceError'], null, 'HTML');
@@ -2361,11 +2355,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $Pricechange = $Pricechange - $result;
         sendmessage($from_id, sprintf($textbotlang['users']['Discount']['discountapplied'], $user['pricediscount']), null, 'HTML');
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (($user['Balance'] - $Pricechange) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
+    if (!deductBalance($user, $Pricechange)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
     }
     $keyboardextend = json_encode([
         'inline_keyboard' => [
@@ -2407,6 +2399,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $remove = $ManagePanel->RemoveUser($nameloc['Service_location'], $nameloc['username']);
         $dataoutput = $ManagePanel->createUser($marzban_list_get_new['name_panel'], "usertest", $DataUserOut['username'], $datac);
         if ($dataoutput['username'] == null) {
+            addBalance($from_id, $Pricechange);
             $dataoutput['msg'] = json_encode($dataoutput['msg']);
             sendmessage($from_id, $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
             $texterros = sprintf($textbotlang['Admin']['reportgroup']['errorChangeLocation'], $dataoutput['msg'], $from_id, $username, $marzban_list_get['name_panel'], $marzban_list_get_new['name_panel']);
@@ -2423,6 +2416,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     } else {
         $dataoutput = $ManagePanel->createUser($marzban_list_get_new['name_panel'], "usertest", $DataUserOut['username'], $datac);
         if ($dataoutput['username'] == null) {
+            addBalance($from_id, $Pricechange);
             $dataoutput['msg'] = json_encode($dataoutput['msg']);
             sendmessage($from_id, $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
             $texterros = sprintf($textbotlang['Admin']['reportgroup']['errorChangeLocation'], $dataoutput['msg'], $from_id, $username, $marzban_list_get['name_panel'], $marzban_list_get_new['name_panel']);
@@ -2452,10 +2446,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $limitnew = $user['limitchangeloc'] + 1;
     update("user", "limitchangeloc", $limitnew, "id", $from_id);
     $textchangeloc = sprintf($textbotlang['users']['changeLocation']['success'], $marzban_list_get_new['name_panel'], $nameloc['username'], $RemainingVolume, $expirationDate, $day, $output_config_link);
-    if (intval($Pricechange) != 0) {
-        $Balance_Low_user = $user['Balance'] - $Pricechange;
-        update("user", "Balance", $Balance_Low_user, "id", $from_id);
-    }
     update("invoice", "Service_location", $marzban_list_get_new['name_panel'], "username", $nameloc['username']);
     if ($marzban_list_get_new['inboundid'] != null) {
         update("invoice", "inboundid", $marzban_list_get_new['inboundid'], "username", $nameloc['username']);
@@ -2705,12 +2695,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $pricelasttime = $tmieextra - $result;
         sendmessage($from_id, sprintf($textbotlang['users']['Discount']['discountapplied'], $user['pricediscount']), null, 'HTML');
     }
-    $Balance_Low_user = $user['Balance'] - $pricelasttime;
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if ($Balance_Low_user < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
+    if (!deductBalance($user, $pricelasttime)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
     }
     update("invoice", "Status", "active", "id_invoice", $nameloc['id_invoice']);
     $extratimeday = $tmieextra / $extratimepricevalue;
@@ -2725,6 +2712,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $day = floor($timeservice / 86400);
     $extra_time = $ManagePanel->extra_time($nameloc['username'], $marzban_list_get['code_panel'], $extratimeday);
     if ($extra_time['status'] == false) {
+        addBalance($from_id, $pricelasttime);
         $extra_time['msg'] = json_encode($extra_time['msg']);
         $textreports = sprintf($textbotlang['Admin']['reportgroup']['errorExtraTime'], $marzban_list_get['name_panel'], $nameloc['username'], $extra_time['msg']);
         sendmessage($from_id, $textbotlang['users']['extraVolume']['serviceError'], null, 'HTML');
@@ -2738,7 +2726,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         return;
     }
-    update("user", "Balance", $Balance_Low_user, "id", $from_id);
     $stmt = $pdo->prepare("INSERT IGNORE INTO service_other (id_user, username, value, type, time, price, output) VALUES (:id_user, :username, :value, :type, :time, :price, :output)");
     $value = $data_for_database;
     $dateacc = date('Y/m/d H:i:s');
@@ -4019,11 +4006,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         return;
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (intval($user['Balance'] - $priceproduct) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
+    if (!deductBalance($user, $priceproduct)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
     }
     Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['creating'], null);
     if ($datain == "confirmandgetserviceDiscount") {
@@ -4073,6 +4058,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             $errorMessage = (string) $errorMessage;
         }
         $dataoutput['msg'] = $errorMessage;
+        addBalance($from_id, $priceproduct);
         sendmessage($from_id, $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
         $texterros = sprintf($textbotlang['Admin']['reportgroup']['errorSubscriptionCreate'], $dataoutput['msg'], $from_id, $username, $marzban_list_get['name_panel']);
         if (strlen($setting['Channel_Report']) > 0) {
@@ -4120,10 +4106,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     }
     sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString);
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
-    if (intval($priceproduct) != 0) {
-        $Balance_prim = $user['Balance'] - $priceproduct;
-        update("user", "Balance", $Balance_prim, "id", $from_id);
-    }
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user['number_username']) + 1;
         update("user", "number_username", $value, "id", $from_id);
@@ -4150,7 +4132,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
                     $scorenew = $user_Balance['score'] + 2;
                     update("user", "score", $scorenew, "id", $user['affiliates']);
                 }
-                update("user", "Balance", $Balance_prim, "id", $user['affiliates']);
+                addBalance($user['affiliates'], $result);
                 $result = number_format($result);
                 $dateacc = date('Y/m/d H:i:s');
                 $textadd = sprintf($textbotlang['users']['affiliates']['commissionPaid'], $result);
@@ -4175,7 +4157,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
                 $scorenew = $user_Balance['score'] + 2;
                 update("user", "score", $scorenew, "id", $user['affiliates']);
             }
-            update("user", "Balance", $Balance_prim, "id", $user['affiliates']);
+            addBalance($user['affiliates'], $result);
             $result = number_format($result);
             $dateacc = date('Y/m/d H:i:s');
             $textadd = sprintf($textbotlang['users']['affiliates']['commissionPaid2'], $result);
@@ -4568,11 +4550,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             return;
         }
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (($user['Balance'] - $priceproduct) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
+    if (!deductBalance($user, $priceproduct)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
     }
     $datep = strtotime("+" . $info_product['Service_time'] . "days");
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
@@ -4622,6 +4602,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         $dataoutput = $ManagePanel->createUser($marzban_list_get['name_panel'], $info_product['code_product'], $username_acc, $datac);
         if ($dataoutput['username'] == null) {
+            addBalance($from_id, $single_price * (intval($user['Processing_value_four']) - $i));
             $dataoutput['msg'] = json_encode($dataoutput['msg']);
             sendmessage($from_id, $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
             $texterros = sprintf($textbotlang['Admin']['reportgroup']['errorBulkAccountCreate'], $dataoutput['msg'], $from_id, $username, $marzban_list_get['name_panel']);
@@ -4639,8 +4620,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $stmt = $pdo->prepare("INSERT IGNORE INTO invoice (id_user, id_invoice, username,time_sell, Service_location, name_product, price_product, Volume, Service_time,Status,notifctions) VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?,?)");
         $Status = "active";
         $stmt->execute([$from_id, $randomString, $username_acc, $date, $user['Processing_value'], $info_product['name_product'], $info_product['price_product'], $info_product['Volume_constraint'], $info_product['Service_time'], $Status, $notifctions]);
-        $user_Balance = select("user", "*", "id", $from_id, "select");
-        update("user", "Balance", $user_Balance['Balance'] - $single_price, "id", $from_id);
         $config = "";
         $output_config_link = $marzban_list_get['sublink'] == "onsublink" ? $dataoutput['subscription_url'] : "";
         if ($marzban_list_get['config'] == "onconfig") {
@@ -4981,6 +4960,66 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         $message_id = sendmessage($from_id, $textnowpayments, $paymentkeyboard, 'HTML');
         updatePaymentMessageId($message_id, $randomString);
+    } elseif ($datain == "variza") {
+        if ($user['Processing_value'] < 5000) {
+            sendmessage($from_id, $textbotlang['users']['Balance']['variza'], null, 'HTML');
+            return;
+        }
+        $mainbalance = select("PaySetting", "ValuePay", "NamePay", "minbalancevariza", "select")['ValuePay'];
+        $maxbalance = select("PaySetting", "ValuePay", "NamePay", "maxbalancevariza", "select")['ValuePay'];
+        if ($user['Processing_value'] < $mainbalance || $user['Processing_value'] > $maxbalance) {
+            $mainbalance = number_format($mainbalance);
+            $maxbalance = number_format($maxbalance);
+            sendmessage($from_id, strtr($textbotlang['users']['Balance']['depositRange'], ['{mainbalance}' => $mainbalance, '{maxbalance}' => $maxbalance]), null, 'HTML');
+            return;
+        }
+        deletemessage($from_id, $message_id);
+        sendmessage($from_id, $textbotlang['users']['Balance']['linkpayments'], $keyboard, 'HTML');
+        $randomString = bin2hex(random_bytes(5));
+        $pay = createPayVariza($user['Processing_value'], $randomString);
+        if (!isset($pay['pay_url']) || empty($pay['pay_url'])) {
+            $text_error = isset($pay['error']) ? $pay['error'] : json_encode($pay);
+            sendmessage($from_id, $textbotlang['users']['Balance']['errorLinkPayment'], $keyboard, 'HTML');
+            step('home', $from_id);
+            $ErrorsLinkPayment = sprintf($textbotlang['Admin']['reportgroup']['errorZarinpalLink'] ?? 'Variza link error: %s user %s', $text_error, $from_id);
+            if (strlen($setting['Channel_Report']) > 0) {
+                telegram('sendmessage', [
+                    'chat_id' => $setting['Channel_Report'],
+                    'message_thread_id' => $errorreport,
+                    'text' => $ErrorsLinkPayment,
+                    'parse_mode' => "HTML"
+                ]);
+            }
+            return;
+        }
+        $invoice = "{$user['Processing_value_tow']}|{$user['Processing_value_one']}";
+        $dateacc = date('Y/m/d H:i:s');
+        $stmt = $pdo->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,dec_not_confirmed) VALUES (?,?,?,?,?,?,?,?)");
+        $payment_Status = "Unpaid";
+        $Payment_Method = "variza";
+        $stmt->execute([$from_id, $randomString, $dateacc, $user['Processing_value'], $payment_Status, $Payment_Method, $invoice, $pay['slug'] ?? $randomString]);
+        $paymentkeyboard = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => $textbotlang['users']['Balance']['payments'], 'url' => $pay['pay_url']],
+                ]
+            ]
+        ]);
+        $price_format = number_format($user['Processing_value'], 0);
+        $textnowpayments = sprintf($textbotlang['users']['Balance']['invoiceCreated2'], $randomString, $price_format);
+        $gethelp = select("PaySetting", "ValuePay", "NamePay", "helpvariza", "select")['ValuePay'];
+        if ($gethelp != 2) {
+            $data = json_decode($gethelp, true);
+            if ($data['type'] == "text") {
+                sendmessage($from_id, $data['text'], null, 'HTML');
+            } elseif ($data['type'] == "photo") {
+                sendphoto($from_id, $data['photoid'], null);
+            } elseif ($data['type'] == "video") {
+                sendvideo($from_id, $data['videoid'], null);
+            }
+        }
+        $message_id = sendmessage($from_id, $textnowpayments, $paymentkeyboard, 'HTML');
+        updatePaymentMessageId($message_id, $randomString);
     } elseif ($datain == "plisio") {
         $rates = rate_arze();
         if ($rates === null) {
@@ -5242,6 +5281,10 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         $message_id = sendmessage($from_id, $textnowpayments, $paymentkeyboard, 'HTML');
         updatePaymentMessageId($message_id, $randomString);
+        $cubepayCardText = cubepayCardDetailsText($payment);
+        if ($cubepayCardText !== null) {
+            sendmessage($from_id, $cubepayCardText, null, 'HTML');
+        }
     } elseif ($datain == "iranpay4") {
         $mainbalance = getPaySettingValue('minbalanceiranpay4', '0');
         $maxbalance = getPaySettingValue('maxbalanceiranpay4', '0');
@@ -5956,7 +5999,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $stmt->execute();
     $get_codesql = $stmt->fetch(PDO::FETCH_ASSOC);
     $balance_user = $user['Balance'] + $get_codesql['price'];
-    update("user", "Balance", $balance_user, "id", $from_id);
+    addBalance($from_id, $get_codesql['price']);
     $discountlimitadd = intval($checklimit['limitused']) + 1;
     update("Discount", "limitused", $discountlimitadd, "code", $text);
     step('home', $from_id);
@@ -5984,10 +6027,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 } elseif ($text == $textbotlang['textbot']['affiliates'] || $datain == "affiliatesbtn") {
     if (!check_active_btn($setting['keyboardmain'], "text_affiliates")) {
         sendmessage($from_id, $textbotlang['users']['buttonDisabled'], null, 'HTML');
-        return;
-    }
-    if ($setting['affiliatesstatus'] == "offaffiliates") {
-        sendmessage($from_id, $textbotlang['users']['affiliates']['offaffiliates'], null, 'HTML');
         return;
     }
     $affiliates = select("affiliates", "*", null, null, "select");
@@ -6042,8 +6081,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         sendmessage($from_id, $textbotlang['users']['affiliates']['notReferral'], $keyboard, 'HTML');
         return;
     }
-    update("reagent_report", "get_gift", true, "user_id", $from_id);
-    if ($reagent['get_gift']) {
+    $claimGift = $pdo->prepare("UPDATE reagent_report SET get_gift = 1 WHERE user_id = ? AND get_gift = 0");
+    $claimGift->execute([$from_id]);
+    if ($claimGift->rowCount() !== 1) {
         sendmessage($from_id, $textbotlang['users']['affiliates']['membershipGiftClaimed'], $keyboard, 'HTML');
         return;
     }
@@ -6052,9 +6092,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $price_gift_Start = intval($price_gift_Start['price_Discount']) / 2;
     $useraffiliates = select("user", "*", 'id', $reagent['reagent'], "select");
     $Balance_add_regent = $useraffiliates['Balance'] + $price_gift_Start;
-    update("user", "Balance", $Balance_add_regent, "id", $reagent['reagent']);
+    addBalance($reagent['reagent'], $price_gift_Start);
     $Balance_add_user = $user['Balance'] + $price_gift_Start;
-    update("user", "Balance", $Balance_add_user, "id", $from_id);
+    addBalance($from_id, $price_gift_Start);
     $addbalancediscount = number_format($price_gift_Start, 0);
     sendmessage($reagent['reagent'], $textbotlang['users']['affiliates']['joinedGift'], null, 'html');
     sendmessage($from_id, $textbotlang['users']['affiliates']['joinGiftActivated'], null, 'html');
@@ -6142,12 +6182,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             return;
         }
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (($user['Balance'] - $volume) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
-    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $user['Processing_value_one'], "select");
     if ($marzban_list_get == false) {
         sendmessage($from_id, $textbotlang['users']['status']['error'], null, 'html');
@@ -6161,7 +6195,10 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $volume = $volume - $result;
         sendmessage($from_id, sprintf($textbotlang['users']['Discount']['discountapplied'], $user['pricediscount']), null, 'HTML');
     }
-
+    if (!deductBalance($user, $volume)) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
+    }
     $DataUserOut = $ManagePanel->DataUser($user['Processing_value_one'], $user['Processing_value']);
     $data_limit = $DataUserOut['data_limit'] + (intval($volume) / intval($extrapricevalue) * pow(1024, 3));
     $stmt = $pdo->prepare("INSERT IGNORE INTO service_other (id_user, username, value, type, time, price) VALUES (:id_user, :username, :value, :type, :time, :price)");
@@ -6179,6 +6216,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $data_limit_new = (intval($volume) / intval($extrapricevalue));
     $extra_volume = $ManagePanel->extra_volume($user['Processing_value'], $marzban_list_get['code_panel'], $data_limit_new);
     if ($extra_volume['status'] == false) {
+        addBalance($from_id, $volume);
         $extra_volume['msg'] = json_encode($extra_volume['msg']);
         $textreports = sprintf($textbotlang['Admin']['reportgroup']['errorExtraVolume2'], $user['Processing_value_one'], $user['Processing_value'], $extra_volume['msg']);
         sendmessage($from_id, $textbotlang['users']['extraVolume']['serviceError'], null, 'HTML');
@@ -6192,8 +6230,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         return;
     }
-    $Balance_Low_user = $user['Balance'] - $volume;
-    update("user", "Balance", $Balance_Low_user, "id", $from_id);
     $back = json_encode([
         'inline_keyboard' => [
             [
@@ -6266,6 +6302,10 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     update("user", "namecustom", $text, "id", $from_id);
     step("home", $from_id);
 } elseif ($text == $textbotlang['textbot']['requestAgent'] || $datain == "requestagent") {
+    if (!check_active_btn($setting['keyboardmain'], "text_requestagent")) {
+        sendmessage($from_id, $textbotlang['users']['buttonDisabled'], null, 'HTML');
+        return;
+    }
     if ($user['Balance'] < $setting['agentreqprice']) {
         $priceagent = number_format($setting['agentreqprice']);
         sendmessage($from_id, sprintf($textbotlang['users']['agent']['insufficientbalanceagent'], $priceagent), $backuser, 'HTML');
@@ -6287,8 +6327,11 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     }
     step("getagentrequest", $from_id);
 } elseif ($user['step'] == "getagentrequest" && $text) {
-    $balancelow = $user['Balance'] - $setting['agentreqprice'];
-    update("user", "Balance", $balancelow, "id", $from_id);
+    if (!deductBalance($user, intval($setting['agentreqprice']))) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], $keyboard, 'HTML');
+        step("home", $from_id);
+        return;
+    }
     sendmessage($from_id, $textbotlang['users']['agent']['endrequest'], $keyboard, 'html');
     step("home", $from_id);
     $stmt = $pdo->prepare("INSERT INTO Requestagent (id, username, time, Description, status, type) VALUES (:id, :username, :time, :description, :status, :type)");
@@ -6382,10 +6425,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         sendmessage($from_id, $textbotlang['users']['sell']['noPurchaseUsersOnly'], null, 'HTML');
         return;
     }
-    if ($setting['wheelـluck'] == "0" or ($setting['wheelagent'] == "0" and $user['agent'] != "f")) {
-        sendmessage($from_id, $textbotlang['users']['wheelLuck']['featureDisabled'], null, 'HTML');
-        return;
-    }
     $stmt = $pdo->prepare("SELECT * FROM wheel_list  WHERE id_user = :from_id ORDER BY time DESC LIMIT 1");
     $stmt->bindParam(':from_id', $from_id);
     $stmt->execute();
@@ -6437,7 +6476,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     }
     if ($status) {
         $balance_last = intval($setting['wheelـluck_price']) + $user['Balance'];
-        update("user", "Balance", $balance_last, "id", $from_id);
+        addBalance($from_id, intval($setting['wheelـluck_price']));
         $price = number_format($setting['wheelـluck_price']);
         sendmessage($from_id, sprintf($textbotlang['users']['wheelLuck']['winnerCongratulations'], $price), null, 'HTML');
         $pricelast = $setting['wheelـluck_price'];
@@ -6753,7 +6792,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     if ($pricecashback != "0") {
         $result = ($Payment_report['price'] * $pricecashback) / 100;
         $Balance_confrim = intval($Balance_id['Balance']) + $result;
-        update("user", "Balance", $Balance_confrim, "id", $Balance_id['id']);
+        addBalance($Balance_id['id'], $result);
         $text_report = sprintf($textbotlang['users']['Discount']['gift-deposit'], $result);
         sendmessage($Balance_id['id'], $text_report, null, 'HTML');
     }
@@ -6867,21 +6906,18 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             return;
         }
     }
-    if (intval($user['maxbuyagent']) != 0 and $user['agent'] == "n2") {
-        if (($user['Balance'] - $prodcut['price_product']) < intval("-" . $user['maxbuyagent'])) {
-            sendmessage($from_id, $textbotlang['users']['Balance']['maxpurchasereached'], null, 'HTML');
-            return;
-        }
-    }
     if (intval($user['pricediscount']) != 0) {
         $result = ($prodcut['price_product'] * $user['pricediscount']) / 100;
         $prodcut['price_product'] = $prodcut['price_product'] - $result;
         sendmessage($from_id, sprintf($textbotlang['users']['Discount']['discountapplied'], $user['pricediscount']), null, 'HTML');
     }
-    $Balance_Low_user = $user['Balance'] - $prodcut['price_product'];
-    update("user", "Balance", $Balance_Low_user, "id", $from_id);
+    if (!deductBalance($user, $prodcut['price_product'])) {
+        sendmessage($from_id, $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
+        return;
+    }
     $extend = $ManagePanel->extend($marzban_list_get['Methodextend'], $prodcut['Volume_constraint'], $prodcut['Service_time'], $usernamePanelExtends, $prodcut['code_product'], $marzban_list_get['code_panel']);
     if ($extend['status'] == false) {
+        addBalance($from_id, $prodcut['price_product']);
         $extend['msg'] = json_encode($extend['msg']);
         $textreports = sprintf($textbotlang['Admin']['reportgroup']['errorRenewService2'], $marzban_list_get['name_panel'], $usernamePanelExtends, $extend['msg']);
         sendmessage($from_id, $textbotlang['users']['extend']['errorSupport'], null, 'HTML');

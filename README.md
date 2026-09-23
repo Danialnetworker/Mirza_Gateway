@@ -110,7 +110,7 @@ Mirza Bot integrates with the most popular VPN and network management panels:
 | 💵 **Card-to-Card** | Manual (receipt + admin approval) |
 | 🪙 **NowPayments** | Crypto |
 | 🪙 **Plisio** | Crypto |
-| 🪙 **cubpay** | TRON / crypto |
+| 🪙 **CubePay** | TRON / crypto |
 | 🇮🇷 **Zarinpal** | Online gateway |
 | 🇮🇷 **Aqayepardakht** | Online gateway |
 | 🇮🇷 **IranPay** | Online gateway |

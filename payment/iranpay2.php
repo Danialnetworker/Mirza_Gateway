@@ -106,7 +106,11 @@ if (!$Payment_report) {
     cubepay_emit('notfound', languagechange(dirname(__DIR__)), $data_order_id, null);
     return;
 }
-$token_cubepay = select("PaySetting", "*", "NamePay", "apiternado", "select")['ValuePay'];
+$token_cubepay = trim((string) select("PaySetting", "*", "NamePay", "apiternado", "select")['ValuePay']);
+if ($token_cubepay === '' || $token_cubepay === '0' || $Payment_report['Payment_Method'] !== "Currency Rial 2") {
+    cubepay_emit('notfound', languagechange(dirname(__DIR__)), $data_order_id, null);
+    return;
+}
 
 $payer_row = select("user", "*", "id", $Payment_report['id_user'], "select");
 $page_lang = is_array($payer_row) && !empty($payer_row['lang']) ? $payer_row['lang'] : 'fa';

@@ -949,7 +949,7 @@ if ($text == $text_bot_var['btn_keyboard']['buy'] && $setting['active_step_note'
     if (isset($userdate['code_product'])) {
         $product = $userdate['code_product'];
         $product = select("product", "*", "code_product", $product);
-        if ($product == false) {
+        if ($product == false || ($product['Location'] != $marzban_list_get['name_panel'] && $product['Location'] != "/all")) {
             sendmessage($from_id, "❌ خطایی رخ داده است مراحل خرید را از اول انجام دهید", $keyboard, 'html');
             step("home", $from_id);
             return;
@@ -1563,7 +1563,9 @@ $output
 } elseif (preg_match('/extend_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
     savedata("clear", "id_invoice", $id_invoice);
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($nameloc == false) {
         sendmessage($from_id, "❌ تمدید با خطا مواجه گردید مراحل تمدید را مجددا انجام دهید.", null, 'HTML');
         return;
@@ -1627,7 +1629,9 @@ $output
 } elseif ($user['step'] == "gettimecustomvolextend") {
     savedata("save", "volume", $text);
     $userdate = json_decode($user['Processing_value'], true);
-    $nameloc = select("invoice", "*", "id_invoice", $userdate['id_invoice'], "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$userdate['id_invoice'], $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $mainvolume = json_decode($marzban_list_get['mainvolume'], true);
     $mainvolume = $mainvolume[$userbot['agent']];
@@ -1660,7 +1664,9 @@ $output
         }
     }
     $userdate = json_decode($user['Processing_value'], true);
-    $nameloc = select("invoice", "*", "id_invoice", $userdate['id_invoice'], "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$userdate['id_invoice'], $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     if ($user['step'] == "gettimecustomextend") {
         $maintime = json_decode($marzban_list_get['maintime'], true);
@@ -1725,7 +1731,12 @@ $output
     Editmessagetext($from_id, $message_id, $text_inline, json_encode(['inline_keyboard' => []]));
     $id_invoice = $dataget[1];
     $userdate = json_decode($user['Processing_value'], true);
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$nameloc) {
+        return;
+    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     if ($marzban_list_get['status_extend'] == "off_extend") {
         sendmessage($from_id, "❌ امکان تمدید در این پنل وجود ندارد", null, 'html');
@@ -1903,7 +1914,12 @@ $output
     }
 } elseif (preg_match('/changelink_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$nameloc) {
+        return;
+    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $nameloc['username']);
     if ($DataUserOut['status'] == "Unsuccessful") {
@@ -1927,7 +1943,12 @@ $output
     Editmessagetext($from_id, $message_id, $textbotlang['users']['changeLink']['warnchange'], $keyboardextend);
 } elseif (preg_match('/confirmchange_(\w+)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
-    $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
+    $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
+    $stmt->execute([$id_invoice, $from_id, $ApiToken]);
+    $nameloc = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$nameloc) {
+        return;
+    }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $nameloc['Service_location'], "select");
     $DataUserOut = $ManagePanel->Revoke_sub($nameloc['Service_location'], $nameloc['username']);
     if ($DataUserOut['status'] == "Unsuccessful") {

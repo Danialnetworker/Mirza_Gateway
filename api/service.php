@@ -24,18 +24,7 @@ if (!is_array($data)) {
 $data = sanitize_recursive($data);
 $action = $data['actions'] ?? '';
 
-try {
-    $stmt = $pdo->prepare("INSERT IGNORE INTO logs_api (header,data,time,ip,actions) VALUES (:header,:data,:time,:ip,:actions)");
-    $stmt->execute([
-        ':header' => json_encode($headrs),
-        ':data' => json_encode($data),
-        ':time' => date('Y/m/d H:i:s'),
-        ':ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-        ':actions' => $action,
-    ]);
-} catch (Exception $e) {
-    error_log("API logging error: " . $e->getMessage());
-}
+logApiRequest($headrs, $data, $action);
 
 function svc_services(array $data, string $method): void
 {

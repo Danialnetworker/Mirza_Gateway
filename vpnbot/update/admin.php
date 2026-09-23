@@ -80,7 +80,9 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
             ]
         ]
     ]);
-    $Payment_report = select("Payment_report", "*", "id_order", $order_id, "select");
+    $stmt = $pdo->prepare("SELECT * FROM Payment_report WHERE id_order = ? AND bottype = ?");
+    $stmt->execute([$order_id, $ApiToken]);
+    $Payment_report = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($Payment_report == false) {
         telegram('answerCallbackQuery', array(
             'callback_query_id' => $callback_query_id,
@@ -132,7 +134,9 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
     update("user", "Processing_value_four", "none", "id", $Balance_id['id']);
 } elseif (preg_match('/reject_pay_(\w+)/', $datain, $datagetr)) {
     $id_order = $datagetr[1];
-    $Payment_report = select("Payment_report", "*", "id_order", $id_order, "select");
+    $stmt = $pdo->prepare("SELECT * FROM Payment_report WHERE id_order = ? AND bottype = ?");
+    $stmt->execute([$id_order, $ApiToken]);
+    $Payment_report = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($Payment_report == false) {
         telegram('answerCallbackQuery', array(
             'callback_query_id' => $callback_query_id,

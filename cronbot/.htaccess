@@ -17,6 +17,9 @@
 <FilesMatch "\.(tar|gz|tgz|bz2|xz|7z|rar)$">
     Require all denied
 </FilesMatch>
+<Files ".run.lock">
+    Require all denied
+</Files>
 
 Options -Indexes
 

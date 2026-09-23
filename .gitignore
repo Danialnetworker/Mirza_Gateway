@@ -7,6 +7,7 @@ composer.phar
 
 # Runtime / generated files
 error_log
+cronbot/.run.lock
 /storage/**
 !/storage/cache/
 !/storage/.htaccess
@@ -21,3 +22,4 @@ docs
 /config.php
 /panel/inc/config.php
 /vpnbot/Default/config.php
+/deploy.sh

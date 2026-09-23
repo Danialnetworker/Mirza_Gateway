@@ -1,8 +1,7 @@
 <?php
-session_start();
-
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/icons.php';
+session_start();
 
 if (!empty($_SESSION['admin_user'])) {
   header('Location: index.php');
@@ -38,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $isCorrect = hash_equals($storedHash, $password);
     }
 
-    if ($isCorrect && $admin) {
+    if ($isCorrect && $admin && $admin['rule'] === 'administrator') {
 
       if (!str_starts_with($admin['password'], '$2')) {
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
