@@ -287,7 +287,11 @@ self_update_script "$@"
 BOT_DIR_DEFAULT="/var/www/html/mirzaprobotconfig"
 CONFIG_FILE_DEFAULT="$BOT_DIR_DEFAULT/config.php"
 GIT_REPO="Danialnetworker/Mirza_Gateway"
-LATEST_CACHE="/tmp/.mirza_latest_version"
+# Key this cache by repo.  A single shared /tmp path meant any other run on the
+# box (an older installer, a script pointed at a different fork) could leave a
+# stale tag name here that this install then trusted for a full hour - which
+# made both the version readout and the update download go to the wrong place.
+LATEST_CACHE="/tmp/.mirza_latest_version_${GIT_REPO//\//_}"
 IP_CACHE="/tmp/.mirza_server_ip"
 
 # ── Resumable-install state engine ───────────────────────────
@@ -764,8 +768,15 @@ get_installed_version() {
 
 # Get latest version (newest git tag) from GitHub, cached for 1 hour
 get_latest_version() {
-    if [ -f "$LATEST_CACHE" ] && [ $(( $(date +%s) - $(stat -c %Y "$LATEST_CACHE" 2>/dev/null || echo 0) )) -lt 3600 ]; then
-        cat "$LATEST_CACHE"
+    local cached="" fresh=0
+    if [ -s "$LATEST_CACHE" ]; then
+        cached=$(tr -d " \t\r\n" < "$LATEST_CACHE" 2>/dev/null)
+        if [ $(( $(date +%s) - $(stat -c %Y "$LATEST_CACHE" 2>/dev/null || echo 0) )) -lt 3600 ]; then
+            fresh=1
+        fi
+    fi
+    if [ "$fresh" -eq 1 ] && [ -n "$cached" ]; then
+        echo "$cached"
         return
     fi
     local tags v
@@ -780,6 +791,9 @@ get_latest_version() {
     if [ -n "$v" ]; then
         echo "$v" > "$LATEST_CACHE"
         echo "$v"
+    elif [ -n "$cached" ]; then
+        # offline: a stale answer beats showing nothing at all
+        echo "$cached"
     fi
 }
 
@@ -819,7 +833,17 @@ choose_source() {
         case "$ARG_CHANNEL" in
             beta|main)      SRC_ZIP_URL="$beta"; SRC_LABEL="Beta (main)"; return 0 ;;
             release|auto|latest|stable)
-                local l; l=$(get_latest_version)
+                local l avail
+                l=$(get_latest_version)
+                # A cached name can outlive the tag it names (deleted tag, or a
+                # cache written by a run aimed at another repo).  When the live
+                # list is reachable, it wins - otherwise we would build a zip URL
+                # that 404s and the update would die silently.
+                avail=$(list_tags_desc)
+                if [ -n "$avail" ] && { [ -z "$l" ] || ! echo "$avail" | grep -qx -- "$l"; }; then
+                    l=$(echo "$avail" | head -1)
+                    [ -n "$l" ] && echo "$l" > "$LATEST_CACHE"
+                fi
                 if [ -n "$l" ]; then SRC_ZIP_URL="${tagbase}/${l}.zip"; SRC_LABEL="Release ${l}";
                 else SRC_ZIP_URL="$beta"; SRC_LABEL="Beta (main)"; fi
                 return 0 ;;
@@ -893,9 +917,16 @@ get_server_ip() {
 
 # ── Dashboard sections ───────────────────────────────────────
 version_section() {
-    local inst latest
+    local inst latest avail
     inst=$(get_installed_version)
     latest=$(get_latest_version)
+    # Never show a tag the repo does not actually have.  A cached name can
+    # outlive its tag; when the live list is reachable it is the truth.
+    avail=$(list_tags_desc)
+    if [ -n "$avail" ] && { [ -z "$latest" ] || ! echo "$avail" | grep -qx -- "$latest"; }; then
+        latest=$(echo "$avail" | head -1)
+        [ -n "$latest" ] && echo "$latest" > "$LATEST_CACHE"
+    fi
     _sec "Version"
     if [ -n "$inst" ]; then
         _kv "Installed" "$(_dot ok) ${C_OK}${inst}${CR}"
