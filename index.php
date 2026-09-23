@@ -1074,7 +1074,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
         if ($statusremoveserveice == "off")
             unset($keyboarddate['removeservice']);
-        if ($statusshowconfig == "offconfig")
+        if ($statusshowconfig == "offconfig" || ($marzban['type'] ?? '') == "cloudius")
             unset($keyboarddate['config']);
         if ($marzban['type'] == "hiddify") {
             unset($keyboarddate['changelink']);
