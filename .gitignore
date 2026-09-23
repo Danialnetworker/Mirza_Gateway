@@ -20,6 +20,4 @@ docs
 
 # Runtime credentials - NEVER commit (public repo).
 /config.php
-/panel/inc/config.php
-/vpnbot/Default/config.php
 /deploy.sh
