@@ -312,12 +312,13 @@ function cloudius_traffic_to_bytes($value)
         return (float) $value;
     }
 
-    if (!preg_match('~([0-9]*\.?[0-9]+)\s*([KMGTP]?B)?~i', (string) $value, $m)) {
+    if (!preg_match('~(-?)\s*([0-9]*\.?[0-9]+)\s*([KMGTP]?B)?~i', (string) $value, $m)) {
         return 0;
     }
-
-    $number = (float) $m[1];
-    $unit = isset($m[2]) ? strtoupper($m[2]) : 'B';
+    // [cloudius-status] keep the sign: "-12.27 MB" means over quota
+    $number = (float) $m[2] * ($m[1] === '-' ? -1 : 1);
+    $m[2] = $m[3] ?? '';
+    $unit = $m[2] !== '' ? strtoupper($m[2]) : 'B';
     $factors = array('B' => 1, 'KB' => 1024, 'MB' => 1048576, 'GB' => 1073741824, 'TB' => 1099511627776, 'PB' => 1125899906842624);
 
     return $number * ($factors[$unit] ?? 1);
@@ -397,6 +398,45 @@ function cloudius_live_password($name_panel, $userId)
 }
 
 /**
+ * [cloudius-status] Cloudius dates are Jalali strings ('1405/07/24 16:39:36').
+ * Self-contained converter: cron entry points do not load jdf.php.
+ * Returns 0 when the value is empty/unparseable.
+ */
+function cloudius_jalali_to_ts($value)
+{
+    if (!is_string($value) || !preg_match('~^(\d{4})/(\d{1,2})/(\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?~', trim($value), $m)) {
+        return 0;
+    }
+    $jy = (int) $m[1] + 1595;
+    $jm = (int) $m[2];
+    $jd = (int) $m[3];
+    $days = -355668 + (365 * $jy) + ((int) ($jy / 33) * 8) + (int) ((($jy % 33) + 3) / 4) + $jd
+        + (($jm < 7) ? ($jm - 1) * 31 : (($jm - 7) * 30) + 186);
+    $gy = 400 * (int) ($days / 146097);
+    $days %= 146097;
+    if ($days > 36524) {
+        $gy += 100 * (int) (--$days / 36524);
+        $days %= 36524;
+        if ($days >= 365) {
+            $days++;
+        }
+    }
+    $gy += 4 * (int) ($days / 1461);
+    $days %= 1461;
+    if ($days > 365) {
+        $gy += (int) (($days - 1) / 365);
+        $days = ($days - 1) % 365;
+    }
+    $gd = $days + 1;
+    $sal = array(0, 31, (($gy % 4 == 0 && $gy % 100 != 0) || ($gy % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
+    for ($gm = 0; $gm < 13 && $gd > $sal[$gm]; $gm++) {
+        $gd -= $sal[$gm];
+    }
+    $ts = mktime((int) ($m[4] ?? 0), (int) ($m[5] ?? 0), (int) ($m[6] ?? 0), $gm, $gd, $gy);
+    return $ts === false ? 0 : $ts;
+}
+
+/**
  * Read a user back in a normalised shape for panels.php.
  */
 function GetUser_cloudius($name_panel, $username)
@@ -417,18 +457,35 @@ function GetUser_cloudius($name_panel, $username)
     if ($remainingDays > 0) {
         $expire = time() + ($remainingDays * 86400);
     }
+    // [cloudius-status] once connected, ExpirationTime is the truth - also for
+    // EXPIRED users (RemainedTime=0 used to give expire=0 = "unlimited").
+    $expireReal = cloudius_jalali_to_ts($row['ExpirationTime'] ?? null);
+    if ($expireReal > 0) {
+        $expire = $expireReal;
+    }
+    $isTrafficBase = !empty($row['IsTrafficBase']);
+    if (empty($row['IsActive'])) {
+        $state = 'disabled';
+    } elseif (!empty($row['Expired'])) {
+        $state = 'expired';
+    } elseif ($isTrafficBase && $remainingBytes <= 0) {
+        $state = 'limited';
+    } else {
+        $state = 'active';
+    }
 
     return array(
         'status' => true,
         'data' => array(
             'UserID' => (int) ($row['UserID'] ?? 0),
             'username' => $row['UserName'] ?? $username,
-            'enable' => !empty($row['IsActive']) ? 'active' : 'disabled',
+            'enable' => $state, // [cloudius-status] active|disabled|expired|limited
             'is_active' => !empty($row['IsActive']),
             'expired' => !empty($row['Expired']),
             'group_id' => (int) ($row['GroupID'] ?? 0),
             'group_name' => $row['GroupName'] ?? '',
-            'remained_traffic' => $remainingBytes,
+            'remained_traffic' => max(0, $remainingBytes),
+            'over_quota' => $remainingBytes < 0,
             'remained_days' => $remainingDays,
             'expire' => $expire,
             'online_count' => (int) ($row['OnlineCount'] ?? 0),
