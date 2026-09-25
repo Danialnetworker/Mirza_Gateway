@@ -1844,6 +1844,13 @@ class ManagePanel
                 'msg' => "status invalid"
             );
         }
+        if ($Get_Data_Panel['type'] == "cloudius") { // [cloudius-renew]
+            $cl = changeActive_cloudius($name_panel, $username, $DataUserOut['status'] != "active");
+            return array(
+                'status' => !empty($cl['status']) ? 'successful' : 'Unsuccessful',
+                'msg' => !empty($cl['status']) ? null : ($cl['msg'] ?? 'no response')
+            );
+        }
         if ($Get_Data_Panel['type'] == "marzban") {
             if ($DataUserOut['status'] == "active") {
                 $status = "disabled";
@@ -2090,6 +2097,9 @@ class ManagePanel
                 'status' => true,
                 'msg' => 'successful'
             );
+        } elseif ($panel['type'] == "cloudius") { // [cloudius-renew]
+            $cl = resetTraffic_cloudius($panel['name_panel'], $username);
+            return array('status' => !empty($cl['status']), 'msg' => $cl['msg'] ?? '');
         }
     }
     function extend($Method_extend, $new_limit, $time_day, $username, $code_product, $name_panel)
@@ -2117,6 +2127,55 @@ class ManagePanel
             'time' => false,
         ));
         update("invoice", "notifctions", $notifctions, 'id_invoice', $invoice['id_invoice']);
+        if ($panel['type'] == "cloudius") { // [cloudius-renew]
+            update("invoice", 'Status', "active", "username", $username);
+            $cl_group = null;
+            if (is_array($product) && !empty($product['inbounds']) && is_numeric($product['inbounds'])) {
+                $cl_group = (int) $product['inbounds'];
+            }
+            $cl_gb = (float) $new_limit;
+            $cl_days = (int) $time_day;
+            $cl_method = extendMethodKey($Method_extend);
+            if ($cl_method == "resetVolumeTime" || $cl_method == "resetTimeAddVolume") {
+                // resetTimeAddVolume: new window from today, leftover traffic carried over
+                if ($cl_method == "resetTimeAddVolume") {
+                    $cl_live = GetUser_cloudius($panel['name_panel'], $username);
+                    if (!empty($cl_live['status'])) {
+                        $cl_gb += max(0, $cl_live['data']['remained_traffic']) / pow(1024, 3);
+                    }
+                }
+                $cl = renewUser_cloudius($panel['name_panel'], $username, $cl_group, $cl_gb, $cl_days);
+            } elseif ($cl_method == "addTimeConvertVolume") {
+                $cl_live = GetUser_cloudius($panel['name_panel'], $username);
+                if (!empty($cl_live['status'])) {
+                    $cl_gb += max(0, $cl_live['data']['remained_traffic']) / pow(1024, 3);
+                    $cl_days += max(0, (int) $cl_live['data']['remained_days']);
+                }
+                $cl = renewUser_cloudius($panel['name_panel'], $username, $cl_group, $cl_gb, $cl_days);
+            } else {
+                // addTimeVolumeNextMonth / resetVolumeAddTime: stack on top of what is left
+                $cl = array('status' => true, 'msg' => '');
+                if ($cl_method == "resetVolumeAddTime") {
+                    $cl = resetTraffic_cloudius($panel['name_panel'], $username);
+                }
+                if (!empty($cl['status']) && $cl_gb > 0) {
+                    $cl = addTraffic_cloudius($panel['name_panel'], $username, $cl_gb);
+                }
+                if (!empty($cl['status']) && $cl_days > 0) {
+                    $cl = addTime_cloudius($panel['name_panel'], $username, $cl_days);
+                }
+            }
+            if (empty($cl['status'])) {
+                return array('status' => false, 'msg' => 'cloudius : ' . ($cl['msg'] ?? 'no response'));
+            }
+            if (empty($data_user['status']) || $data_user['status'] != "active") {
+                changeActive_cloudius($panel['name_panel'], $username, true);
+            }
+            if ($invoice != false && $cl_gb > 0) {
+                update("invoice", "Volume", (string) round($cl_gb, 2), "id_invoice", $invoice['id_invoice']);
+            }
+            return array('status' => true, 'msg' => 'successful');
+        }
         $data_limit_old = $data_user['data_limit'];
         $time_old = $data_user['expire'];
         $time_old = time() - $time_old > 0 ? time() : $time_old;
@@ -2336,6 +2395,16 @@ class ManagePanel
                 'msg' => $user_info['msg']
             );
         }
+        if ($panel['type'] == "cloudius") { // [cloudius-renew]
+            $cl = addTraffic_cloudius($panel['name_panel'], $username_account, (float) $limit_volume_new);
+            if (empty($cl['status'])) {
+                return array('status' => false, 'msg' => 'cloudius : ' . ($cl['msg'] ?? 'no response'));
+            }
+            if ($invoice != false && intval($invoice['Volume']) > 0) {
+                update("invoice", "Volume", (string) (intval($invoice['Volume']) + (float) $limit_volume_new), "id_invoice", $invoice['id_invoice']);
+            }
+            return array('status' => true, 'msg' => 'successful');
+        }
         $old_limit_volume = $user_info['data_limit'];
         $new_limit = $limit_volume_new == 0 ? 0 : ($limit_volume_new * pow(1024, 3)) + $old_limit_volume;
         $inbound_id = isset($panel['inboundid']) ? $panel['inboundid'] : 1;
@@ -2467,6 +2536,13 @@ class ManagePanel
                 'status' => false,
                 'msg' => $user_info['msg']
             );
+        }
+        if ($panel['type'] == "cloudius") { // [cloudius-renew]
+            $cl = addTime_cloudius($panel['name_panel'], $username_account, (int) $limit_time_new);
+            if (empty($cl['status'])) {
+                return array('status' => false, 'msg' => 'cloudius : ' . ($cl['msg'] ?? 'no response'));
+            }
+            return array('status' => true, 'msg' => 'successful');
         }
         $old_limit_time = $user_info['expire'];
         $old_limit_time = time() - $old_limit_time > 0 ? time() : $old_limit_time;
