@@ -970,7 +970,14 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         ];
         if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik" || $marzban['type'] == "cloudius") {
             unset($keyboardsetting['inline_keyboard'][1][1]);
-            unset($keyboardsetting['inline_keyboard'][0]);
+            if ($marzban['type'] == "cloudius") { // [cloudius-extendbtn] keep renew, drop extra volume
+                unset($keyboardsetting['inline_keyboard'][0][1]);
+            } else {
+                unset($keyboardsetting['inline_keyboard'][0]);
+            }
+        }
+        if (($marzban['status_extend'] ?? '') == "off_extend" && $marzban['type'] == "cloudius") { // [cloudius-extendbtn]
+            unset($keyboardsetting['inline_keyboard'][0][0]);
         }
         if ($statustimeextra == "offtimeextraa")
             unset($keyboardsetting['inline_keyboard'][1][1]);
@@ -1054,7 +1061,9 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         if ($marzban['type'] == "ibsng" || $marzban['type'] == "mikrotik" || $marzban['type'] == "cloudius") {
             unset($keyboarddate['linksub']);
             unset($keyboarddate['config']);
-            unset($keyboarddate['extend']);
+            if ($marzban['type'] != "cloudius") { // [cloudius-extendbtn] cloudius renews natively
+                unset($keyboarddate['extend']);
+            }
             unset($keyboarddate['changestatus']);
             unset($keyboarddate['change-location']);
             unset($keyboarddate['changelink']);

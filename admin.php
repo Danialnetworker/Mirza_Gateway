@@ -8818,7 +8818,9 @@ if ($datain == "settimecornday" && $adminrulecheck['rule'] == "administrator") {
         ];
     }
     if ($panel['type'] == "ibsng" || $panel['type'] == "mikrotik" || $panel['type'] == "cloudius") {
-        unset($Bot_Status['inline_keyboard'][2]);
+        if ($panel['type'] != "cloudius") { // [cloudius-extendbtn] keep the renewal on/off toggle
+            unset($Bot_Status['inline_keyboard'][2]);
+        }
         unset($Bot_Status['inline_keyboard'][3]);
         unset($Bot_Status['inline_keyboard'][4]);
         unset($Bot_Status['inline_keyboard'][5]);
