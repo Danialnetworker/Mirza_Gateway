@@ -123,6 +123,8 @@ function dispute_kind_title(string $kind): string
             return 'خرید حجم اضافه';
         case 'getextratimeuser':
             return 'خرید زمان اضافه';
+        case 'partial':
+            return 'پرداخت ناقص (شارژ کیف پول)';
         default:
             return 'شارژ کیف پول';
     }
@@ -141,6 +143,13 @@ function tronado_dispute_apply(array $p, string $paymentId, string $outcome): ar
     $price = (int) $pr['price'];
     $parts = explode('|', (string) $pr['id_invoice'], 2);
     $kind = $parts[0];
+    // [tronado-shortpaid] a short payment was only credited to the wallet:
+    // reverse what was credited, never remove a service it did not buy.
+    $settled = tronadoOrderMeta($pr)['settled'] ?? [];
+    if (!empty($settled['partial'])) {
+        $price = (int) ($settled['credited'] ?? 0);
+        $kind = 'partial';
+    }
     $lines = [
         '👤 کاربر: <code>' . dispute_h($userId) . '</code>',
         '🧾 نوع سفارش: ' . dispute_kind_title($kind),

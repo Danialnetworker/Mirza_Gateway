@@ -68,6 +68,13 @@ foreach ($rows as $paymentReport) {
     if ($statusId === TRONADO_STATUS_PAYMENT_ACCEPTED && !empty($status['IsPaid'])) {
         $mismatch = tronadoPaidPayloadMismatch($paymentReport, $status, false);
         if ($mismatch !== '') {
+            // [tronado-shortpaid] the status endpoint is bound to the shop's API
+            // key, so its short amount is authoritative on its own.
+            $short = tronadoShortPaid($paymentReport, $status, false);
+            if ($short !== null) {
+                tronadoSettleShortOrder($paymentReport, $status, $short['paid'], $short['asked'], 'cron');
+                continue;
+            }
             tronadoReportProblem($paymentReport, 'poll status ' . $mismatch, $status);
             continue;
         }

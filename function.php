@@ -1270,6 +1270,160 @@ function tronadoReportProblem(array $paymentReport, string $reason, array $paylo
 }
 
 /**
+ * [tronado-shortpaid] A paid order whose ONLY problem is that Tronado accepted
+ * less TRX than invoiced (typically a reviewer approving a smaller card
+ * transfer). tronadoPaidPayloadMismatch() checks id, status 30 + IsPaid, seal,
+ * token and wallet before it gets to the amount, so reaching "amount short"
+ * means everything else already passed. Returns ['paid','asked'] or null.
+ */
+function tronadoShortPaid(array $paymentReport, array $payload, bool $expectToken): ?array
+{
+    $reason = tronadoPaidPayloadMismatch($paymentReport, $payload, $expectToken);
+    if (strpos($reason, 'amount short (') !== 0) {
+        return null;
+    }
+    $asked = (float) (tronadoOrderMeta($paymentReport)['trx'] ?? 0);
+    $paid = (float) ($payload['TronAmount'] ?? 0);
+    if ($asked <= 0 || $paid <= 0 || $paid >= $asked) {
+        return null;
+    }
+
+    return ['paid' => $paid, 'asked' => $asked];
+}
+
+/**
+ * IPN side: the signed body says short, and Tronado's own answer (bound to the
+ * shop's API key) must say the same short amount. state: ok | unavailable | no.
+ */
+function tronadoShortPaidConfirmed(array $paymentReport, array $payload, ?callable $statusFetcher = null): array
+{
+    $short = tronadoShortPaid($paymentReport, $payload, true);
+    if ($short === null) {
+        return ['state' => 'no'];
+    }
+    $fetch = $statusFetcher ?? static fn(string $paymentId): ?array => tronadoGetStatusByPaymentId($paymentId, 4);
+    $status = $fetch((string) $paymentReport['id_order']);
+    if ($status === null) {
+        return ['state' => 'unavailable'];
+    }
+    $confirmed = tronadoShortPaid($paymentReport, $status, false);
+    if ($confirmed === null || abs($confirmed['paid'] - $short['paid']) > 0.00001) {
+        return ['state' => 'no'];
+    }
+
+    return ['state' => 'ok', 'paid' => $confirmed['paid'], 'asked' => $confirmed['asked'], 'status' => $status + $payload];
+}
+
+function tronadoShortKindAction(string $kind): string
+{
+    switch ($kind) {
+        case 'getconfigafterpay':
+            return 'خرید سرویس';
+        case 'getextenduser':
+            return 'تمدید سرویس';
+        case 'getextravolumeuser':
+            return 'خرید حجم اضافه';
+        case 'getextratimeuser':
+            return 'خرید زمان اضافه';
+        default:
+            return '';
+    }
+}
+
+/**
+ * Settle a short payment as a wallet top-up of the share actually paid.
+ * Nothing is delivered (the buyer did not pay for the service). Exactly one
+ * credit per order: claimPaymentPaid is the gate, as in tronadoSettleOrder.
+ */
+function tronadoSettleShortOrder(array $paymentReport, array $confirmed, float $paid, float $asked, string $source): bool
+{
+    global $pdo;
+    $orderId = (string) $paymentReport['id_order'];
+    if (!claimPaymentPaid($orderId)) {
+        return false;
+    }
+    $price = max(0, intval($paymentReport['price']));
+    $ratio = $asked > 0 ? min(1.0, max(0.0, $paid / $asked)) : 0.0;
+    $credit = (int) floor($price * $ratio);
+    $userId = (string) $paymentReport['id_user'];
+
+    clearSelectCache('user');
+    $buyer = select("user", "*", "id", $userId, "select");
+    $before = $buyer ? (int) $buyer['Balance'] : 0;
+    if ($buyer && $credit > 0) {
+        $stmt = $pdo->prepare("UPDATE user SET Balance = Balance + :c WHERE id = :id");
+        $stmt->execute([':c' => $credit, ':id' => $userId]);
+        clearSelectCache('user');
+    }
+    $after = $buyer ? (int) (select("user", "Balance", "id", $userId, "select")['Balance'] ?? 0) : 0;
+
+    $meta = tronadoOrderMeta($paymentReport);
+    $meta['settled'] = [
+        'source' => $source,
+        'at' => gmdate('c'),
+        'partial' => true,
+        'asked_trx' => $asked,
+        'paid_trx' => $paid,
+        'ratio' => round($ratio, 6),
+        'credited' => $buyer ? $credit : 0,
+        'hash' => $confirmed['Hash'] ?? null,
+        'user_paid_toman' => $confirmed['UserPaidTomanAmount'] ?? null,
+        'toman_without_wage' => $confirmed['TomanAmountWithoutWage'] ?? null,
+    ];
+    if (isset($meta['problem'])) {
+        $meta['resolved_problem'] = $meta['problem'];
+        unset($meta['problem']);
+    }
+    tronadoStoreMeta($orderId, $meta);
+
+    $kind = explode('|', (string) $paymentReport['id_invoice'], 2)[0];
+    $action = tronadoShortKindAction($kind);
+    $pct = round($ratio * 100, 1);
+
+    if ($buyer) {
+        if (!empty($paymentReport['message_id'])) {
+            deletemessage($userId, $paymentReport['message_id']);
+        }
+        $text = "⚠️ <b>مبلغ واریزی شما کمتر از مبلغ فاکتور بود</b>\n\n"
+            . "🧾 کد پیگیری: <code>" . htmlspecialchars($orderId, ENT_QUOTES, 'UTF-8') . "</code>\n"
+            . "💰 مبلغ فاکتور: " . number_format($price) . " تومان\n"
+            . "💳 معادل مبلغ واریزی شما: " . number_format($credit) . " تومان\n\n"
+            . ($action !== '' ? "❗️ به همین دلیل {$action} انجام نشد.\n" : '')
+            . "✅ به همان میزان، <b>" . number_format($credit) . " تومان</b> به کیف پول شما اضافه شد.\n"
+            . "👛 موجودی فعلی: " . number_format($after) . " تومان"
+            . ($action !== '' ? "\n\nمی‌توانید با تکمیل موجودی، {$action} را از طریق کیف پول انجام دهید." : '');
+        sendmessage($userId, $text, null, 'HTML');
+    }
+
+    $setting = select("setting", "*");
+    $channel = (string) ($setting['Channel_Report'] ?? '');
+    $report = "🟠 <b>پرداخت ناقص ترونادو — کیف پول شارژ شد</b>\n\n"
+        . "🆔 کد پیگیری: <code>" . htmlspecialchars($orderId, ENT_QUOTES, 'UTF-8') . "</code>\n"
+        . "👤 کاربر: <code>" . htmlspecialchars($userId, ENT_QUOTES, 'UTF-8') . "</code>"
+        . (!empty($buyer['username']) ? ' @' . htmlspecialchars((string) $buyer['username'], ENT_QUOTES, 'UTF-8') : '') . "\n"
+        . "🧾 نوع سفارش: " . ($action !== '' ? $action . ' (انجام نشد)' : 'شارژ کیف پول') . "\n"
+        . "💰 مبلغ فاکتور: " . number_format($price) . " تومان\n"
+        . "🔻 ترون واریزی: {$paid} از {$asked} TRX ({$pct}%)\n"
+        . ($buyer
+            ? "➕ شارژ کیف پول: " . number_format($credit) . " تومان\n👛 موجودی: " . number_format($before) . " ← <b>" . number_format($after) . "</b> تومان"
+            : "❌ کاربر در ربات پیدا نشد؛ کیف پول شارژ نشد. لطفاً دستی بررسی کنید.")
+        . "\n📡 منبع: " . htmlspecialchars($source, ENT_QUOTES, 'UTF-8');
+    if ($channel !== '') {
+        $topic = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'] ?? null;
+        telegram('sendmessage', [
+            'chat_id' => $channel,
+            'message_thread_id' => $topic,
+            'text' => $report,
+            'parse_mode' => 'HTML',
+        ]);
+    } else {
+        error_log('tronado shortpaid: ' . strip_tags($report));
+    }
+
+    return true;
+}
+
+/**
  * Credit a Tronado order that Tronado confirmed as PaymentAccepted.
  *
  * Exactly one credit per order, whichever path arrives first: claimPaymentPaid

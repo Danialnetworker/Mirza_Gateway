@@ -130,6 +130,20 @@ if ($statusId === TRONADO_STATUS_PAYMENT_ACCEPTED && !empty($payload['IsPaid']))
         error_log("tronado: status check unavailable for {$paymentId}, asking for a retry");
         tronado_respond(500, ['ok' => false, 'error' => 'status check unavailable']);
     }
+    // [tronado-shortpaid] accepted for less TRX than invoiced: credit the
+    // wallet with the share actually paid instead of stopping for a human.
+    if ($evidence['stage'] === 'payload') {
+        $short = tronadoShortPaidConfirmed($paymentReport, $payload);
+        if ($short['state'] === 'unavailable') {
+            error_log("tronado: status check unavailable for short order {$paymentId}, asking for a retry");
+            tronado_respond(500, ['ok' => false, 'error' => 'status check unavailable']);
+        }
+        if ($short['state'] === 'ok') {
+            tronado_ack_early(['ok' => true, 'accepted' => true, 'partial' => true]);
+            tronadoSettleShortOrder($paymentReport, $short['status'], $short['paid'], $short['asked'], 'ipn');
+            exit;
+        }
+    }
     if ($evidence['reason'] !== '') {
         tronadoReportProblem($paymentReport, $evidence['reason'], $evidence['payload']);
         tronado_respond(200, ['ok' => false, 'error' => $evidence['stage'] === 'payload' ? 'payload mismatch' : 'status mismatch']);
