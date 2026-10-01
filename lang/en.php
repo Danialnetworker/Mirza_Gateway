@@ -1228,6 +1228,7 @@ Message text:
                         'minutesAgo' => "%s min ago",
                         'disabled' => "off",
                         'command' => "📌 To set it up manually, add this line to the server crontab:\n<code>%s</code>",
+                        'missingMysql' => "❌ The MySQL extension is not installed for command-line PHP %1\$s, so cron jobs cannot connect to the database.\nRun on the server:\n<code>apt install php%1\$s-mysql</code>",
                         'refresh' => "🔄 Refresh",
                         'fix' => "🔧 Reinstall cron",
                         'fixed' => "✅ Cron was reinstalled.",
@@ -1840,7 +1841,10 @@ Your current merchant code: %s',
 Current key: <code>%s</code>',
                         'askVarizaWebhookSecret' => '🔐 Enter your Variza webhook secret from Variza panel (Profile → Webhook)
 
-Current key: <code>%s</code>',
+Current key: <code>%s</code>
+
+🔗 Webhook URL to register in your Variza profile:
+<code>%s</code>',
                         'askMerchant' => '💳 Obtain your merchant code and enter it in this section
         
 Your current merchant code: %s',

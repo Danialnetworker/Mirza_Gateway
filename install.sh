@@ -555,11 +555,12 @@ ensure_php_exts_for_composer() {
     fi
 
     if php -m 2>/dev/null | grep -qi '^mbstring$' \
-        && php -m 2>/dev/null | grep -qi '^dom$'; then
+        && php -m 2>/dev/null | grep -qi '^dom$' \
+        && php -m 2>/dev/null | grep -qi '^pdo_mysql$'; then
         return 0
     fi
 
-    pkgs="php${ver}-mbstring php${ver}-xml php${ver}-zip php${ver}-gd php${ver}-curl php${ver}-intl php${ver}-bcmath"
+    pkgs="php${ver}-mysql php${ver}-mbstring php${ver}-xml php${ver}-zip php${ver}-gd php${ver}-curl php${ver}-intl php${ver}-bcmath"
     echo "Ensuring PHP ${ver} extensions for Composer: ${pkgs}"
     DEBIAN_FRONTEND=noninteractive apt-get install -y $pkgs || {
         echo "Failed to install PHP ${ver} extensions required by Composer." >&2
@@ -567,9 +568,10 @@ ensure_php_exts_for_composer() {
     }
 
     if ! php -m 2>/dev/null | grep -qi '^mbstring$' \
-        || ! php -m 2>/dev/null | grep -qi '^dom$'; then
-        echo "PHP ${ver} is missing mbstring and/or dom after package install." >&2
-        echo "Run: php -m | grep -E 'mbstring|dom'  and php --ini" >&2
+        || ! php -m 2>/dev/null | grep -qi '^dom$' \
+        || ! php -m 2>/dev/null | grep -qi '^pdo_mysql$'; then
+        echo "PHP ${ver} is missing mbstring, dom and/or pdo_mysql after package install." >&2
+        echo "Run: php -m | grep -E 'mbstring|dom|pdo_mysql'  and php --ini" >&2
         return 1
     fi
     return 0

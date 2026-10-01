@@ -1228,6 +1228,7 @@ https://t.me/%s?start=%s',
                         'minutesAgo' => "%s 分钟前",
                         'disabled' => "已关闭",
                         'command' => "📌 如需手动设置，请将此行添加到服务器 crontab：\n<code>%s</code>",
+                        'missingMysql' => "❌ 命令行 PHP %1\$s 未安装 MySQL 扩展，定时任务无法连接数据库。\n请在服务器上运行：\n<code>apt install php%1\$s-mysql</code>",
                         'refresh' => "🔄 刷新",
                         'fix' => "🔧 重新安装定时任务",
                         'fixed' => "✅ 定时任务已重新安装。",
@@ -1837,7 +1838,10 @@ nowpayments.io
 当前密钥：<code>%s</code>',
 'askVarizaWebhookSecret' => '🔐 请从 Variza 控制面板（个人资料 → Webhook）输入您的 Variza Webhook 密钥
 
-当前密钥：<code>%s</code>',
+当前密钥：<code>%s</code>
+
+🔗 请在 Variza 个人资料中注册的 Webhook 地址：
+<code>%s</code>',
                         'askZarinpalMerchant' => '💳 从 ZarinPal 获取您的商户代码并在此部分输入
         
 您当前的商户代码：%s',

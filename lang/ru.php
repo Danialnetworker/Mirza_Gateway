@@ -1228,6 +1228,7 @@ https://t.me/%s?start=%s',
                         'minutesAgo' => "%s мин назад",
                         'disabled' => "выкл",
                         'command' => "📌 Для ручной настройки добавьте эту строку в crontab сервера:\n<code>%s</code>",
+                        'missingMysql' => "❌ Расширение MySQL не установлено для PHP %1\$s в командной строке, поэтому cron-задачи не могут подключиться к базе данных.\nВыполните на сервере:\n<code>apt install php%1\$s-mysql</code>",
                         'refresh' => "🔄 Обновить",
                         'fix' => "🔧 Переустановить cron",
                         'fixed' => "✅ Cron переустановлен.",
@@ -1837,7 +1838,10 @@ nowpayments.io
 Текущий ключ: <code>%s</code>',
                         'askVarizaWebhookSecret' => '🔐 Введите секретный ключ вебхука Variza из панели Variza (Профиль → Вебхук)
 
-Текущий ключ: <code>%s</code>',
+Текущий ключ: <code>%s</code>
+
+🔗 URL вебхука для регистрации в профиле Variza:
+<code>%s</code>',
                         'askZarinpalMerchant' => '💳 Получите ваш код продавца от ZarinPal и введите его в этом разделе
         
 Ваш текущий код продавца: %s',

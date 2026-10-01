@@ -1247,7 +1247,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     } else {
         $id_invoice = $dataget[1];
         $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
-        if ($nameloc && $nameloc['id_user'] != $from_id) {
+        if ($nameloc && $nameloc['id_user'] != $from_id && !in_array($from_id, $admin_ids)) {
             $nameloc = false;
         }
     }
@@ -1268,7 +1268,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 } elseif (preg_match('/configget_(.*)_(.*)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
     $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
-    if ($nameloc && $nameloc['id_user'] != $from_id) {
+    if ($nameloc && $nameloc['id_user'] != $from_id && !in_array($from_id, $admin_ids)) {
         $nameloc = false;
     }
     if ($nameloc == false) {
@@ -4715,7 +4715,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     update("user", "Processing_value", $balancelast, "id", $from_id);
     sendmessage($from_id, $textbotlang['users']['Balance']['selectPayment'], $step_payment, 'HTML');
     step('get_step_payment', $from_id);
-} elseif ($user['step'] == "get_step_payment" && in_array($datain, ["cart_to_offline", "aqayepardakht", "zarinpal", "plisio", "nowpayment", "iranpay1", "iranpay2", "iranpay4", "tronado", "frenzyex", "iranpay3", "digitaltron", "startelegrams"])) {
+} elseif ($user['step'] == "get_step_payment" && in_array($datain, ["cart_to_offline", "aqayepardakht", "zarinpal", "variza", "plisio", "nowpayment", "iranpay1", "iranpay2", "iranpay4", "tronado", "frenzyex", "iranpay3", "digitaltron", "startelegrams"])) {
     if ($datain == "cart_to_offline") {
         $mainbalance = select("PaySetting", "ValuePay", "NamePay", "minbalancecart", "select")['ValuePay'];
         $maxbalance = select("PaySetting", "ValuePay", "NamePay", "maxbalancecart", "select")['ValuePay'];

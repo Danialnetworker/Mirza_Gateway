@@ -2359,7 +2359,7 @@ function outtypepanel($typepanel, $message)
         sendmessage($from_id, $message, $option_mikrotik, 'HTML');
     } elseif ($typepanel == "mirza_agent") {
         sendmessage($from_id, $message, $option_mirza, 'HTML');
-    } elseif ($typepanel == "rebecca") {
+    } elseif (in_array($typepanel, ["rebecca", "nexora", "wg_mate"])) {
         sendmessage($from_id, $message, $optionrebecca, 'HTML');
     }
 }

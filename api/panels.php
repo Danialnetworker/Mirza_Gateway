@@ -358,6 +358,8 @@ function panel_set_inbounds(array $data, string $method): void
                 unset($DataUserOut[$proxyKey][$key]['private_key']);
                 unset($DataUserOut[$proxyKey][$key]['public_key']);
                 unset($DataUserOut[$proxyKey][$key]['peer_ips']);
+            } elseif ($key == "hysteria") {
+                unset($DataUserOut[$proxyKey][$key]['auth']);
             } else {
                 unset($DataUserOut[$proxyKey][$key]['id']);
             }
