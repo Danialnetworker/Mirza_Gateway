@@ -1,18 +1,9 @@
 <?php
-/**
- * Where a buyer lands after tapping “I paid” on Variza.
- *
- * Variza verifies card-to-card via SMS, often minutes after the buyer
- * has closed the tab, so this page never trusts what it sees — it only
- * reports what this bot knows. The real settlement is the push to
- * variza_webhook.php; this page is just a waiting room that turns into
- * a receipt if the push has already arrived.
- */
 
 ini_set('error_log', 'error_log');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
-require_once __DIR__ . '/../Marzban.php';
+require_once __DIR__ . '/../panels/Api/Marzban.php';
 require_once __DIR__ . '/../function.php';
 require_once __DIR__ . '/../panels.php';
 require_once __DIR__ . '/../keyboard.php';

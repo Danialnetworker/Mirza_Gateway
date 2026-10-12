@@ -29,5 +29,6 @@ return [
         ['proxies', null, 'TEXT'],
         ['category', null, 'varchar(200)'],
         ['hide_panel', '{}', 'TEXT'],
+        ['status_product', 'active', 'VARCHAR(20)'],
     ],
 ];

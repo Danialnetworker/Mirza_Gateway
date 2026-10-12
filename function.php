@@ -280,6 +280,36 @@ function copyDirectoryContents($source, $destination)
 }
 
 #-----------function------------#
+function syncReportTopics($chatId, $textbotlang)
+{
+    $topicNames = [
+        'buyreport' => $textbotlang['Admin']['report']['btnPurchaseReports'],
+        'otherservice' => $textbotlang['Admin']['report']['btnServicePurchase'],
+        'reporttest' => $textbotlang['Admin']['report']['btnTestAccount'],
+        'otherreport' => $textbotlang['Admin']['report']['btnOther'],
+        'errorreport' => $textbotlang['Admin']['report']['btnErrors'],
+        'paymentreport' => $textbotlang['Admin']['report']['btnFinancial'],
+        'porsantreport' => $textbotlang['Admin']['affiliates']['titleTopic'],
+        'reportnight' => $textbotlang['Admin']['report']['reportNight'],
+        'reportcron' => $textbotlang['Admin']['report']['reportCron'],
+        'backupfile' => $textbotlang['Admin']['report']['btnBackup'],
+    ];
+    foreach ($topicNames as $report => $name) {
+        $topicId = intval(select("topicid", "idreport", "report", $report, "select")['idreport'] ?? 0);
+        if ($topicId > 0) {
+            $editTopic = telegram('editForumTopic', ['chat_id' => $chatId, 'message_thread_id' => $topicId, 'name' => $name]);
+            if ($editTopic['ok'] || str_contains($editTopic['description'] ?? '', 'TOPIC_NOT_MODIFIED')) {
+                continue;
+            }
+        }
+        $createForumTopic = telegram('createForumTopic', ['chat_id' => $chatId, 'name' => $name]);
+        if (!$createForumTopic['ok']) {
+            return false;
+        }
+        update("topicid", "idreport", $createForumTopic['result']['message_thread_id'], "report", $report);
+    }
+    return true;
+}
 function step($step, $from_id)
 {
     global $pdo;
@@ -416,7 +446,7 @@ function update($table, $field, $newValue, $whereField = null, $whereValue = nul
     if ($field != "message_count" && $field != "last_message_time") {
         $logDir = __DIR__ . '/storage';
         if (is_dir($logDir) || @mkdir($logDir, 0775, true)) {
-            @file_put_contents($logDir . '/log.txt', "\n" . $logss, FILE_APPEND);
+            @file_put_contents($logDir . '/log.txt', "\n" . $logss, @filesize($logDir . '/log.txt') > 5 * 1024 * 1024 ? 0 : FILE_APPEND);
         }
     }
 
@@ -1850,7 +1880,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
             $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
             update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $get_invoice['id_invoice']);
         }
-        sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $get_invoice['id_invoice'], $get_invoice['id_user'], $image);
+        sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $get_invoice['id_invoice'], $get_invoice['id_user'], $image, wireguard: $dataoutput['wireguard'] ?? []);
         $partsdic = explode("_", $Balance_id['Processing_value_four']);
         if ($partsdic[0] == "dis") {
             $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
@@ -2310,6 +2340,68 @@ function savedata($type, $namefiled, $valuefiled)
         update("user", "Processing_value", json_encode($dataperevieos), "id", $from_id);
     }
 }
+function finishAddPanel()
+{
+    global $pdo, $from_id, $textbotlang, $keyboardadmin;
+    $userdata = json_decode(select("user", "Processing_value", "id", $from_id, "select")['Processing_value'], true);
+    $defaultPrice = json_encode(['f' => "4000", 'n' => "4000", 'n2' => "4000"]);
+    $defaultMain = json_encode(['f' => "1", 'n' => "1", 'n2' => "1"]);
+    $defaultMax = json_encode(['f' => "1000", 'n' => "1000", 'n2' => "1000"]);
+    $panelData = [
+        'code_panel' => bin2hex(random_bytes(2)),
+        'name_panel' => $userdata['namepanel'],
+        'sublink' => "onsublink",
+        'config' => "offconfig",
+        'MethodUsername' => "numericIdRandom",
+        'TestAccount' => "ONTestAccount",
+        'status' => "active",
+        'limit_panel' => "unlimited",
+        'namecustom' => "none",
+        'Methodextend' => "resetVolumeTime",
+        'type' => $userdata['type'] == "pasarguard" ? "marzban" : $userdata['type'],
+        'conecton' => "offconecton",
+        'inboundid' => "1",
+        'agent' => "all",
+        'inbound_deactive' => "1",
+        'inboundstatus' => "offinbounddisable",
+        'url_panel' => $userdata['url_panel'],
+        'linksubx' => $userdata['url_panel'],
+        'username_panel' => $userdata['username'],
+        'password_panel' => $userdata['password'],
+        'time_usertest' => "1",
+        'val_usertest' => "100",
+        'priceextravolume' => $defaultPrice,
+        'priceextratime' => $defaultPrice,
+        'pricecustomvolume' => $defaultPrice,
+        'pricecustomtime' => $defaultPrice,
+        'mainvolume' => $defaultMain,
+        'maxvolume' => $defaultMax,
+        'maintime' => $defaultMain,
+        'maxtime' => $defaultMax,
+        'status_extend' => "on_extend",
+        'subvip' => "offsubvip",
+        'changeloc' => "offchangeloc",
+        'customvolume' => json_encode(['f' => "0", 'n' => "0", 'n2' => "0"]),
+        'on_hold_test' => "1",
+        'version_panel' => $userdata['type'] == "pasarguard" ? "1" : "0",
+    ];
+    $stmt = $pdo->prepare("INSERT INTO marzban_panel (" . implode(',', array_keys($panelData)) . ") VALUES (:" . implode(', :', array_keys($panelData)) . ")");
+    $stmt->execute($panelData);
+    step("home", $from_id);
+    sendmessage($from_id, $textbotlang['Admin']['managepanel']['addedPanel'] . " 🥳", $keyboardadmin, 'HTML');
+    $panelNotes = [
+        "x-ui_single" => "noteSetInboundAndDomain",
+        "marzban" => "noteSetProtocolInbound",
+        "WGDashboard" => "noteSetInboundId",
+        "ibsng" => "noteSetGroupNameIbsng",
+        "mikrotik" => "noteMikrotikAccounting",
+        "cloudius" => "noteCloudiusGroupId",
+        "hiddify" => "noteSetAdminUuid",
+    ];
+    if (isset($panelNotes[$panelData['type']])) {
+        sendmessage($from_id, $textbotlang['Admin']['managepanel'][$panelNotes[$panelData['type']]], null, 'HTML');
+    }
+}
 function addFieldToTable($tableName, $fieldName, $defaultValue = null, $datatype = "VARCHAR(500)")
 {
     global $pdo;
@@ -2338,29 +2430,9 @@ function addFieldToTable($tableName, $fieldName, $defaultValue = null, $datatype
 }
 function outtypepanel($typepanel, $message)
 {
-    global $from_id, $optionMarzban, $optionX_ui_single, $optionhiddfy, $option_mirza, $optionalireza_single, $optionmarzneshin, $option_mikrotik, $optionwg, $options_ui, $optionibsng, $optionrebecca;
-    if ($typepanel == "marzban") {
-        sendmessage($from_id, $message, $optionMarzban, 'HTML');
-    } elseif ($typepanel == "x-ui_single") {
-        sendmessage($from_id, $message, $optionX_ui_single, 'HTML');
-    } elseif ($typepanel == "hiddify") {
-        sendmessage($from_id, $message, $optionhiddfy, 'HTML');
-    } elseif ($typepanel == "alireza_single") {
-        sendmessage($from_id, $message, $optionalireza_single, 'HTML');
-    } elseif ($typepanel == "marzneshin") {
-        sendmessage($from_id, $message, $optionmarzneshin, 'HTML');
-    } elseif ($typepanel == "WGDashboard") {
-        sendmessage($from_id, $message, $optionwg, 'HTML');
-    } elseif ($typepanel == "s_ui") {
-        sendmessage($from_id, $message, $options_ui, 'HTML');
-    } elseif ($typepanel == "ibsng") {
-        sendmessage($from_id, $message, $optionibsng, 'HTML');
-    } elseif ($typepanel == "mikrotik") {
-        sendmessage($from_id, $message, $option_mikrotik, 'HTML');
-    } elseif ($typepanel == "mirza_agent") {
-        sendmessage($from_id, $message, $option_mirza, 'HTML');
-    } elseif (in_array($typepanel, ["rebecca", "nexora", "wg_mate"])) {
-        sendmessage($from_id, $message, $optionrebecca, 'HTML');
+    global $from_id, $panelOptions;
+    if (isset($panelOptions[$typepanel])) {
+        sendmessage($from_id, $message, $panelOptions[$typepanel], 'HTML');
     }
 }
 
@@ -3147,7 +3219,7 @@ function isBase64($string)
     }
     return false;
 }
-function sendMessageService($panel_info, $config, $sub_link, $username_service, $reply_markup, $caption, $invoice_id, $user_id = null, $image = 'images.jpg')
+function sendMessageService($panel_info, $config, $sub_link, $username_service, $reply_markup, $caption, $invoice_id, $user_id = null, $image = 'images.jpg', $wireguard = [])
 {
     global $setting, $from_id, $textbotlang;
     if (!check_active_btn($setting['keyboardmain'], "text_help"))
@@ -3208,6 +3280,51 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
         if (is_array($config)) {
             sendmessage($user_id, $textbotlang['users']['status']['getConfigHint'], keyboard_config($config, $invoice_id, false), 'HTML');
         }
+    }
+    sendWireguardFiles($user_id, $wireguard, $username_service);
+}
+function sendWireguardFiles($user_id, $links, $username)
+{
+    global $textbotlang;
+    if (!is_array($links)) {
+        return;
+    }
+    $wireguardLinks = array_values(array_filter($links, fn($link) => is_string($link) && stripos(trim($link), 'wireguard://') === 0));
+    foreach ($wireguardLinks as $index => $link) {
+        [$main] = explode('#', substr(trim($link), strlen('wireguard://')), 2);
+        [$auth, $queryString] = array_pad(explode('?', $main, 2), 2, '');
+        $at = strrpos($auth, '@');
+        $endpoint = rtrim(substr($auth, $at === false ? 0 : $at + 1), '/');
+        parse_str(str_replace('+', '%2B', $queryString), $rawQuery);
+        $query = [];
+        foreach ($rawQuery as $key => $value) {
+            $query[strtolower(str_replace(['_', '-'], '', $key))] = is_array($value) ? reset($value) : $value;
+        }
+        $privateKey = $at === false ? ($query['privatekey'] ?? '') : rawurldecode(substr($auth, 0, $at));
+        $publicKey = $query['publickey'] ?? ($query['peerpublickey'] ?? '');
+        if ($endpoint === '' || $privateKey === '' || $publicKey === '') {
+            continue;
+        }
+        $conf = "[Interface]\nPrivateKey = $privateKey\n";
+        $conf .= !empty($query['address']) ? "Address = {$query['address']}\n" : "";
+        $conf .= !empty($query['dns']) ? "DNS = {$query['dns']}\n" : "";
+        $conf .= !empty($query['mtu']) ? "MTU = {$query['mtu']}\n" : "";
+        $conf .= "\n[Peer]\nPublicKey = $publicKey\n";
+        $conf .= !empty($query['presharedkey']) ? "PresharedKey = {$query['presharedkey']}\n" : "";
+        $conf .= "AllowedIPs = " . ($query['allowedips'] ?? '0.0.0.0/0, ::/0') . "\n";
+        $conf .= "Endpoint = $endpoint\n";
+        $conf .= "PersistentKeepalive = " . ($query['keepalive'] ?? ($query['persistentkeepalive'] ?? '25')) . "\n";
+        $fileName = (substr(preg_replace('/[^A-Za-z0-9_-]/', '', (string) $username), 0, 12) ?: 'wireguard') . (count($wireguardLinks) > 1 ? "_" . ($index + 1) : "") . ".conf";
+        $filePath = qrTempPath(bin2hex(random_bytes(6)) . ".conf");
+        if (@file_put_contents($filePath, $conf) === false) {
+            continue;
+        }
+        telegram('sendDocument', [
+            'chat_id' => $user_id,
+            'document' => new CURLFile($filePath, 'text/plain', $fileName),
+            'caption' => $textbotlang['users']['status']['wireguardFile'],
+        ]);
+        @unlink($filePath);
     }
 }
 function isValidInvitationCode($setting, $fromId, $verfy_status)

@@ -69,5 +69,6 @@ return [
         ['expire', null, 'VARCHAR(100)'],
         ['token', null, 'VARCHAR(100)'],
         ['lang', 'fa', 'varchar(5)'],
+        ['low_balance_alert_sent', '0', 'TINYINT(1)'],
     ],
 ];

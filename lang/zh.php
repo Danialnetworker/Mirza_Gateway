@@ -200,7 +200,6 @@ return [
                 'backmenu' => '🏠 返回上一级菜单',
                 'buttonDisabled' => '❌ 此按钮已停用',
                 'buttonDisabledForYou' => '❌ 此按钮对您已停用',
-                'customusername' => '自定义用户名',
                 'erroroccurred' => '❌ 发生错误，请重新开始操作',
                 'featureUnavailable' => '❌ 此功能目前不可用',
                 'featureUnavailable2' => '❌ 此功能目前不可用。',
@@ -219,7 +218,6 @@ return [
 ❌ 错误的用户名：ali_ | tele@ | _mahdi | محسن',
                 'text_start' => '你好，欢迎',
                 'Balance' => [
-                        'Failed' => '⭕️ 您的支付未通过确认',
                         'addBalanceUser' => '⭕️ 手动增加余额',
                         'blockedfake' => '⭕️ 封禁用户',
                         'changeto' => '❌ 错误 
@@ -244,7 +242,6 @@ return [
                         'selectPayment' => '💵 请选择您的支付方式',
                         'sendReceipt' => '🚀 您的支付收据已发送。经管理员审核通过后，金额将存入您的钱包',
                         'sendReceiptAndConfig' => '🚀 您的收据已发送，审核后将向您发送服务详情',
-                        'sending' => '已收到付款，正在审核中，请稍候',
                         'waiting' => '等待支付确认',
                         'zarinpal' => '❌ 错误 
     通过此网关支付的最低金额为 5000 托曼。',
@@ -912,6 +909,7 @@ https://t.me/%s?start=%s',
 🪪（例如：Ali、Ahmad、叔叔、外地客户等）',
                         'serviceSelect' => '🛍️ 请选择您想购买的服务！',
                         'serviceSelectFirst' => '🛍️ 请选择您想购买的服务！',
+                        'productSoldOut' => '❌ 该产品目前已售罄。',
                         'service_not_available' => '⛔️ 您没有任何有效服务',
                         'service_sell' => '🛍 您购买的订阅
 
@@ -1092,6 +1090,10 @@ https://t.me/%s?start=%s',
                         'confirmEnableConfig' => '📌 确认下方选项后，您的配置将被开启，您将能够连接到该配置。
 ⚠️ 如果您希望再次停用配置，必须从服务管理部分点击 <u>❌ 关闭账户</u> 按钮',
                         'getConfigHint' => '📌 要获取配置，请点击获取配置按钮',
+                        'lowBalanceAlert' => '⚠️ 您的钱包余额为 %s 托曼，即将用完。
+请为钱包充值以购买或续费服务。',
+                        'wireguardFile' => '⚙️ 您的 WireGuard 配置文件
+📥 请将此文件导入 WireGuard 应用。',
                         'connectionInfo' => '
 📶 最后连接时间：%s
 🔄 订阅链接最后更新时间：%s
@@ -1247,6 +1249,7 @@ https://t.me/%s?start=%s',
                 'backMenuBtn' => '▶️ 返回上一级菜单',
                 'changesSaved' => '更改已成功应用',
                 'changesSaved2' => '✅ 更改保存成功',
+                'botCommandsSet' => '✅ 机器人命令已设置。请退出机器人聊天一次后重新进入以查看更改。',
                 'confirmByButton' => '如需确认，请点击确认按钮',
                 'confirmByWord' => '如需确认，请发送下方的词语。
 <code>تایید</code>',
@@ -1313,21 +1316,12 @@ n2',
                 ],
                 'Channel' => [
                         'setChannelReport' => '🔰 频道已成功配置',
-                        'testChannel' => '测试群组连接',
-                        'notForumGroup' => '❌ 所选群组未处于论坛模式。请先启用群组的话题功能，然后重新设置群组的数字ID',
                         'botNotGroupAdmin' => '❌ 机器人不是该群组的管理员',
-                        'askReportGroupId' => '📣 在此部分，您可以发送群组的数字 ID 以发送通知
-群组设置教程：
-1 - 首先创建一个群组 
-2 - 将机器人 @myidbot 加入群组，并在群组内发送命令 /getgroupid@myidbot 
-3 - 在群组设置中开启话题或论坛模式4
-4 - 将您自己的机器人设为群组管理员 
-5 - 将发送的数字 ID 发送给机器人。
+                        'askReportGroupId' => '📣 点击“选择报告群组”，从列表中选择已开启话题的群组；机器人将自动成为管理员并创建话题。
 
-您当前的数字 ID：%s',
-                        'connectionFailed' => '❌ 连接到群组未成功  
-
-收到的错误：  %s',
+当前群组：%s',
+                        'selectGroupBtn' => '选择报告群组',
+                        'selectGroupHint' => '❌ 请使用“选择报告群组”按钮选择一个群组',
                 ],
                 'Discount' => [
                         'giftManage' => "🎁 礼品码管理\n\n• 🎫 已登记的代码：%s\n\n📌 使用每个代码旁边的按钮查看详情或删除。",
@@ -1486,6 +1480,7 @@ n2',
                         'askNewVolume' => '请发送新的流量',
                         'updated' => '✅ 产品已更新',
                         'firstPurchaseDesc' => '📌 通过此功能，您可以设置此产品是否为首次购买专用',
+                        'saleStatusDesc' => '📌 使用此按钮设置产品为有货或已售罄。已售罄的产品会以“已售罄”标签保留在购买列表中，但无法购买。已购买服务的续费不受影响。',
                         'nameExists' => '❌ 名为 %s 的产品已存在',
                         'editSummary' => '
 📌 正在编辑的产品信息：
@@ -1791,6 +1786,10 @@ trojan://xyz',
                         'cannotDeleteUnlimited' => '❌ 由于流量和时间均为无限，无法删除该服务。',
                         'askOnHoldDays' => '在此部分，您必须设置：如果用户在若干天后仍未连接到其配置且处于 on_hold 状态，则向用户发送消息',
                         'askVolumeAlert' => '📌 在此部分，您可以设置：当用户的流量达到 x 时发送警告消息。请以 GB 为单位发送流量。',
+                        'askLowBalanceAlert' => '📌 当用户钱包余额达到或低于此金额时，将向其发送一次提醒。
+请发送金额（托曼）。
+
+当前值：%s 托曼',
                         'askNotifyDays' => '📌 在此部分，您可以设置在订阅结束前多少天通知用户。时间以天为单位',
                         'userNotifyEnabled' => '✅ 已为用户启用定时任务通知。',
                         'userNotifyDisabled' => '✅ 已为用户停用定时任务通知。',
@@ -1906,7 +1905,6 @@ nowpayments.io
                         'descriptionBlock' => '✍️ 封禁该用户的原因已保存',
                         'failedPhone' => '未确认',
                         'getIdUserUnblock' => '👤 请发送用户的数字ID',
-                        'getText' => '请发送您的文本',
                         'getTextResponse' => '如需回复该消息，请发送您的文本。',
                         'lowBalanceUser' => '👇 减少余额',
                         'lowBalanceUserDesc' => '⭕️ 请发送您想扣除的金额',
@@ -2018,12 +2016,8 @@ support 权限级别可访问用户服务和客服消息回复部分',
                         'changedPasswordPanel' => '✅ 面板密码已成功更改。',
                         'changedUrlPanel' => '✅ 面板地址已成功更改。',
                         'changedUsernamePanel' => '✅ 面板用户名已成功更改。',
-                        'connectXUi' => '✅ 面板已连接',
                         'customNameSend' => '请发送您的自定义文本',
                         'errorStatusPanel' => '无法连接到面板 😔 错误信息如下。如果问题未解决，请联系客服',
-                        'getLimitedPanel' => '📌 请指定此面板上的账户创建限制。
-⚠️ 请注意，该限制基于机器人中的有效订单数量 
-如果您希望无限制，请发送文本 unlimited',
                         'getLoc' => '如需编辑面板，请发送面板名称',
                         'getNameNew' => '请发送新的面板名称',
                         'getPassword' => '🔑 用户名已保存。请输入您的密码',
@@ -2055,8 +2049,6 @@ support 权限级别可访问用户服务和客服消息回复部分',
 
 1 - uuid admin：从面板获取并登记管理员 uuid
 2 - 订阅链接域名：请发送 Hiddify 面板的订阅链接域名',
-                        'noteSendConfigUsername' => '❌ 注意：
-1 - 从“面板管理” > 设置 ⚙️ 协议和入站，发送一个配置用户名。',
                         'invalidSelection' => '❌ 所选面板错误',
                         'hidden' => '隐藏',
                         'shown' => '显示',
@@ -2105,8 +2097,28 @@ support 权限级别可访问用户服务和客服消息回复部分',
                         'userGroupChanged' => '📌 用户组修改成功',
                         'btnSubLinkDomain' => '🔗 订阅链接域名',
                         'askSubLinkSample' => '📌 如果您使用的是 Sanaei 面板，请从面板复制一个用户的订阅链接，然后在此部分发送。其他面板需按其结构发送。',
-                        'subLinkInactive' => '订阅链接未激活',
-                        'subLinkInvalid' => '订阅链接无效',
+                        'subLinkInactive' => '❌ 无法连接到订阅链接
+
+🔗 链接：<code>%s</code>
+⚠️ 错误：<code>%s</code>
+
+常见原因：
+• Sanaei 面板中的订阅服务未启用（面板设置 → 订阅 → 启用）
+• 链接中的订阅端口或路径错误
+• 服务器防火墙阻止了订阅端口
+
+解决问题后请重新发送订阅链接。',
+                        'subLinkInvalid' => '❌ 订阅链接有响应，但未找到有效配置
+
+🔗 链接：<code>%s</code>
+📄 收到的响应：<code>%s</code>
+
+常见原因：
+• 发送的是面板登录地址而不是订阅链接
+• 您发送的链接所属用户已被禁用或没有配置
+• 链接中的订阅路径错误
+
+请复制一个有效用户的订阅链接并重新发送。',
                         'askAdminUuid' => '📌 请发送管理员 UUID',
                         'adminUuidSaved' => '✅ 管理员 UUID 已保存',
                         'askInboundId' => '📌 请发送您希望用于生成配置的入站 ID。入站 ID 是一个多位数字，写在面板入站页面的 id 列中。
@@ -2124,7 +2136,6 @@ support 权限级别可访问用户服务和客服消息回复部分',
                         'btnSetGroupName' => '🎛 设置群组名称',
                         'askGroupName' => '📌 请发送您希望默认使用的群组名称。',
                         'askProtocolSetup' => '📌 要设置入站和协议，您必须在面板中创建一个配置，在面板内激活您希望启用的协议和入站，然后发送该配置的用户名',
-                        'userNotInPanel2' => '❌ 该用户在面板中不存在。',
                         'groupNameSaved' => '✅ 群组名称设置成功。',
                         'protocolSaved' => '✅ 您的入站和协议设置成功。',
                         'askHideUserId' => '📌 请发送此面板用户的数字 ID。',
@@ -2385,11 +2396,14 @@ f,n.n2',
 📌 确认下方选项后，将执行以下操作，且不可恢复
 
 1 - 将删除未激活的订单
-2 - 将删除未付款的订单。
+2 - 将删除超过 24 小时的未付款或失败订单。
 3 - 由管理员删除的订单 
 4- 删除未激活的测试服务
 5 - 由用户删除的订单 
-6 - 时间或流量已用尽的订单',
+6 - 时间或流量已用尽的订单
+7 - 将删除已过期的付款
+8 - 将删除超过 7 天的 API 日志
+9 - 将优化数据库表',
                         'botReportIntro' => '💬 | 机器人反馈
 
 🔹 | 如果您在机器人运行中遇到<b>错误或问题</b>，请将其报告给我们以便审核。
@@ -2423,7 +2437,14 @@ f,n.n2',
 ✅ 已删除 %s 个管理员删除的订单
 ✅ 已删除 %s 个测试订单。
 ✅ 已删除 %s 个用户删除的订单。
-✅ 已删除 %s 个已到期（时间或流量）的订单。',
+✅ 已删除 %s 个已到期（时间或流量）的订单。
+✅ 已删除 %s 个已过期的付款。
+✅ 已删除 %s 条 API 日志。
+✅ 数据库表已优化。',
+                        'autoCleanup' => '🧹 机器人自动清理
+
+🗑 已删除未付款账单：%s
+🗑 已删除 API 日志：%s',
                         'backupCaption' => '📌 主机器人数据库导出 ',
                         'dailyBot' => '📌 机器人每日运行报告：
 
@@ -4058,6 +4079,7 @@ f,n.n2',
                 'quickSetVolumePrice' => '🔋 快速设置流量价格',
                 'rebecca' => 'Rebecca',
                 'reWebhookAgentBots' => '🔗 重新设置代理机器人 webhook',
+                'setBotCommands' => '⛏ 机器人命令',
                 'receiveMembershipGift' => '🎁 领取会员礼品',
                 'reconnectNode' => '♻️ 重新连接节点',
                 'refresh' => '♻️ 更新',
@@ -4123,11 +4145,15 @@ f,n.n2',
                 'setThirdPrize' => '3️⃣ 设置第三名奖品',
                 'settings' => '⚙️ 设置',
                 'settleDebt' => '💎 结清欠款',
+                'lowBalanceAlert' => '💰 余额提醒',
                 'shareLink' => '🔗 分享链接',
                 'shopFeatureStatus' => '🛒 商店功能状态',
                 'shopSettings' => '🏬 商店设置',
                 'showCartAfterFirstPay' => '🔒 首次付款后显示卡对卡',
                 'showFirstPurchase' => '为首次购买显示',
+                'productSaleStatus' => '🚦 销售状态',
+                'productAvailable' => '🟢 有货',
+                'productSoldOut' => '🔴 已售罄',
                 'showHiddenPanels' => '🗑 显示隐藏的面板',
                 'showPanel' => '🖥 显示面板',
                 'showProductPrice' => '💰 显示产品价格',
@@ -4210,8 +4236,6 @@ f,n.n2',
                 'setGroupName' => '🎛 设置群组名称',
                 'subLinkDomain' => '🔗 订阅链接域名',
                 'panelTypeSanaei' => 'Sanaei 单端口',
-                'panelTypeAlireza' => 'Alireza 单端口',
-                'usernameMethodAgentCustom' => '自定义代理文本 + 顺序编号',
                 'acceptRulesButton' => '✅ 我接受规则',
         ],
         'panel' => [

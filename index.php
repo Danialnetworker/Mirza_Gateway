@@ -137,8 +137,6 @@ foreach ($topic_id as $topic) {
         $errorreport = $topic['idreport'];
     if ($topic['report'] == 'porsantreport')
         $porsantreport = $topic['idreport'];
-    if ($topic['report'] == 'reportcron')
-        $reportcron = $topic['idreport'];
     if ($topic['report'] == 'backupfile')
         $reportbackup = $topic['idreport'];
     if ($topic['report'] == 'buyreport')
@@ -1264,6 +1262,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         sendmessage($from_id, $textbotlang['users']['status']['configReadError'], null, 'html');
         return;
     }
+    sendWireguardFiles($from_id, $DataUserOut['wireguard'] ?? [], $nameloc['username']);
     Editmessagetext($from_id, $message_id, $textbotlang['users']['status']['selectConfig'], keyboard_config($DataUserOut['links'], $nameloc['id_invoice']));
 } elseif (preg_match('/configget_(.*)_(.*)/', $datain, $dataget)) {
     $id_invoice = $dataget[1];
@@ -2046,6 +2045,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     } else {
         Editmessagetext($from_id, $message_id, $textconfig, $bakinfos);
     }
+    sendWireguardFiles($from_id, $DataUserOut['wireguard'] ?? [], $nameloc['username']);
     $timejalali = jdate('Y/m/d H:i:s');
     $text_report = sprintf($textbotlang['Admin']['reportgroup']['linkChanged'], $from_id, $username, $nameloc['username'], $first_name, $marzban_list_get['name_panel'], $user['agent'], $timejalali);
     if (strlen($setting['Channel_Report']) > 0) {
@@ -2405,7 +2405,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $output = $DataUserOut['data_limit'] - $DataUserOut['used_traffic'];
     $RemainingVolume = $DataUserOut['data_limit'] ? formatBytes($output) : $textbotlang['common']['labels']['unlimitedShort'];
     if ($marzban_list_get['url_panel'] == $marzban_list_get_new['url_panel']) {
-        $remove = $ManagePanel->RemoveUser($nameloc['Service_location'], $nameloc['username']);
+        $ManagePanel->RemoveUser($nameloc['Service_location'], $nameloc['username']);
         $dataoutput = $ManagePanel->createUser($marzban_list_get_new['name_panel'], "usertest", $DataUserOut['username'], $datac);
         if ($dataoutput['username'] == null) {
             addBalance($from_id, $Pricechange);
@@ -2439,7 +2439,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             }
             return;
         }
-        $remove = $ManagePanel->RemoveUser($nameloc['Service_location'], $nameloc['username']);
+        $ManagePanel->RemoveUser($nameloc['Service_location'], $nameloc['username']);
     }
     $output_config_link = "";
     if ($marzban_list_get_new['sublink'] == "onsublink") {
@@ -2460,6 +2460,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         update("invoice", "inboundid", $marzban_list_get_new['inboundid'], "username", $nameloc['username']);
     }
     Editmessagetext($from_id, $message_id, $textchangeloc, $keyboardextend);
+    sendWireguardFiles($from_id, $dataoutput['wireguard'] ?? [], $nameloc['username']);
     $balanceformatsell = number_format(select("user", "Balance", "id", $from_id, "select")['Balance'], 0);
     $format_byte = formatBytes($data_limit);
     $textreport = sprintf($textbotlang['Admin']['reportgroup']['locationChanged'], $from_id, $username, $marzban_list_get['name_panel'], $marzban_list_get_new['name_panel'], $nameloc['username'], $format_byte, $balanceformatsell);
@@ -2971,7 +2972,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $type = "transfertouser";
     $price = "0";
     $stmt->execute([$from_id, $nameloc['username'], $value, $type, $dateacc, $price]);
-} elseif ($user['step'] == "createusertest" || preg_match('/locationtest_(.*)/', $datain, $dataget) || $text == $textbotlang['textbot']['userTest'] || $datain == "usertestbtn" || $text == "usertest") {
+} elseif ($user['step'] == "createusertest" || preg_match('/locationtest_(.*)/', $datain, $dataget) || $text == $textbotlang['textbot']['userTest'] || $datain == "usertestbtn" || $text == "usertest" || $text == "/free") {
     if (!check_active_btn($setting['keyboardmain'], "text_usertest")) {
         sendmessage($from_id, $textbotlang['users']['usertest']['unavailable'], null, 'HTML');
         return;
@@ -3124,7 +3125,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }
-    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $usertestinfo, $textcreatuser, $randomString);
+    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $usertestinfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     step('home', $from_id);
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
@@ -3597,7 +3598,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $location = $userdate['name_panel'];
     }
     $marzban_list_get = select("marzban_panel", "*", "name_panel", $location, "select");
-    $locationproductcount = select("marzban_panel", "*", "name_panel", $location, "count");
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE (status = 'active' OR status = 'end_of_time' OR status = 'end_of_volume' OR status = 'sendedwarn' OR Status = 'send_on_hold') AND  Service_location = :mp2");
     $stmt->execute([':mp2' => $marzban_list_get['name_panel']]);
     $countinovoice = $stmt->rowCount();
@@ -3774,6 +3774,12 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     } else {
         step('getvolumecustomuser', $from_id);
     }
+} elseif ($datain == "productsoldout" || (preg_match('/^prodcutservices?(?:om)?_([^-]+)/', $datain, $soldOutMatch) && (select("product", "status_product", "code_product", $soldOutMatch[1], "select")['status_product'] ?? '') == "disable")) {
+    telegram('answerCallbackQuery', [
+        'callback_query_id' => $callback_query_id,
+        'text' => $textbotlang['users']['sell']['productSoldOut'],
+        'show_alert' => true,
+    ]);
 } elseif ($user['step'] == "getvolumecustomusername" || preg_match('/^prodcutservices_(.*)/', $datain, $dataget)) {
     $prodcut = $dataget[1];
     $userdate = json_decode($user['Processing_value'], true);
@@ -4113,7 +4119,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $textcreatuser = str_replace('{password}', $dataoutput['subscription_url'], $textcreatuser);
         update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $randomString);
     }
-    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString);
+    sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user['number_username']) + 1;
@@ -4650,12 +4656,11 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
         $textcreatuser = str_replace('{links}', "<code>{$config}</code>", $textcreatuser);
         $textcreatuser = str_replace('{links2}', "{$output_config_link}", $textcreatuser);
-        sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString);
+        sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $randomString, wireguard: $dataoutput['wireguard'] ?? []);
     }
     sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
     $balanceformatsell = number_format(select("user", "Balance", "id", $from_id, "select")['Balance'], 0);
     $balanceformatsellbefore = number_format($user['Balance'], 0);
-    $pricebulk = $info_product['price_product'] * intval($user['Processing_value_four']);
     $count_service = $user['Processing_value_four'];
     $timejalali = jdate('Y/m/d H:i:s');
     $text_report = sprintf($textbotlang['Admin']['reportgroup']['bulkAccountCreated'], $from_id, $username, $username_ac, $count_service, $first_name, $user['Processing_value'], $info_product['name_product'], $info_product['Service_time'], $info_product['Volume_constraint'], $balanceformatsellbefore, $balanceformatsell, $randomString, $user['agent'], $user['number'], $info_product['price_product'], $info_product['price_product'], $user['Processing_value_four'], $timejalali);
@@ -5582,7 +5587,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             return;
         }
         $usd = $rates['USD'];
-        $ton = $rates['Ton'];
         $usdprice = round($user['Processing_value'] / $usd, 2);
         $starAmount = $usd * 0.016;
         $starAmount = intval($user['Processing_value'] / $starAmount);
@@ -6007,7 +6011,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $stmt->bindParam(':code', $text);
     $stmt->execute();
     $get_codesql = $stmt->fetch(PDO::FETCH_ASSOC);
-    $balance_user = $user['Balance'] + $get_codesql['price'];
     addBalance($from_id, $get_codesql['price']);
     $discountlimitadd = intval($checklimit['limitused']) + 1;
     update("Discount", "limitused", $discountlimitadd, "code", $text);
@@ -6484,7 +6487,6 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         }
     }
     if ($status) {
-        $balance_last = intval($setting['wheelـluck_price']) + $user['Balance'];
         addBalance($from_id, intval($setting['wheelـluck_price']));
         $price = number_format($setting['wheelـluck_price']);
         sendmessage($from_id, sprintf($textbotlang['users']['wheelLuck']['winnerCongratulations'], $price), null, 'HTML');

@@ -1,6 +1,6 @@
 <?php
-include('config.php');
-require_once 'request.php';
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../request.php';
 date_default_timezone_set('Asia/Tehran');
 #-----------------------------#
 function token_panel($code_panel, $verify = true)

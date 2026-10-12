@@ -14,6 +14,8 @@ function mirza_cron_jobs(): array
         ['job' => 'plisio', 'schedule' => '*/3 * * * *', 'title' => 'پیگیری پرداخت‌های ارز دیجیتال'],
         ['job' => 'tronado', 'schedule' => '*/3 * * * *', 'title' => 'پیگیری پرداخت‌های ترونادو'],
         ['job' => 'payment_expire', 'schedule' => '*/5 * * * *', 'title' => 'انقضای فاکتورهای پرداخت‌نشده'],
+        ['job' => 'alert_balance', 'schedule' => '*/2 * * * *', 'title' => 'هشدار کمبود موجودی کیف پول'],
+        ['job' => 'optimize_order', 'schedule' => '*/30 * * * *', 'title' => 'پاکسازی فاکتورهای رها شده'],
         ['job' => 'statusday', 'schedule' => '*/15 * * * *', 'title' => 'گزارش وضعیت روزانه'],
         ['job' => 'on_hold', 'schedule' => '*/15 * * * *', 'title' => 'سرویس‌های در حالت انتظار'],
         ['job' => 'uptime_node', 'schedule' => '*/15 * * * *', 'title' => 'پایش وضعیت نودها'],

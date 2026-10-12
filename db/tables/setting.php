@@ -159,5 +159,7 @@ return [
         ['cron_status', $cronStatus, 'TEXT'],
         ['text_edit', '{}', 'JSON'],
         ['webhook_secret', null, "VARCHAR(200) NOT NULL DEFAULT ''"],
+        ['alert_balance', '0', 'VARCHAR(10)'],
+        ['balance_value_alert', '10000', 'VARCHAR(30)'],
     ],
 ];

@@ -201,7 +201,7 @@ function mini_service(array $data, string $method): void
         $used_Traffic = $used_traffic_bytes / pow(1024, 3);
         $remaining_traffic = $remaining_traffic_bytes / pow(1024, 3);
         $config = [];
-        if (in_array($panel['type'], ['marzban', 'marzneshin', 'alireza_single', 'x-ui_single', 'hiddify'])) {
+        if (in_array($panel['type'], ['marzban', 'marzneshin', 'x-ui_single', 'hiddify'])) {
             if ($panel['sublink'] == "onsublink" && !empty($DataUserOut['subscription_url'])) {
                 $config[] = [
                     'type' => "link",
@@ -438,7 +438,7 @@ function mini_categories(array $data, string $method): void
             return;
         }
         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent");
+            $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent AND status_product != 'disable'");
             $stmts->bindParam(':location', $panel['name_panel'], PDO::PARAM_STR);
             $stmts->bindParam(':category', $result['remark'], PDO::PARAM_STR);
             $stmts->bindParam(':agent', $user_info['agent']);
@@ -656,7 +656,7 @@ function mini_services(array $data, string $method): void
             $time_range_day = "AND Service_time = :trd";
             $queryParams[':trd'] = $data['time_range_day'];
         }
-        $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :loc OR Location = '/all')AND agent= :ag $category_remarks $time_range_day");
+        $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :loc OR Location = '/all')AND agent= :ag AND status_product != 'disable' $category_remarks $time_range_day");
         $stmt->execute($queryParams);
         $product_list = [];
         $countorder = null;
@@ -809,6 +809,7 @@ function mini_purchase(array $data, string $method): void
             }
             $blocked = !$allowedLocation
                 || ($product['agent'] ?? null) !== $user_info['agent']
+                || ($product['status_product'] ?? '') == "disable"
                 || in_array($panel['name_panel'], $hide_panel);
             if (!$blocked && ($product['one_buy_status'] ?? null) == "1") {
                 $stmtOneBuy = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE Status != 'Unpaid' AND id_user = :uid");
@@ -1036,7 +1037,7 @@ function mini_purchase(array $data, string $method): void
     $textcreatuser = str_replace('{config}', "<code>{$output_config_link}</code>", $textcreatuser);
     $textcreatuser = str_replace('{links}', $config, $textcreatuser);
     $textcreatuser = str_replace('{links2}', $output_config_link, $textcreatuser);
-    sendMessageService($panel, $dataoutput['configs'] ?? null, $output_config_link, $user_info['username'], null, $textcreatuser, $randomString, $user_info['id'], __DIR__ . '/../images.jpg');
+    sendMessageService($panel, $dataoutput['configs'] ?? null, $output_config_link, $user_info['username'], null, $textcreatuser, $randomString, $user_info['id'], __DIR__ . '/../images.jpg', wireguard: $dataoutput['wireguard'] ?? []);
     if (in_array(usernameMethodKey($panel['MethodUsername']), ['customTextSequential', 'usernameSequential', 'numericIdSequential', 'agentCustomTextSequential'], true)) {
         $value = intval($user_info['number_username']) + 1;
         update("user", "number_username", $value, "id", $user_info['id']);

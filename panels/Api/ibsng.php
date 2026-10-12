@@ -2,7 +2,7 @@
 
 use \radiusApi\Modules;
 
-require_once 'ibsng/bootstrap.php';
+require_once __DIR__ . '/../../ibsng/bootstrap.php';
 
 function loginIBsng($url,$username,$password){
     try {

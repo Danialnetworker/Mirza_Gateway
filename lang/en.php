@@ -200,7 +200,6 @@ To enable it, the bot owner needs a Telegram Premium subscription, or the bot mu
                 'backmenu' => '🏠 Back to previous menu',
                 'buttonDisabled' => '❌ This button is disabled',
                 'buttonDisabledForYou' => '❌ This button is disabled for you',
-                'customusername' => 'Custom username',
                 'erroroccurred' => '❌ An error occurred. Please start the steps again',
                 'featureUnavailable' => '❌ This feature is not available at the moment',
                 'featureUnavailable2' => '❌ This feature is not available at the moment.',
@@ -219,7 +218,6 @@ To enable it, the bot owner needs a Telegram Premium subscription, or the bot mu
 ❌ Invalid usernames: ali_ | tele@ | _mahdi | محسن',
                 'text_start' => 'Hello, welcome',
                 'Balance' => [
-                        'Failed' => '⭕️ Your payment has not been confirmed',
                         'addBalanceUser' => '⭕️ Manually add balance',
                         'blockedfake' => '⭕️ Block user',
                         'changeto' => '❌ Error 
@@ -244,7 +242,6 @@ To enable it, the bot owner needs a Telegram Premium subscription, or the bot mu
                         'selectPayment' => '💵 Choose your payment method',
                         'sendReceipt' => '🚀 Your payment receipt has been sent. After approval by the administration, the amount will be deposited into your wallet',
                         'sendReceiptAndConfig' => '🚀 Your receipt has been sent, and after review the service details will be sent to you',
-                        'sending' => 'The payment has been received and is being reviewed, please wait',
                         'waiting' => 'Awaiting payment confirmation',
                         'zarinpal' => '❌ Error 
     The minimum amount for payment via this gateway is 5000 Toman.',
@@ -912,6 +909,7 @@ Support account : @%s',
 🪪(example: Ali, Ahmad, Uncle, customer from out of town, etc.)',
                         'serviceSelect' => '🛍️ Please select the service you want to purchase!',
                         'serviceSelectFirst' => '🛍️ Please select the service you want to purchase!',
+                        'productSoldOut' => '❌ This product is currently sold out.',
                         'service_not_available' => '⛔️ You have no active service',
                         'service_sell' => '🛍 Subscriptions purchased by you
 
@@ -1092,6 +1090,10 @@ Thank you for using our services.',
                         'confirmEnableConfig' => '📌 By confirming the option below, your config will be turned on and you will be able to connect to it.
 ⚠️ If you want the config to be deactivated again, you must click the <u>❌ Turn off account</u> button from the service management section',
                         'getConfigHint' => '📌 To get the config, click the Get config button',
+                        'lowBalanceAlert' => '⚠️ Your wallet balance is %s Toman and running low.
+Top up your wallet to buy or renew services.',
+                        'wireguardFile' => '⚙️ Your WireGuard config file
+📥 Import this file into the WireGuard app.',
                         'connectionInfo' => '
 📶 Last connection time  : %s
 🔄 Last subscription link update time  : %s
@@ -1247,6 +1249,7 @@ This step is mandatory',
                 'backMenuBtn' => '▶️ Back to previous menu',
                 'changesSaved' => 'Changes applied successfully',
                 'changesSaved2' => '✅ Changes saved successfully',
+                'botCommandsSet' => '✅ Bot commands have been set. Leave the bot chat once and open it again to see the changes.',
                 'confirmByButton' => 'To confirm, click the confirm button',
                 'confirmByWord' => 'To confirm, send the word below.
 <code>confirm</code>',
@@ -1313,21 +1316,12 @@ If you want the user to purchase unlimited, send the number 0',
                 ],
                 'Channel' => [
                         'setChannelReport' => '🔰 The channel was successfully configured',
-                        'testChannel' => 'Test group connection',
-                        'notForumGroup' => '❌ The selected group is not in forum mode. First enable the group\'s topic feature, then set the group\'s numeric ID again',
                         'botNotGroupAdmin' => '❌ The bot is not an admin of the group',
-                        'askReportGroupId' => '📣 In this section you can send the group\'s numeric ID for sending notifications
-Group setup tutorial:
-1 - First create a group 
-2 - Add the bot @myidbot to the group and send the command /getgroupid@myidbot inside the group 
-3 - Turn on topic or forum mode from the group settings4
-4 - Make your own bot an admin of the group 
-5 - Send the sent numeric ID to the bot.
+                        'askReportGroupId' => '📣 Tap «Select reports group» and pick your forum (topics) group from the list; the bot will be added as admin and create the topics automatically.
 
-Your current numeric ID: %s',
-                        'connectionFailed' => '❌ The connection to the group was not successful  
-
-Received error:  %s',
+Current group: %s',
+                        'selectGroupBtn' => 'Select reports group',
+                        'selectGroupHint' => '❌ Please pick a group using the «Select reports group» button',
                 ],
                 'Discount' => [
                         'giftManage' => "🎁 Gift code management\n\n• 🎫 Registered codes: %s\n\n📌 Use the buttons next to each code to view details or delete it.",
@@ -1486,6 +1480,7 @@ User types: f, n, n2',
                         'askNewVolume' => 'Send the new volume',
                         'updated' => '✅ Product updated',
                         'firstPurchaseDesc' => '📌 Through this feature you can set whether this product is for the first purchase or not',
+                        'saleStatusDesc' => '📌 Use this button to make the product available or sold out. A sold out product stays in the purchase list with a sold out label and cannot be bought. Renewals of existing services are not affected.',
                         'nameExists' => '❌ A product named %s already exists',
                         'editSummary' => '
 📌 Information of the product being edited:
@@ -1791,6 +1786,10 @@ Current time: ',
                         'cannotDeleteUnlimited' => '❌ The service cannot be deleted because its volume and time are unlimited. ',
                         'askOnHoldDays' => 'In this section you must set, if the user has not connected to their config after a certain number of days and is in on_hold status, to send the user a message',
                         'askVolumeAlert' => '📌 In this section you can set that if the user\'s volume reaches x, a warning message is sent. Send the volume in GB.',
+                        'askLowBalanceAlert' => '📌 When the wallet balance of a user reaches this amount or less, they receive a one-time warning.
+Send the amount in Toman.
+
+Current value: %s Toman',
                         'askNotifyDays' => '📌 In this section you can set how many days before the subscription ends the user is notified. The time is in days',
                         'userNotifyEnabled' => '✅ Cron notifications were enabled for the user.',
                         'userNotifyDisabled' => '✅ Cron notifications were disabled for the user.',
@@ -1906,7 +1905,6 @@ Error reason : %s',
                         'descriptionBlock' => '✍️ The reason for blocking the user was saved',
                         'failedPhone' => 'Not confirmed',
                         'getIdUserUnblock' => '👤 Send the user\'s numeric ID',
-                        'getText' => 'Send your text',
                         'getTextResponse' => 'To reply to the message, send your text.',
                         'lowBalanceUser' => '👇 Decrease balance',
                         'lowBalanceUserDesc' => '⭕️ Send the amount you want to deduct',
@@ -2018,16 +2016,13 @@ The support access level has access to user services and support message reply s
                         'changedPasswordPanel' => '✅ The panel password was successfully changed.',
                         'changedUrlPanel' => '✅ The panel address was successfully changed.',
                         'changedUsernamePanel' => '✅ The panel username was successfully changed.',
-                        'connectXUi' => '✅ The panel is connected',
                         'customNameSend' => 'Send your custom text',
                         'errorStatusPanel' => 'It is not possible to connect to the panel 😔 The error is written below. If the problem is not resolved, contact support',
-                        'getLimitedPanel' => '📌 Specify the account creation limit on this panel.
-⚠️ Note that the limit is based on the number of active orders in the bot 
-If you want it to be unlimited, send the text unlimited',
                         'getLoc' => 'To edit the panel, send the panel name',
                         'getNameNew' => 'Send the new panel name',
                         'getPassword' => '🔑 The username was saved. Enter your password',
                 'askCloudiusToken' => '🔐 Enter the Cloudius panel StaticToken (API section of the Cloudius panel). No username needed.',
+                'noteCloudiusGroupId' => 'For Cloudius, use «Set group name» to enter the numeric GroupID. The group list is shown under «Panel status».',
                         'getPasswordNew' => 'Send the new panel password',
                         'getUrlNew' => ' Send the new panel address',
                         'getUsernameNew' => ' Send the new panel username',
@@ -2056,8 +2051,6 @@ To activate, you must go to Panel Management > Set Group Name and send the defau
 
 1 - uuid admin: get and register the admin uuid from the panel
 2 - Subscription link domain: send the subscription link domain of the Hiddify panel',
-                        'noteSendConfigUsername' => '❌ Note:
-1 - From Panel Management > Set ⚙️ Protocol and Inbound, send a config username.',
                         'invalidSelection' => '❌ The selected panel is wrong',
                         'hidden' => 'Hidden',
                         'shown' => 'Shown',
@@ -2106,8 +2099,28 @@ User groups: f,n,n2
                         'userGroupChanged' => '📌 User group changed successfully',
                         'btnSubLinkDomain' => '🔗 Subscription link domain',
                         'askSubLinkSample' => '📌 If you use a Sanaei panel, copy a user\'s subscription link from the panel and send it in this section. For other panels, you must send it according to their structure.',
-                        'subLinkInactive' => 'The subscription link is not active',
-                        'subLinkInvalid' => 'The subscription link is invalid',
+                        'subLinkInactive' => '❌ Could not connect to the subscription link
+
+🔗 Link: <code>%s</code>
+⚠️ Error: <code>%s</code>
+
+Common causes:
+• The subscription service is disabled in the Sanaei panel (Panel settings → Subscription → Enable)
+• The sub port or path in the link is wrong
+• The server firewall blocks the sub port
+
+Fix the issue and send the subscription link again.',
+                        'subLinkInvalid' => '❌ The subscription link responded but no valid config was found
+
+🔗 Link: <code>%s</code>
+📄 Received response: <code>%s</code>
+
+Common causes:
+• The panel login URL was sent instead of a subscription link
+• The user whose link you sent is disabled or has no configs
+• The sub path in the link is wrong
+
+Copy a subscription link of an active user and send it again.',
                         'askAdminUuid' => '📌 Send the admin UUID',
                         'adminUuidSaved' => '✅ Admin UUID saved',
                         'askInboundId' => '📌 Send the inbound ID from which you want the config to be created. The inbound ID is a multi-digit number written in the id column on the inbounds page of the panel.
@@ -2125,7 +2138,6 @@ User groups: f,n,n2
                         'btnSetGroupName' => '🎛 Set group name',
                         'askGroupName' => '📌 Send the group name you want to be used by default.',
                         'askProtocolSetup' => '📌 To set up the inbound and protocol, you must create a config in your panel, activate the protocols and inbounds you want to be active inside the panel, and send the config\'s username',
-                        'userNotInPanel2' => '❌ The user does not exist in the panel.',
                         'groupNameSaved' => '✅ The group name was set successfully.',
                         'protocolSaved' => '✅ Your inbounds and protocols were set up successfully.',
                         'askHideUserId' => '📌 Send the numeric ID of the user for this panel.',
@@ -2386,11 +2398,14 @@ Current amount: %s',
 📌 By confirming the option below, the following operations will be performed and they are irreversible
 
 1 - Inactive orders will be deleted
-2 - Unpaid orders will be deleted.
+2 - Unpaid or failed orders older than 24 hours will be deleted.
 3 - Orders deleted by the admin 
 4- Deletion of inactive test services
 5 - Orders deleted by the user 
-6 - Orders whose time or volume has expired',
+6 - Orders whose time or volume has expired
+7 - Expired payments will be deleted
+8 - API logs older than 7 days will be deleted
+9 - Database tables will be optimized',
                         'botReportIntro' => '💬 | Bot report
 
 🔹 | If you encounter a <b>bug or problem</b> in the bot\'s operation, please report it to us for review.
@@ -2424,7 +2439,14 @@ Current amount: %s',
 ✅ %s admin-deleted orders were deleted
 ✅ %s test orders were deleted.
 ✅ %s user-deleted orders were deleted.
-✅ %s expired orders (time or volume) were deleted.',
+✅ %s expired orders (time or volume) were deleted.
+✅ %s expired payments were deleted.
+✅ %s API logs were deleted.
+✅ Database tables were optimized.',
+                        'autoCleanup' => '🧹 Automatic bot cleanup
+
+🗑 Unpaid invoices removed: %s
+🗑 API logs removed: %s',
                         'backupCaption' => '📌 Main bot database export ',
                         'dailyBot' => '📌 Daily bot performance report :
 
@@ -4059,6 +4081,7 @@ Current wallet: %s',
                 'quickSetVolumePrice' => '🔋 Quick volume price setting',
                 'rebecca' => 'Rebecca',
                 'reWebhookAgentBots' => '🔗 Re-webhook agent bots',
+                'setBotCommands' => '⛏ Bot commands',
                 'receiveMembershipGift' => '🎁 Receive membership gift',
                 'reconnectNode' => '♻️ Reconnect node',
                 'refresh' => '♻️ Update',
@@ -4124,11 +4147,15 @@ Current wallet: %s',
                 'setThirdPrize' => '3️⃣ Set third place prize',
                 'settings' => '⚙️ Settings',
                 'settleDebt' => '💎 Settle debt',
+                'lowBalanceAlert' => '💰 Low balance',
                 'shareLink' => '🔗 Share link',
                 'shopFeatureStatus' => '🛒 Store feature status',
                 'shopSettings' => '🏬 Store settings',
                 'showCartAfterFirstPay' => '🔒 Show card-to-card after first payment',
                 'showFirstPurchase' => 'Show for first purchase',
+                'productSaleStatus' => '🚦 Sale status',
+                'productAvailable' => '🟢 Available',
+                'productSoldOut' => '🔴 Sold out',
                 'showHiddenPanels' => '🗑 Show hidden panels',
                 'showPanel' => '🖥 Show panel',
                 'showProductPrice' => '💰 Show product price',
@@ -4211,8 +4238,6 @@ Current wallet: %s',
                 'setGroupName' => '🎛 Set group name',
                 'subLinkDomain' => '🔗 Subscription link domain',
                 'panelTypeSanaei' => 'Sanaei single port',
-                'panelTypeAlireza' => 'Alireza single port',
-                'usernameMethodAgentCustom' => 'Custom agent text + sequential number',
                 'acceptRulesButton' => '✅ I accept the rules',
         ],
         'panel' => [

@@ -4,6 +4,7 @@ $setting = select("setting", "*", null, null, "select");
 $textbotlang = languagechange();
 //-----------------------------[  text panel  ]-------------------------------
 $adminrulecheck = select("admin", "*", "id_admin", $from_id, "select");
+$admin_idss = $adminrulecheck ? 1 : 0;
 if (!$adminrulecheck) {
     $adminrulecheck = array(
         'rule' => '',
@@ -35,7 +36,6 @@ $replacements = [
     'text_agentpanel' => $textbotlang['textbot']['agentPanel'],
     'text_requestagent' => $textbotlang['textbot']['requestAgent']
 ];
-$admin_idss = select("admin", "*", "id_admin", $from_id, "count");
 $temp_addtional_key = [];
 $keyboardLayout = json_decode($setting['keyboardmain'], true);
 $keyboardRows = [];
@@ -270,10 +270,12 @@ $FrenzyExManage = json_encode([
 $setting_panel = json_encode([
     'keyboard' => [
         [['text' => $textbotlang['keyboard']['featureStatus']], ['text' => $textbotlang['keyboard']['adminSection']]],
-        [['text' => $textbotlang['keyboard']['botReports']], ['text' => $textbotlang['keyboard']['channelSettings']]],
-        [['text' => $textbotlang['keyboard']['activateWebPanel']], ['text' => $textbotlang['keyboard']['setTestAccountLimitAll']]],
+        [['text' => $textbotlang['keyboard']['channelSettings']], ['text' => $textbotlang['keyboard']['botReports']]],
         [['text' => $textbotlang['keyboard']['agentMembershipFee']], ['text' => $textbotlang['keyboard']['qrBackground']]],
-        [['text' => $textbotlang['keyboard']['reWebhookAgentBots']], ['text' => $textbotlang['keyboard']['optimizeBot']]],
+        [['text' => $textbotlang['keyboard']['setTestAccountLimitAll']]],
+        [['text' => $textbotlang['keyboard']['activateWebPanel']], ['text' => $textbotlang['keyboard']['optimizeBot']]],
+        [['text' => $textbotlang['keyboard']['setBotCommands']]],
+        [['text' => $textbotlang['keyboard']['reWebhookAgentBots']]],
         [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
@@ -488,6 +490,7 @@ $featureCategories = [
             'bulkbuy' => ['label' => $textbotlang['keyboard']['bulkPurchaseStatus'], 'setting' => 'bulkbuy', 'on' => 'onbulk', 'off' => 'offbulk'],
             'compycart' => ['label' => $textbotlang['keyboard']['copyCard'], 'setting' => 'statuscopycart', 'on' => '1', 'off' => '0'],
             'Debtsettlement' => ['label' => $textbotlang['keyboard']['settleDebt'], 'setting' => 'Debtsettlement', 'on' => '1', 'off' => '0'],
+            'alert_balance' => ['label' => $textbotlang['keyboard']['lowBalanceAlert'], 'setting' => 'alert_balance', 'on' => '1', 'off' => '0', 'config' => 'setlowbalancealert'],
             'changeloc' => ['label' => $textbotlang['keyboard']['locationChangeLimit'], 'setting' => 'statuslimitchangeloc', 'on' => '1', 'off' => '0', 'config' => 'changeloclimit'],
             'statusnamecustom' => ['label' => $textbotlang['keyboard']['configNote'], 'setting' => 'statusnamecustom', 'on' => 'onnamecustom', 'off' => 'offnamecustom'],
             'statusnamecustomf' => ['label' => $textbotlang['keyboard']['userNote'], 'setting' => 'statusnoteforf', 'on' => '1', 'off' => '0'],
@@ -928,10 +931,7 @@ $helpappremove['keyboard'][] = [
 ];
 $json_list_remove_helpـlink = json_encode($helpappremove);
 //------------------  [ listpanelusers ]----------------//
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all')");
-$stmt->bindParam(':agent', $users['agent']);
-$stmt->execute();
-$activePanelRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$activePanelRows = array_filter($allPanelRows, fn($panel) => $panel['status'] == "active" && in_array($panel['agent'], [$users['agent'], "all"]));
 $manualsellCounts = [];
 if (in_array('Manualsale', array_column($activePanelRows, 'type'))) {
     foreach ($pdo->query("SELECT codepanel, COUNT(*) AS c FROM manualsell WHERE status = 'active' GROUP BY codepanel")->fetchAll(PDO::FETCH_ASSOC) as $msRow) {
@@ -939,7 +939,7 @@ if (in_array('Manualsale', array_column($activePanelRows, 'type'))) {
     }
 }
 $list_marzban_panel_users = ['inline_keyboard' => []];
-$panelcount = select("marzban_panel", "*", "status", "active", "count");
+$panelcount = count(array_filter($allPanelRows, fn($panel) => $panel['status'] == "active"));
 if ($panelcount > 10) {
     $temp_row = [];
     foreach ($activePanelRows as $result) {
@@ -1045,11 +1045,10 @@ $list_marzban_panel_userschange = json_encode($list_marzban_panel_users_change);
 
 
 //------------------  [ listpanelusers test ]----------------//
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = :agent OR agent = 'all')");
-$stmt->bindValue(':agent', $users['agent'], PDO::PARAM_STR);
-$stmt->execute();
 $list_marzban_panel_usertest = ['inline_keyboard' => []];
-while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+foreach ($allPanelRows as $result) {
+    if ($result['TestAccount'] != "ONTestAccount" || !in_array($result['agent'], [$users['agent'], "all"]))
+        continue;
     if ($result['hide_user'] != null and in_array($from_id, json_decode($result['hide_user'], true)))
         continue;
     $list_marzban_panel_usertest['inline_keyboard'][] = [
@@ -1102,6 +1101,7 @@ $change_product = json_encode([
         [['text' => $textbotlang['keyboard']['volumeResetType']], ['text' => $textbotlang['keyboard']['note']]],
         [['text' => $textbotlang['keyboard']['productLocation']], ['text' => $textbotlang['keyboard']['category']]],
         [['text' => $textbotlang['keyboard']['setInbound']], ['text' => $textbotlang['keyboard']['showFirstPurchase']]],
+        [['text' => $textbotlang['keyboard']['productSaleStatus']]],
         [['text' => $textbotlang['keyboard']['hidePanel']], ['text' => $textbotlang['keyboard']['deleteAllHiddenPanels']]],
         [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
@@ -1130,249 +1130,35 @@ $MethodUsername = json_encode([
     ],
     'resize_keyboard' => true
 ]);
-$optionMarzban = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']], ['text' => $textbotlang['keyboard']['manageNodes']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionrebecca = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionibsng = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setGroupName']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$option_mikrotik = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setGroupName']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$option_cloudius = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setGroupName']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$options_ui = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setProtocolInbound']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionwg = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['setInboundId']]],
-        [['text' => $textbotlang['keyboard']['renewalMethod']], ['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['inboundDeactivate']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionmarzneshin = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
-        [['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['serviceSettings']], ['text' => $textbotlang['keyboard']['accountCreateLimit']]],
-        [['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionManualsale = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['addConfig']], ['text' => $textbotlang['keyboard']['deleteConfig']]],
-        [['text' => $textbotlang['keyboard']['editConfig']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionX_ui_single = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
-        [['text' => $textbotlang['keyboard']['setProtocolInbound']]],
-        [['text' => $textbotlang['keyboard']['usernameMethod']], ['text' => $textbotlang['keyboard']['subLinkDomain']]],
-        [['text' => $textbotlang['keyboard']['changeUserGroup']], ['text' => $textbotlang['keyboard']['accountCreateLimit']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionalireza_single = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']], ['text' => $textbotlang['keyboard']['editUsername']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
-        [['text' => $textbotlang['keyboard']['setInboundId']]],
-        [['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['subLinkDomain']]],
-        [['text' => $textbotlang['keyboard']['changeUserGroup']], ['text' => $textbotlang['keyboard']['accountCreateLimit']]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
-$optionhiddfy = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['manualCreateConfig']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['renewalMethod']]],
-        [['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['usernameMethod']]],
-        [['text' => $textbotlang['keyboard']['subLinkDomain']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => "🔗 uuid admin"]],
-        [['text' => $textbotlang['keyboard']['testServiceTime']], ['text' => $textbotlang['keyboard']['testAccountVolume']]],
-        [['text' => $textbotlang['keyboard']['changeLocationPrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
-]);
+$panelPriceRows = [['customVolumePrice', 'extraVolumePrice'], ['extraTimePrice', 'customTimePrice']];
+$panelLimitRows = [['minCustomVolume', 'maxCustomVolume'], ['minCustomTime', 'maxCustomTime']];
+$panelTestRow = ['testServiceTime', 'testAccountVolume'];
+$panelOptionRows = [
+    'marzban' => [['manualCreateConfig', 'manageNodes'], ['panelName', 'deletePanel'], ['editPassword', 'editUsername'], ['editPanelUrl', 'setProtocolInbound'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows, ['inboundDeactivate']],
+    'marzneshin' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPassword', 'editUsername'], ['editPanelUrl', 'serviceSettings'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows],
+    'x-ui_single' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPassword', 'subLinkDomain'], ['editPanelUrl', 'setProtocolInbound'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows],
+    'hiddify' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPanelUrl', 'subLinkDomain'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], ['🔗 uuid admin'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows],
+    'WGDashboard' => [['manualCreateConfig'], ['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'setInboundId'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows, ['inboundDeactivate']],
+    'rebecca' => [['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'setProtocolInbound'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ['changeLocationPrice'], ...$panelLimitRows, ['inboundDeactivate']],
+    'ibsng' => [['panelName', 'deletePanel'], ['editPassword', 'editUsername'], ['editPanelUrl', 'setGroupName'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], ...$panelPriceRows, ...$panelLimitRows],
+    'mirza_agent' => [['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl', 'panelSetting'], ['accountCreateLimit', 'changeUserGroup'], ...$panelPriceRows, ...$panelLimitRows],
+    'Manualsale' => [['panelName', 'deletePanel'], ['usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], ['addConfig', 'deleteConfig'], ['editConfig']],
+];
+$panelOptionRows['mikrotik'] = $panelOptionRows['ibsng'];
+$panelOptionRows['cloudius'] = $panelOptionRows['ibsng'];
+$panelOptionRows['nexora'] = $panelOptionRows['rebecca'];
+$panelOptionRows['wg_mate'] = $panelOptionRows['rebecca'];
+$panelOptions = [];
+foreach ($panelOptionRows as $panelType => $panelRows) {
+    $panelKeyboardRows = [[['text' => $textbotlang['keyboard']['panelFeatureStatus']]]];
+    foreach ($panelRows as $panelRow) {
+        $panelKeyboardRows[] = array_map(fn($key) => ['text' => $textbotlang['keyboard'][$key] ?? $key], $panelRow);
+    }
+    $panelKeyboardRows[] = [['text' => $textbotlang['keyboard']['hidePanelForUser']]];
+    $panelKeyboardRows[] = [['text' => $textbotlang['keyboard']['removeFromHiddenList']]];
+    $panelKeyboardRows[] = [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]];
+    $panelOptions[$panelType] = json_encode(['keyboard' => $panelKeyboardRows, 'resize_keyboard' => true]);
+}
 if ($setting['statussupportpv'] == "onpvsupport") {
     $supportoption = json_encode([
         'inline_keyboard' => [
@@ -1446,15 +1232,11 @@ $keyboardtypepanel = json_encode([
         ],
         [
             ['text' => $textbotlang['keyboard']['panelTypeSanaei'], 'callback_data' => 'typepanel#x-ui_single'],
-            ['text' => $textbotlang['keyboard']['panelTypeAlireza'], 'callback_data' => 'typepanel#alireza_single']
+            ['text' => $textbotlang['keyboard']['manualSale'], 'callback_data' => 'typepanel#Manualsale']
         ],
         [
-            ['text' => $textbotlang['keyboard']['manualSale'], 'callback_data' => 'typepanel#Manualsale'],
             ['text' => $textbotlang['keyboard']['hiddify'], 'callback_data' => 'typepanel#hiddify'],
-        ],
-        [
-            ['text' => "WGDashboard", 'callback_data' => 'typepanel#WGDashboard'],
-            ['text' => "s_ui", 'callback_data' => 'typepanel#s_ui']
+            ['text' => "WGDashboard", 'callback_data' => 'typepanel#WGDashboard']
         ],
         [
             ['text' => "ibsng", 'callback_data' => 'typepanel#ibsng'],
@@ -1476,7 +1258,7 @@ $keyboardtypepanel = json_encode([
     ],
 ]);
 
-$panelechekc = select("marzban_panel", "*", "MethodUsername", "agentCustomTextSequential", "count");
+$panelechekc = count(array_filter($allPanelRows, fn($panel) => $panel['MethodUsername'] == "agentCustomTextSequential"));
 if ($setting['inlinebtnmain'] == "oninline") {
     $keyboardagent = [
         'inline_keyboard' => [
@@ -1648,6 +1430,12 @@ function KeyboardProduct($location, $query, $pricediscount, $datakeyboard, $stat
         $namekeyboard = $result['name_product'] . " - " . number_format($result['price_product']) . $textbotlang['common']['labels']['toman'];
         if ($statusshowprice == "onshowprice") {
             $result['name_product'] = $namekeyboard;
+        }
+        if ($result['status_product'] == "disable" && str_starts_with($datakeyboard, "prodcutservice")) {
+            $product['inline_keyboard'][] = [
+                ['text' => $result['name_product'] . " | " . $textbotlang['keyboard']['productSoldOut'], 'callback_data' => "productsoldout"]
+            ];
+            continue;
         }
         $product['inline_keyboard'][] = [
             ['text' => $result['name_product'], 'callback_data' => "{$datakeyboard}{$result['code_product']}{$valuetow}"]
@@ -1963,23 +1751,6 @@ $keyboard_stat = json_encode([
             ['text' => $textbotlang['keyboard']['statsAtDate'], 'callback_data' => 'view_stat_time'],
         ]
     ]
-]);
-$option_mirza = json_encode([
-    'keyboard' => [
-        [['text' => $textbotlang['keyboard']['panelFeatureStatus']]],
-        [['text' => $textbotlang['keyboard']['panelName']], ['text' => $textbotlang['keyboard']['deletePanel']]],
-        [['text' => $textbotlang['keyboard']['editPassword']]],
-        [['text' => $textbotlang['keyboard']['editPanelUrl']], ['text' => $textbotlang['keyboard']['panelSetting']]],
-        [['text' => $textbotlang['keyboard']['accountCreateLimit']], ['text' => $textbotlang['keyboard']['changeUserGroup']]],
-        [['text' => $textbotlang['keyboard']['customVolumePrice']], ['text' => $textbotlang['keyboard']['extraVolumePrice']]],
-        [['text' => $textbotlang['keyboard']['extraTimePrice']], ['text' => $textbotlang['keyboard']['customTimePrice']]],
-        [['text' => $textbotlang['keyboard']['minCustomVolume']], ['text' => $textbotlang['keyboard']['maxCustomVolume']]],
-        [['text' => $textbotlang['keyboard']['minCustomTime']], ['text' => $textbotlang['keyboard']['maxCustomTime']]],
-        [['text' => $textbotlang['keyboard']['hidePanelForUser']]],
-        [['text' => $textbotlang['keyboard']['removeFromHiddenList']]],
-        [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
-    ],
-    'resize_keyboard' => true
 ]);
 function keyboard_list_text($lang)
 {

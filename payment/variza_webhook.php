@@ -1,20 +1,10 @@
 <?php
-/**
- * Variza push — verifies the HMAC, then credits exactly once.
- *
- * Mirzabot already has a push path for NowPayments (ipn_callback_url) and
- * for AbanGateway; Variza follows it. Nothing in the JSON is trusted:
- * the slug is a handle for looking the invoice up, not proof, so the bot
- * checks the signature, checks the slug belongs to the amount it billed,
- * and only then calls claimPaymentPaid() before DirectPayment().
- *
- * Configure in Variza panel: profile → webhook → https://{domain}/payment/variza_webhook.php
- */
+
 
 ini_set('error_log', 'error_log');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../botapi.php';
-require_once __DIR__ . '/../Marzban.php';
+require_once __DIR__ . '/../panels/Api/Marzban.php';
 require_once __DIR__ . '/../function.php';
 require_once __DIR__ . '/../panels.php';
 require_once __DIR__ . '/../keyboard.php';
