@@ -1,3 +1,5 @@
+> **Mirza_Gateway** — Mirza 0.6.0 + درگاه ترونادو + FrenzyEx + پنل کلودیوس. نسخه‌ی بدون ترونادو: [Mirza_Gateway_FrenzyEX](https://github.com/Danialnetworker/Mirza_Gateway_FrenzyEX). پروژه‌ی اصلی: [mahdiMGF2/mirzabot](https://github.com/mahdiMGF2/mirzabot).
+
 <div align="center">
 
 # 🤖 Mirza Bot
@@ -17,17 +19,17 @@
 </p>
 
 <p>
-  <a href="https://github.com/mahdiMGF2/mirzabot/stargazers">
-    <img src="https://img.shields.io/github/stars/mahdiMGF2/mirzabot?style=flat-square&color=f5c518" alt="Stars"/>
+  <a href="https://github.com/Danialnetworker/Mirza_Gateway/stargazers">
+    <img src="https://img.shields.io/github/stars/Danialnetworker/Mirza_Gateway?style=flat-square&color=f5c518" alt="Stars"/>
   </a>
-  <a href="https://github.com/mahdiMGF2/mirzabot/network/members">
-    <img src="https://img.shields.io/github/forks/mahdiMGF2/mirzabot?style=flat-square" alt="Forks"/>
+  <a href="https://github.com/Danialnetworker/Mirza_Gateway/network/members">
+    <img src="https://img.shields.io/github/forks/Danialnetworker/Mirza_Gateway?style=flat-square" alt="Forks"/>
   </a>
-  <a href="https://github.com/mahdiMGF2/mirzabot/issues">
-    <img src="https://img.shields.io/github/issues/mahdiMGF2/mirzabot?style=flat-square" alt="Issues"/>
+  <a href="https://github.com/Danialnetworker/Mirza_Gateway/issues">
+    <img src="https://img.shields.io/github/issues/Danialnetworker/Mirza_Gateway?style=flat-square" alt="Issues"/>
   </a>
-  <a href="https://github.com/mahdiMGF2/mirzabot/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/mahdiMGF2/mirzabot?style=flat-square" alt="License"/>
+  <a href="https://github.com/Danialnetworker/Mirza_Gateway/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/Danialnetworker/Mirza_Gateway?style=flat-square" alt="License"/>
   </a>
   <img src="https://img.shields.io/badge/PHP-8.2-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP 8.2"/>
 </p>
@@ -176,7 +178,7 @@ Mirza Bot integrates with the most popular VPN and network management panels:
 Run the following command on your server as **root**:
 
 ```bash
-curl -o install.sh -L https://raw.githubusercontent.com/mahdiMGF2/mirzabot/main/install.sh && bash install.sh
+curl -o install.sh -L https://raw.githubusercontent.com/Danialnetworker/Mirza_Gateway/main/install.sh && bash install.sh
 ```
 
 An interactive menu will appear:
@@ -198,7 +200,7 @@ An interactive menu will appear:
 Run the same command and select **`2`**:
 
 ```bash
-curl -o install.sh -L https://raw.githubusercontent.com/mahdiMGF2/mirzabot/main/install.sh && bash install.sh
+curl -o install.sh -L https://raw.githubusercontent.com/Danialnetworker/Mirza_Gateway/main/install.sh && bash install.sh
 ```
 
 ### Remove
@@ -302,6 +304,6 @@ Thanks to everyone who has contributed to making Mirza Bot better:
 
 **Made with ❤️ by the Mirza Panel community**
 
-📖 [Documentation](https://mirzabot.com/docs/) · 💬 [Channel](https://t.me/mirzapanel) · 👥 [Group](https://t.me/mirzapanelgroup) · ⭐ [Star on GitHub](https://github.com/mahdiMGF2/mirzabot)
+📖 [Documentation](https://mirzabot.com/docs/) · 💬 [Channel](https://t.me/mirzapanel) · 👥 [Group](https://t.me/mirzapanelgroup) · ⭐ [Star on GitHub](https://github.com/Danialnetworker/Mirza_Gateway)
 
 </div>
