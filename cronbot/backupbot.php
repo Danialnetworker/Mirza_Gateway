@@ -220,10 +220,102 @@ if (!$isDumped) {
     return;
 }
 
-telegram('sendDocument', [
-    'chat_id' => $setting['Channel_Report'],
-    'message_thread_id' => $reportbackup,
-    'document' => new CURLFile($backup_file_name),
-    'caption' => $textbotlang['Admin']['report']['backupCaption'],
-]);
-unlink($backup_file_name);
+// [backup-gz] The raw dump easily exceeds Telegram's 50 MB bot upload
+// limit and the shared telegram() helper aborts after 10 s, so the main
+// backup used to vanish silently. Compress it, upload with a long timeout,
+// split into parts if it is still too big, and report any failure.
+function backupGzip($src)
+{
+    if (!function_exists('gzopen')) {
+        return null;
+    }
+    $dst = $src . '.gz';
+    $in = @fopen($src, 'rb');
+    $out = @gzopen($dst, 'wb6');
+    if (!$in || !$out) {
+        return null;
+    }
+    while (!feof($in)) {
+        gzwrite($out, fread($in, 1048576));
+    }
+    fclose($in);
+    gzclose($out);
+    return (is_file($dst) && filesize($dst) > 0) ? $dst : null;
+}
+
+function backupSplit($file, $partSize)
+{
+    if (filesize($file) <= $partSize) {
+        return [$file];
+    }
+    $parts = [];
+    $in = fopen($file, 'rb');
+    $n = 1;
+    while (!feof($in)) {
+        $chunk = fread($in, $partSize);
+        if ($chunk === '' || $chunk === false) {
+            break;
+        }
+        $part = $file . '.part' . $n++;
+        file_put_contents($part, $chunk);
+        $parts[] = $part;
+    }
+    fclose($in);
+    return $parts;
+}
+
+function backupSendDocument($apiKey, $chatId, $threadId, $path, $caption)
+{
+    $ch = curl_init('https://api.telegram.org/bot' . $apiKey . '/sendDocument');
+    $fields = ['chat_id' => $chatId, 'document' => new CURLFile($path), 'caption' => $caption];
+    if (!empty($threadId)) {
+        $fields['message_thread_id'] = $threadId;
+    }
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $fields,
+        CURLOPT_CONNECTTIMEOUT => 20,
+        CURLOPT_TIMEOUT => 900,
+    ]);
+    $raw = curl_exec($ch);
+    $err = curl_error($ch);
+    curl_close($ch);
+    $res = json_decode((string) $raw, true);
+    if (!empty($res['ok'])) {
+        return true;
+    }
+    return $err !== '' ? $err : ($res['description'] ?? 'empty response');
+}
+
+$sendFile = backupGzip($backup_file_name);
+if ($sendFile === null) {
+    $sendFile = $backup_file_name;
+} else {
+    @unlink($backup_file_name);
+}
+$sizeMb = round(filesize($sendFile) / 1048576, 1);
+$parts = backupSplit($sendFile, 45 * 1048576);
+$caption = $textbotlang['Admin']['report']['backupCaption'] . "\n" . basename($sendFile) . " | {$sizeMb} MB";
+$failed = [];
+foreach ($parts as $i => $part) {
+    $partCaption = count($parts) > 1
+        ? $caption . "\n" . 'part ' . ($i + 1) . '/' . count($parts) . ' — cat ' . basename($sendFile) . '.part* > ' . basename($sendFile)
+        : $caption;
+    $result = backupSendDocument($APIKEY, $setting['Channel_Report'], $reportbackup, $part, $partCaption);
+    if ($result !== true) {
+        $failed[] = basename($part) . ': ' . $result;
+    }
+    if ($part !== $sendFile) {
+        @unlink($part);
+    }
+}
+@unlink($sendFile);
+if ($failed) {
+    error_log('[backup-gz] backup upload failed: ' . implode(' | ', $failed));
+    telegram('sendmessage', [
+        'chat_id' => $setting['Channel_Report'],
+        'message_thread_id' => $reportbackup,
+        'text' => $textbotlang['keyboard']['backupError'] . "\n" . implode("\n", $failed),
+    ]);
+}
