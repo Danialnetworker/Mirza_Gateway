@@ -13,6 +13,7 @@ function mirza_cron_jobs(): array
         ['job' => 'configtest', 'schedule' => '*/2 * * * *', 'title' => 'مدیریت سرویس‌های تست'],
         ['job' => 'plisio', 'schedule' => '*/3 * * * *', 'title' => 'پیگیری پرداخت‌های ارز دیجیتال'],
         ['job' => 'tronado', 'schedule' => '*/3 * * * *', 'title' => 'پیگیری پرداخت‌های ترونادو'],
+        ['job' => 'cryptooffline', 'schedule' => '*/1 * * * *', 'title' => 'تأیید خودکار پرداخت‌های تتر (TRC20/BEP20)'], // [crypto-offline-auto]
         ['job' => 'payment_expire', 'schedule' => '*/5 * * * *', 'title' => 'انقضای فاکتورهای پرداخت‌نشده'],
         ['job' => 'alert_balance', 'schedule' => '*/2 * * * *', 'title' => 'هشدار کمبود موجودی کیف پول'],
         ['job' => 'optimize_order', 'schedule' => '*/30 * * * *', 'title' => 'پاکسازی فاکتورهای رها شده'],

@@ -42,6 +42,8 @@ if (isset($backmenu_register) && is_callable($backmenu_register) && isset($Frenz
 }
 // <<< FRENZYEX GATEWAY
 $backmenu_register(["addchannel", "getremark", "getlinkjoin", "removechannel"], $channelkeyboard);
+// [crypto-offline-auto]
+$backmenu_register(["cof_set_trc20", "cof_set_bep20", "cof_set_discount", "cof_set_key"], $tronnowpayments);
 $backmenu_register(["add_name_help", "getcatgoryhelp", "add_dec", "remove_help", "getnameforedite"], $keyboardhelpadmin);
 $backmenu_register(["changenamehelp", "changecategoryhelp", "changedeshelp", "changemedia"], $helpedit);
 $backmenu_register([
@@ -6607,6 +6609,52 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     sendmessage($from_id, $textbotlang['Admin']['Balance']['maxDepositSaved'], $NowPaymentsManage, 'HTML');
     step("home", $from_id);
     update("PaySetting", "ValuePay", $text, "NamePay", "maxbalanceplisio");
+} elseif (preg_match('/^cofadm-(trc20|bep20|discount|key)$/', $datain, $cofMatch) && $adminrulecheck['rule'] == "administrator") {
+    // [crypto-offline-auto] admin settings
+    require_once __DIR__ . '/crypto_offline_lib.php';
+    $cofBack = json_encode(['inline_keyboard' => [[['text' => $textbotlang['Admin']['backMenuBtn'], 'callback_data' => "paygwback"]]]]);
+    $cofWhat = $cofMatch[1];
+    if ($cofWhat === 'discount') {
+        $cofAsk = "🎁 درصد تخفیف پرداخت ارزی (USDT) را بفرستید.\n\nاین درصد از مبلغ هر پرداختی که با تتر انجام شود کم می‌شود و به کاربر نمایش داده می‌شود.\nمقدار فعلی: " . cofFmtPercent(cofDiscount()) . "٪\nبرای حذف تخفیف عدد 0 را بفرستید (حداکثر 90).";
+    } elseif ($cofWhat === 'key') {
+        $cofKeyNow = trim(cofGet('coftrongridkey', '0'));
+        $cofAsk = "🔑 کلید API ترون‌گرید (trongrid.io) را بفرستید.\n\nاختیاری است؛ فقط برای پرداخت‌های زیاد و جلوگیری از محدودیت سرعت لازم می‌شود.\nوضعیت فعلی: " . ($cofKeyNow !== '0' && $cofKeyNow !== '' ? "ثبت شده ✅" : "ثبت نشده") . "\nبرای حذف عدد 0 را بفرستید.";
+    } else {
+        $cofNow = cofWallet($cofWhat);
+        $cofAsk = "💳 آدرس کیف پول USDT " . cofNetworks()[$cofWhat]['title'] . " را بفرستید.\n\n"
+            . ($cofWhat === 'trc20' ? "آدرس ترون با T شروع می‌شود." : "آدرس BEP20 با 0x شروع می‌شود (همان آدرس BNB Smart Chain در تراست ولت).")
+            . "\nآدرس فعلی: " . ($cofNow ? "<code>$cofNow</code>" : "ثبت نشده") . "\nبرای غیرفعال کردن این شبکه عدد 0 را بفرستید.";
+    }
+    sendmessage($from_id, $cofAsk, $cofBack, 'HTML');
+    step("cof_set_$cofWhat", $from_id);
+} elseif (preg_match('/^cof_set_(trc20|bep20|discount|key)$/', $user['step'], $cofMatch) && $datain == "") {
+    require_once __DIR__ . '/crypto_offline_lib.php';
+    $cofWhat = $cofMatch[1];
+    $cofIn = cofDigits((string) $text);
+    if ($cofWhat === 'discount') {
+        if (!preg_match('/^\d{1,2}(\.\d{1,2})?$/', $cofIn) || (float) $cofIn > 90) {
+            sendmessage($from_id, "❌ یک عدد بین 0 تا 90 بفرستید (مثلاً 5 یا 2.5).", $backadmin, 'HTML');
+            return;
+        }
+        cofSet('cofdiscount', cofFmtPercent((float) $cofIn));
+        $cofDone = (float) $cofIn > 0 ? "✅ تخفیف " . cofFmtPercent((float) $cofIn) . "٪ برای پرداخت ارزی ذخیره شد." : "✅ تخفیف پرداخت ارزی حذف شد.";
+    } elseif ($cofWhat === 'key') {
+        if ($cofIn !== '0' && !preg_match('/^[0-9a-fA-F-]{36}$/', $cofIn)) {
+            sendmessage($from_id, "❌ کلید API معتبر نیست.", $backadmin, 'HTML');
+            return;
+        }
+        cofSet('coftrongridkey', $cofIn);
+        $cofDone = $cofIn === '0' ? "✅ کلید API حذف شد." : "✅ کلید API ترون‌گرید ذخیره شد.";
+    } else {
+        if ($cofIn !== '0' && !cofValidAddress($cofWhat, $cofIn)) {
+            sendmessage($from_id, "❌ آدرس معتبر نیست. آدرس USDT " . cofNetworks()[$cofWhat]['title'] . " را دقیق بفرستید.", $backadmin, 'HTML');
+            return;
+        }
+        cofSet(cofNetworks()[$cofWhat]['setting'], $cofIn);
+        $cofDone = $cofIn === '0' ? "✅ شبکه " . strtoupper($cofWhat) . " غیرفعال شد." : "✅ آدرس ذخیره شد:\n<code>$cofIn</code>";
+    }
+    step('home', $from_id);
+    sendmessage($from_id, $cofDone, $tronnowpayments, 'HTML');
 } elseif ($text == $textbotlang['keyboard']['minAmountCryptoOffline']) {
     sendmessage($from_id, $textbotlang['Admin']['Balance']['askMinDeposit'], $backadmin, 'HTML');
     step("getmaindigitaltron", $from_id);

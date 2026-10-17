@@ -4720,7 +4720,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     update("user", "Processing_value", $balancelast, "id", $from_id);
     sendmessage($from_id, $textbotlang['users']['Balance']['selectPayment'], $step_payment, 'HTML');
     step('get_step_payment', $from_id);
-} elseif ($user['step'] == "get_step_payment" && in_array($datain, ["cart_to_offline", "aqayepardakht", "zarinpal", "variza", "plisio", "nowpayment", "iranpay1", "iranpay2", "iranpay4", "tronado", "frenzyex", "iranpay3", "digitaltron", "startelegrams"])) {
+} elseif ($user['step'] == "get_step_payment" && in_array($datain, ["cart_to_offline", "aqayepardakht", "zarinpal", "variza", "plisio", "nowpayment", "iranpay1", "iranpay2", "iranpay4", "tronado", "frenzyex", "iranpay3", "digitaltron", "startelegrams", "cof-trc20", "cof-bep20"])) {
     if ($datain == "cart_to_offline") {
         $mainbalance = select("PaySetting", "ValuePay", "NamePay", "minbalancecart", "select")['ValuePay'];
         $maxbalance = select("PaySetting", "ValuePay", "NamePay", "maxbalancecart", "select")['ValuePay'];
@@ -5524,6 +5524,58 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         sendmessage($from_id, $textnowpayments, $paymentkeyboard, 'HTML');
         step("getvoocherx", $from_id);
         savedata("clear", "id_payment", $randomString);
+    } elseif (preg_match('/^cof-(trc20|bep20)$/', $datain, $cofMatch)) {
+        // [crypto-offline-auto] create a USDT invoice with a unique amount
+        require_once __DIR__ . '/crypto_offline_lib.php';
+        $cofNet = $cofMatch[1];
+        if (getPaySettingValue("digistatus") != "ondigi" || cofWallet($cofNet) === null) {
+            sendmessage($from_id, "❌ این روش پرداخت در حال حاضر غیرفعال است.", null, 'HTML');
+            return;
+        }
+        $cofMin = select("PaySetting", "ValuePay", "NamePay", "minbalancedigitaltron", "select")['ValuePay'];
+        $cofMax = select("PaySetting", "ValuePay", "NamePay", "maxbalancedigitaltron", "select")['ValuePay'];
+        if ($user['Processing_value'] < $cofMin || $user['Processing_value'] > $cofMax) {
+            sendmessage($from_id, strtr($textbotlang['users']['Balance']['depositRangePlisio'], ['{mainbalance}' => number_format($cofMin), '{maxbalance}' => number_format($cofMax)]), null, 'HTML');
+            return;
+        }
+        $rates = rate_arze();
+        if ($rates === null || empty($rates['USD'])) {
+            sendmessage($from_id, $textbotlang['users']['Balance']['errorLinkPayment'], $keyboard, 'HTML');
+            step('home', $from_id);
+            return;
+        }
+        $cofInvoice = cofCreateInvoice((string) $from_id, $cofNet, (int) $user['Processing_value'], "{$user['Processing_value_tow']}|{$user['Processing_value_one']}", (float) $rates['USD']);
+        if (isset($cofInvoice['error'])) {
+            $cofErrors = [
+                'small' => "❌ مبلغ این پرداخت کمتر از ۱ تتر است؛ لطفاً روش دیگری انتخاب کنید.",
+                'busy' => "⏳ تعداد فاکتورهای باز این شبکه زیاد است؛ چند دقیقه دیگر دوباره تلاش کنید.",
+            ];
+            sendmessage($from_id, $cofErrors[$cofInvoice['error']] ?? $textbotlang['users']['Balance']['errorLinkPayment'], null, 'HTML');
+            return;
+        }
+        deletemessage($from_id, $message_id);
+        $gethelp = getPaySettingValue('helpofflinearze');
+        if ($gethelp !== null && $gethelp != 2 && $gethelp != "0") {
+            $data = json_decode($gethelp, true);
+            if (is_array($data) && $data['type'] == "text") {
+                sendmessage($from_id, $data['text'], null, 'HTML');
+            } elseif (is_array($data) && $data['type'] == "photo") {
+                sendphoto($from_id, $data['photoid'], $data['text'] ?? null);
+            } elseif (is_array($data) && $data['type'] == "video") {
+                sendvideo($from_id, $data['videoid'], $data['text'] ?? null);
+            }
+        }
+        $cofKeyboard = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => "📋 کپی آدرس", 'copy_text' => ['text' => $cofInvoice['addr']]],
+                    ['text' => "📋 کپی مقدار", 'copy_text' => ['text' => $cofInvoice['usdt']]],
+                ],
+                [['text' => "✅ واریز کردم — ارسال هش تراکنش (TXID)", 'callback_data' => "cofpaid-{$cofInvoice['order']}"]],
+            ]
+        ]);
+        $cofSent = sendmessage($from_id, cofInvoiceText($cofInvoice, (int) $user['Processing_value']), $cofKeyboard, 'HTML');
+        updatePaymentMessageId($cofSent, $cofInvoice['order']);
     } elseif ($datain == "digitaltron") {
         $rates = rate_arze();
         if ($rates === null) {
@@ -5696,6 +5748,54 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     sendmessage($from_id, $textbotlang['users']['Balance']['askReceiptImage'], $backuser, 'HTML');
     step('cart_to_cart_user', $from_id);
     update("user", "Processing_value", $dataget[1], "id", $from_id);
+} elseif (preg_match('/^cofpaid-([0-9a-f]{10})$/', $datain, $cofMatch)) {
+    // [crypto-offline-auto] user submits the TXID of a USDT payment
+    require_once __DIR__ . '/crypto_offline_lib.php';
+    $cofRow = select("Payment_report", "*", "id_order", $cofMatch[1], "select");
+    if (!is_array($cofRow) || (string) $cofRow['id_user'] !== (string) $from_id || $cofRow['Payment_Method'] !== COF_METHOD) {
+        return;
+    }
+    if ($cofRow['payment_Status'] == "paid") {
+        sendmessage($from_id, $textbotlang['users']['Balance']['alreadyConfirmed'], null, 'HTML');
+        return;
+    }
+    if ($cofRow['payment_Status'] != "Unpaid") {
+        sendmessage($from_id, "❌ این فاکتور بسته شده است؛ برای پرداخت، فاکتور جدید بسازید.", null, 'HTML');
+        return;
+    }
+    $cofMeta = cofMeta($cofRow);
+    if (!empty($cofMeta['txid_pending'])) {
+        sendmessage($from_id, "⏳ هش تراکنش شما ثبت شده و در حال بررسی خودکار است؛ نتیجه را همین‌جا اطلاع می‌دهیم.", null, 'HTML');
+        return;
+    }
+    sendmessage($from_id, "🔗 هش تراکنش (TXID) واریز را بفرستید.\n\nهش را از بخش جزئیات تراکنش در کیف پول یا صرافی کپی کنید (" . ($cofMeta['net'] === 'bep20' ? "۶۴ کاراکتر بعد از 0x" : "۶۴ کاراکتر") . "). لینک تراکنش در " . ($cofMeta['net'] === 'bep20' ? "BscScan" : "TronScan") . " هم قابل قبول است.", $backuser, 'HTML');
+    step("cof_txid_{$cofRow['id_order']}", $from_id);
+} elseif (preg_match('/^cof_txid_([0-9a-f]{10})$/', $user['step'], $cofMatch) && $datain == "") {
+    require_once __DIR__ . '/crypto_offline_lib.php';
+    $cofRow = select("Payment_report", "*", "id_order", $cofMatch[1], "select");
+    if (!is_array($cofRow) || (string) $cofRow['id_user'] !== (string) $from_id || $cofRow['payment_Status'] != "Unpaid") {
+        step('home', $from_id);
+        sendmessage($from_id, "❌ این فاکتور دیگر باز نیست.", $keyboard, 'HTML');
+        return;
+    }
+    $cofMeta = cofMeta($cofRow);
+    $cofTxid = cofParseTxid($cofMeta['net'], (string) $text);
+    if ($cofTxid === null) {
+        sendmessage($from_id, "❌ هش تراکنش معتبر نیست. هش ۶۴ کاراکتری تراکنش را بفرستید.", $backuser, 'HTML');
+        return;
+    }
+    step('home', $from_id);
+    sendmessage($from_id, "🔎 در حال بررسی تراکنش روی شبکه…", $keyboard, 'HTML');
+    $cofResult = cofCheckTxid($cofRow, $cofMeta, $cofTxid);
+    if ($cofResult['state'] === 'pending') {
+        $cofMeta = cofMeta(select("Payment_report", "*", "id_order", $cofRow['id_order'], "select"));
+        $cofMeta['txid_pending'] = $cofTxid;
+        $cofMeta['txid_at'] = time();
+        cofSaveMeta($cofRow['id_order'], $cofMeta);
+        sendmessage($from_id, "⏳ تراکنش هنوز روی شبکه تأیید نهایی نشده است. تا ۳۰ دقیقه به‌صورت خودکار بررسی می‌شود و نتیجه را همین‌جا اطلاع می‌دهیم.", null, 'HTML');
+    } elseif ($cofResult['state'] === 'invalid') {
+        cofReject($cofRow, $cofMeta, $cofResult['reason'], $cofResult['ctx'] ?? [], false, $cofTxid);
+    }
 } elseif (preg_match('/^sendresidarze-(.*)/', $datain, $dataget) and $text_inline != null) {
     $payemntcheck = select("Payment_report", "*", "id_order", $dataget[1], "select");
     // Callback data is whatever the client sent, not whatever button we drew, so

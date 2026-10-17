@@ -325,10 +325,15 @@ if ($payment_status_nowpayment == "1") {
         ['text' => $textbotlang['textbot']['cryptoPayment'], 'callback_data' => "nowpayment"]
     ];
 }
+// [crypto-offline-auto] USDT TRC20/BEP20 to the owner's wallet, confirmed on-chain
+require_once __DIR__ . '/crypto_offline_lib.php';
 if ($affilnecurrency == "ondigi") {
-    $step_payment['inline_keyboard'][] = [
-        ['text' => $textbotlang['textbot']['nowPaymentTron'], 'callback_data' => "digitaltron"]
-    ];
+    $cofDiscountNow = cofDiscount();
+    foreach (cofEnabledNetworks() as $cofNet => $cofInfo) {
+        $step_payment['inline_keyboard'][] = [
+            ['text' => "💎 " . $cofInfo['label'] . ($cofDiscountNow > 0 ? " | 🎁 " . cofFmtPercent($cofDiscountNow) . "٪ تخفیف" : ""), 'callback_data' => "cof-$cofNet"]
+        ];
+    }
 }
 if ($Swapino == "onSwapinoBot") {
     $step_payment['inline_keyboard'][] = [
@@ -1303,6 +1308,10 @@ $tronnowpayments = json_encode([
     'inline_keyboard' => [
         [['text' => $textbotlang['keyboard']['minAmountCryptoOffline'], 'callback_data' => "paygwopt-minAmountCryptoOffline"], ['text' => $textbotlang['keyboard']['maxAmountCryptoOffline'], 'callback_data' => "paygwopt-maxAmountCryptoOffline"]],
         [['text' => $textbotlang['keyboard']['setEducationCryptoOffline'], 'callback_data' => "paygwopt-setEducationCryptoOffline"]],
+        // [crypto-offline-auto]
+        [['text' => "💳 آدرس ولت USDT TRC20", 'callback_data' => "cofadm-trc20"], ['text' => "💳 آدرس ولت USDT BEP20", 'callback_data' => "cofadm-bep20"]],
+        [['text' => "🎁 تخفیف درصدی پرداخت ارزی", 'callback_data' => "cofadm-discount"]],
+        [['text' => "🔑 API Key ترون‌گرید (اختیاری)", 'callback_data' => "cofadm-key"]],
         [['text' => $textbotlang['keyboard']['backToGateways'], 'callback_data' => "paygwlist"]],
     ]
 ]);
