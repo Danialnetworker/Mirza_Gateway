@@ -43,7 +43,7 @@ if (isset($backmenu_register) && is_callable($backmenu_register) && isset($Frenz
 // <<< FRENZYEX GATEWAY
 $backmenu_register(["addchannel", "getremark", "getlinkjoin", "removechannel"], $channelkeyboard);
 // [crypto-offline-auto]
-$backmenu_register(["cof_set_trc20", "cof_set_bep20", "cof_set_discount", "cof_set_key"], $tronnowpayments);
+$backmenu_register(["cof_set_trc20", "cof_set_bep20", "cof_set_discount", "cof_set_key", "cof_quiz"], $tronnowpayments); // [crypto-wallet-gen]
 $backmenu_register(["add_name_help", "getcatgoryhelp", "add_dec", "remove_help", "getnameforedite"], $keyboardhelpadmin);
 $backmenu_register(["changenamehelp", "changecategoryhelp", "changedeshelp", "changemedia"], $helpedit);
 $backmenu_register([
@@ -6609,6 +6609,91 @@ if ($datain == "settimecornremove" && $adminrulecheck['rule'] == "administrator"
     sendmessage($from_id, $textbotlang['Admin']['Balance']['maxDepositSaved'], $NowPaymentsManage, 'HTML');
     step("home", $from_id);
     update("PaySetting", "ValuePay", $text, "NamePay", "maxbalanceplisio");
+} elseif (preg_match('/^cofadm-(gen|genok)$/', $datain, $cofMatch) && $adminrulecheck['rule'] == "administrator") {
+    // [crypto-wallet-gen] create a Trust-Wallet compatible wallet inside the bot
+    require_once __DIR__ . '/crypto_offline_lib.php';
+    $cofHas = cofWallet('trc20') !== null || cofWallet('bep20') !== null;
+    if ($cofMatch[1] === 'gen') {
+        $cofTxt = "🪄 <b>ساخت کیف پول آنلاین</b>\n\n"
+            . "ربات یک کیف پول جدید (سازگار با Trust Wallet) می‌سازد و آدرس‌های USDT TRC20 و BEP20 آن را خودکار برای پرداخت ارزی ثبت می‌کند.\n\n"
+            . "🔐 عبارت بازیابی ۱۲ کلمه‌ای <b>فقط یک بار</b> برای شما نمایش داده می‌شود و پیام آن بعد از ۱۰ دقیقه خودکار پاک می‌شود. ربات این کلمات را هیچ‌جا ذخیره نمی‌کند؛ فقط آدرس‌های عمومی ذخیره می‌شوند.\n\n"
+            . "📝 قبل از شروع کاغذ و قلم آماده کنید. بعد از نمایش کلمات، برای فعال شدن کیف پول باید دو کلمه از آن‌ها را وارد کنید.\n"
+            . "❗️ اگر کلمات را گم کنید، دسترسی به پول‌های واریزی برای همیشه از دست می‌رود.";
+        if ($cofHas) {
+            $cofTxt .= "\n\n⚠️ <b>کیف پول فعلی جایگزین می‌شود.</b>\nموجودی کیف پول فعلی فقط با عبارت بازیابی همان کیف پول در دسترس است؛ قبل از ادامه مطمئن شوید آن را دارید. فاکتورهای باز قبلی همچنان روی آدرس قبلی بررسی می‌شوند.";
+        }
+        $cofKb = json_encode(['inline_keyboard' => [
+            [['text' => $cofHas ? "⚠️ بله، کیف پول جدید بساز" : "✅ ساخت کیف پول", 'callback_data' => "cofadm-genok"]],
+            [['text' => $textbotlang['Admin']['backMenuBtn'], 'callback_data' => "paygwback"]],
+        ]]);
+        sendmessage($from_id, $cofTxt, $cofKb, 'HTML');
+        return;
+    }
+    require_once __DIR__ . '/crypto_wallet_gen.php';
+    cofSeedCleanup(true);
+    $cofW = cwgNewWallet();
+    $cofWords = explode(' ', $cofW['mnemonic']);
+    unset($cofW['mnemonic']);
+    $cofPos = array_rand(array_flip(range(1, 12)), 2);
+    sort($cofPos);
+    $cofSalt = bin2hex(random_bytes(16));
+    cofSet('cofgenpending', json_encode([
+        'trc20' => $cofW['trc20'], 'bep20' => $cofW['bep20'], 'a' => $cofPos[0], 'b' => $cofPos[1], 'salt' => $cofSalt,
+        'h' => hash_hmac('sha256', $cofWords[$cofPos[0] - 1] . ' ' . $cofWords[$cofPos[1] - 1], $cofSalt), 't' => time(),
+    ]));
+    $cofList = '';
+    foreach ($cofWords as $cofI => $cofWord) {
+        $cofList .= ($cofI + 1) . ". " . $cofWord . "\n";
+    }
+    $cofRes = telegram('sendMessage', [
+        'chat_id' => $from_id,
+        'parse_mode' => 'HTML',
+        'protect_content' => true,
+        'text' => "🔐 <b>عبارت بازیابی کیف پول (۱۲ کلمه)</b>\n\n"
+            . "⚠️ فقط همین یک بار نمایش داده می‌شود و این پیام ۱۰ دقیقه دیگر خودکار پاک می‌شود.\n"
+            . "روی کادر زیر بزنید تا کلمات دیده شوند و <b>به ترتیب</b> روی کاغذ بنویسید:\n\n"
+            . "<tg-spoiler>" . $cofList . "</tg-spoiler>\n"
+            . "📱 وارد کردن در Trust Wallet:\nSettings ← Wallets ← ➕ ← I already have a wallet ← Secret phrase\n\n"
+            . "❗️ هر کس این کلمات را داشته باشد به همه‌ی موجودی دسترسی دارد. از آن عکس نگیرید و برای هیچ‌کس نفرستید.",
+    ]);
+    $cofWords = $cofList = null;
+    if (empty($cofRes['ok'])) {
+        cofSet('cofgenpending', '0');
+        sendmessage($from_id, "❌ ارسال عبارت بازیابی ناموفق بود؛ کیف پولی ثبت نشد. دوباره تلاش کنید.", $tronnowpayments, 'HTML');
+        return;
+    }
+    cofSet('cofseedmsg', json_encode(['chat' => $from_id, 'mid' => $cofRes['result']['message_id'], 't' => time()]));
+    sendmessage($from_id, "✍️ پس از نوشتن کلمات، برای فعال شدن کیف پول <b>کلمه‌ی شماره {$cofPos[0]}</b> و <b>کلمه‌ی شماره {$cofPos[1]}</b> را به ترتیب و با یک فاصله بفرستید.\n\nتا این مرحله انجام نشود کیف پول فعال نمی‌شود.", $backadmin, 'HTML');
+    step('cof_quiz', $from_id);
+} elseif ($user['step'] == 'cof_quiz' && $datain == "" && $adminrulecheck['rule'] == "administrator") {
+    // [crypto-wallet-gen] confirm the admin wrote the recovery phrase down
+    require_once __DIR__ . '/crypto_offline_lib.php';
+    deletemessage($from_id, $message_id);
+    $cofPend = json_decode(cofGet('cofgenpending'), true);
+    if (!is_array($cofPend) || empty($cofPend['h'])) {
+        step('home', $from_id);
+        sendmessage($from_id, "❌ کیف پولی در انتظار تأیید نیست.", $tronnowpayments, 'HTML');
+        return;
+    }
+    $cofAns = preg_split('/[\s,،]+/u', mb_strtolower(trim((string) $text)), -1, PREG_SPLIT_NO_EMPTY);
+    if (count($cofAns) !== 2 || !hash_equals($cofPend['h'], hash_hmac('sha256', $cofAns[0] . ' ' . $cofAns[1], $cofPend['salt']))) {
+        $cofKb = json_encode(['inline_keyboard' => [
+            [['text' => "🔄 ساخت کیف پول جدید", 'callback_data' => "cofadm-genok"]],
+            [['text' => $textbotlang['Admin']['backMenuBtn'], 'callback_data' => "paygwback"]],
+        ]]);
+        sendmessage($from_id, "❌ کلمات درست نیست. کلمه‌ی شماره {$cofPend['a']} و {$cofPend['b']} را دوباره بفرستید.\n\nاگر کلمات را یادداشت نکرده‌اید و پیام پاک شده، یک کیف پول جدید بسازید.", $cofKb, 'HTML');
+        return;
+    }
+    cofSet('cofwallettrc20', $cofPend['trc20']);
+    cofSet('cofwalletbep20', $cofPend['bep20']);
+    cofSet('digistatus', 'ondigi');
+    cofSet('cofgenpending', '0');
+    cofSeedCleanup(true);
+    step('home', $from_id);
+    sendmessage($from_id, "✅ <b>کیف پول فعال شد</b> و پرداخت ارزی (USDT) روشن است.\n\n"
+        . "💳 TRC20:\n<code>{$cofPend['trc20']}</code>\n\n💳 BEP20:\n<code>{$cofPend['bep20']}</code>\n\n"
+        . "📱 همین دو آدرس باید بعد از وارد کردن عبارت بازیابی در Trust Wallet (USDT روی Tron و USDT روی BNB Smart Chain) دیده شوند.\n"
+        . "🎁 درصد تخفیف را از دکمه‌ی «تخفیف درصدی پرداخت ارزی» تنظیم کنید.", $tronnowpayments, 'HTML');
 } elseif (preg_match('/^cofadm-(trc20|bep20|discount|key)$/', $datain, $cofMatch) && $adminrulecheck['rule'] == "administrator") {
     // [crypto-offline-auto] admin settings
     require_once __DIR__ . '/crypto_offline_lib.php';

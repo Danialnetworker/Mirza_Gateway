@@ -22,6 +22,7 @@ const COF_BSC_CONFIRMATIONS = 15;
 const COF_BSC_MAX_SCAN = 24000;    // ~3 h of BSC blocks (0.45 s block time)
 const COF_BSC_LOG_CHUNK = 1000;
 const COF_MAX_TRIES = 3;
+const COF_SEED_TTL = 600;          // the one-time recovery-phrase message is deleted after 10 min
 
 function cofNetworks(): array
 {
@@ -754,4 +755,19 @@ function cofCron(): array
         clearSelectCache('Payment_report');
     }
     return $stats;
+}
+
+
+/** Delete the one-time recovery-phrase message (after COF_SEED_TTL, or immediately with $now). */
+function cofSeedCleanup(bool $now = false): void
+{
+    $m = json_decode(cofGet('cofseedmsg'), true);
+    if (!is_array($m) || empty($m['mid'])) {
+        return;
+    }
+    if (!$now && time() - (int) $m['t'] < COF_SEED_TTL) {
+        return;
+    }
+    telegram('deleteMessage', ['chat_id' => $m['chat'], 'message_id' => (int) $m['mid']]);
+    cofSet('cofseedmsg', '0');
 }

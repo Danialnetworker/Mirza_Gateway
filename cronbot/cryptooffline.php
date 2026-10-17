@@ -19,6 +19,7 @@ if (!$cofLock || !flock($cofLock, LOCK_EX | LOCK_NB)) {
     return;
 }
 try {
+    cofSeedCleanup();
     $cofStats = cofCron();
     if ($cofStats['settled'] || $cofStats['rejected'] || $cofStats['expired']) {
         error_log('cryptooffline: ' . json_encode($cofStats));

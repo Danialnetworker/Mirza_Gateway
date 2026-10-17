@@ -1309,6 +1309,7 @@ $tronnowpayments = json_encode([
         [['text' => $textbotlang['keyboard']['minAmountCryptoOffline'], 'callback_data' => "paygwopt-minAmountCryptoOffline"], ['text' => $textbotlang['keyboard']['maxAmountCryptoOffline'], 'callback_data' => "paygwopt-maxAmountCryptoOffline"]],
         [['text' => $textbotlang['keyboard']['setEducationCryptoOffline'], 'callback_data' => "paygwopt-setEducationCryptoOffline"]],
         // [crypto-offline-auto]
+        [['text' => "🪄 ساخت کیف پول آنلاین", 'callback_data' => "cofadm-gen"]], // [crypto-wallet-gen]
         [['text' => "💳 آدرس ولت USDT TRC20", 'callback_data' => "cofadm-trc20"], ['text' => "💳 آدرس ولت USDT BEP20", 'callback_data' => "cofadm-bep20"]],
         [['text' => "🎁 تخفیف درصدی پرداخت ارزی", 'callback_data' => "cofadm-discount"]],
         [['text' => "🔑 API Key ترون‌گرید (اختیاری)", 'callback_data' => "cofadm-key"]],
