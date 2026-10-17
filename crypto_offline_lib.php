@@ -22,6 +22,7 @@ const COF_BSC_CONFIRMATIONS = 15;
 const COF_BSC_MAX_SCAN = 24000;    // ~3 h of BSC blocks (0.45 s block time)
 const COF_BSC_LOG_CHUNK = 1000;
 const COF_MAX_TRIES = 3;
+const COF_SHORT_MAX = '3';        // exchange fee: accept up to 3 USDT less, credit what arrived to the balance
 const COF_SEED_TTL = 600;          // the one-time recovery-phrase message is deleted after 10 min
 
 function cofNetworks(): array
@@ -174,6 +175,20 @@ function cofAmountMatches(string $received, string $expected): bool
 {
     return bccomp($received, bcsub($expected, '0.0005', 6), 6) >= 0
         && bccomp($received, bcadd($expected, '0.005', 6), 6) < 0;
+}
+
+/** received is less than the invoice (exchange withdrawal fee) but within COF_SHORT_MAX. */
+function cofAmountShort(string $received, string $expected): bool
+{
+    return bccomp($received, bcsub($expected, '0.0005', 6), 6) < 0
+        && bccomp($received, bcsub($expected, COF_SHORT_MAX, 6), 6) >= 0
+        && bccomp($received, '0.01', 6) >= 0;
+}
+
+/** Toman credited for a short payment: invoice price scaled by received / expected (keeps the discount). */
+function cofShortCredit(int $price, string $received, string $expected): int
+{
+    return (int) bcdiv(bcmul((string) $price, $received, 6), $expected, 0);
 }
 
 function cofTrimAmount(string $a): string
@@ -492,7 +507,8 @@ function cofInvoiceText(array $inv, int $price): string
     }
     $t .= "\n⚠️ نکات مهم:\n"
         . "🔸 فقط USDT روی شبکه {$n['title']} ارسال کنید؛ شبکه یا توکن اشتباه قابل بازگشت نیست.\n"
-        . "🔹 مقدار رسیده به کیف پول باید دقیقاً <code>{$inv['usdt']}</code> باشد (کارمزد صرافی را جدا در نظر بگیرید)، وگرنه خودکار تأیید نمی‌شود.\n"
+        . "🔹 مقدار رسیده به کیف پول باید دقیقاً <code>{$inv['usdt']}</code> باشد؛ کارمزد برداشت صرافی را جدا در نظر بگیرید.\n"
+        . "🔸 اگر کارمزد کم شود و مقدار کمتری برسد (حداکثر " . COF_SHORT_MAX . " تتر کمتر)، معادل همان مقدار رسیده به <b>موجودی کیف پول</b> شما در ربات اضافه می‌شود و خرید سرویس خودکار انجام نمی‌شود.\n"
         . "🔸 این فاکتور ۲ ساعت اعتبار دارد.\n\n"
         . "⏱ بعد از واریز، پرداخت ظرف چند دقیقه خودکار تأیید می‌شود. برای تأیید سریع‌تر، هش تراکنش (TXID) را با دکمه زیر بفرستید.";
     return $t;
@@ -506,7 +522,7 @@ function cofReasonText(string $reason, array $ctx = []): string
         case 'wrongdest':
             return 'این تراکنش، انتقال USDT به آدرس این فاکتور نیست (شبکه، توکن یا آدرس اشتباه است).';
         case 'amount':
-            return 'مقدار واریزی (' . cofTrimAmount($ctx['amount'] ?? '0') . ' USDT) با مقدار فاکتور (' . ($ctx['expected'] ?? '') . ' USDT) برابر نیست.';
+            return 'مقدار واریزی (' . cofTrimAmount($ctx['amount'] ?? '0') . ' USDT) با مقدار فاکتور (' . ($ctx['expected'] ?? '') . ' USDT) برابر نیست و بیش از ' . COF_SHORT_MAX . ' تتر اختلاف دارد یا بیشتر از فاکتور است.';
         case 'early':
             return 'این تراکنش قبل از ساخت این فاکتور انجام شده است.';
         case 'late':
@@ -569,6 +585,19 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
     $meta['txid'] = $txid;
     $meta['paid_amount'] = $amount;
     $meta['paid_at'] = time();
+    $short = !cofAmountMatches($amount, $meta['usdt']);
+    if ($short) {
+        // less arrived (exchange fee): credit what arrived to the balance instead of the purchase
+        $credit = cofShortCredit((int) $row['price'], $amount, $meta['usdt']);
+        $meta['short'] = 1;
+        $meta['orig_price'] = (int) $row['price'];
+        $meta['orig_invoice'] = $row['id_invoice'];
+        $upd = $pdo->prepare("UPDATE Payment_report SET price = ?, id_invoice = 'getbalance|' WHERE id_order = ?");
+        $upd->execute([$credit, $row['id_order']]);
+        if (function_exists('clearSelectCache')) {
+            clearSelectCache('Payment_report');
+        }
+    }
     cofSaveMeta($row['id_order'], $meta);
     if (!empty($row['message_id'])) {
         deletemessage($row['id_user'], $row['message_id']);
@@ -578,13 +607,20 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
     } catch (Throwable $e) {
         error_log("cof DirectPayment failed for {$row['id_order']}: " . $e->getMessage());
     }
+    if ($short) {
+        $purchase = explode('|', (string) $row['id_invoice'])[0] !== 'getbalance';
+        sendmessage($row['id_user'], "ℹ️ مقدار رسیده (" . cofTrimAmount($amount) . " USDT) کمتر از مقدار فاکتور ({$meta['usdt']} USDT) بود؛ احتمالاً صرافی کارمزد کم کرده است.\n"
+            . "💰 معادل همان مقدار رسیده، <b>" . number_format($credit) . " تومان</b> به موجودی کیف پول شما اضافه شد."
+            . ($purchase ? "\n🛍 خرید/تمدید سرویس خودکار انجام نشد؛ می‌توانید با موجودی کیف پول (و در صورت نیاز شارژ مابقی) آن را انجام دهید." : ''), null, 'HTML');
+    }
     $d = (float) $meta['discount'];
-    cofReportGroup("💎 پرداخت تتر آفلاین — تأیید خودکار ✅\n\n"
+    cofReportGroup("💎 پرداخت تتر آفلاین — تأیید خودکار ✅" . ($short ? " (کمتر از فاکتور)" : '') . "\n\n"
         . "👤 کاربر: " . cofUserLine((string) $row['id_user']) . "\n"
         . "🛒 سفارش: <code>{$row['id_order']}</code>\n"
         . "🧾 مبلغ: " . number_format((int) $row['price']) . " تومان"
         . ($d > 0 ? " (تخفیف " . cofFmtPercent($d) . "٪، پرداختی " . number_format((int) $meta['pay_toman']) . " تومان)" : '') . "\n"
-        . "🪙 دریافتی: " . cofTrimAmount($amount) . " USDT — " . strtoupper($meta['net']) . "\n"
+        . "🪙 دریافتی: " . cofTrimAmount($amount) . " USDT — " . strtoupper($meta['net']) . ($short ? " (فاکتور {$meta['usdt']} USDT)" : '') . "\n"
+        . ($short ? "💰 شارژ کیف پول کاربر به نسبت مقدار رسیده: " . number_format($credit) . " تومان (به‌جای " . number_format($meta['orig_price']) . ")\n" : '')
         . "🔗 TXID: " . cofTxLink($meta['net'], $txid) . "\n"
         . "⚙️ روش تشخیص: " . ($via === 'txid' ? 'هش ارسالی کاربر' : 'اسکن خودکار شبکه'));
     return true;
@@ -645,7 +681,7 @@ function cofCheckTxid(array $row, array $meta, string $txid): array
     if ($v['time'] > (int) $meta['created'] + COF_INVOICE_TTL + COF_GRACE) {
         return ['state' => 'invalid', 'reason' => 'late'];
     }
-    if (!cofAmountMatches($v['amount'], $meta['usdt'])) {
+    if (!cofAmountMatches($v['amount'], $meta['usdt']) && !cofAmountShort($v['amount'], $meta['usdt'])) {
         return ['state' => 'invalid', 'reason' => 'amount', 'ctx' => ['amount' => $v['amount'], 'expected' => $meta['usdt']]];
     }
     return cofSettle($row, $meta, $txid, $v['amount'], 'txid')
@@ -692,29 +728,64 @@ function cofCron(): array
             continue;
         }
         $stats['scanned'] += count($txs);
+        $inWindow = function (array &$tx, array $m): ?bool {
+            if ($tx['time'] === null) {
+                $tx['time'] = cofBscBlockTime($tx['block']);
+                if ($tx['time'] === null) {
+                    return null;
+                }
+            }
+            return $tx['time'] >= (int) $m['created'] - 120 && $tx['time'] <= (int) $m['created'] + COF_INVOICE_TTL + COF_GRACE;
+        };
+        // pass 1: exact amount (unique cents identify the invoice)
+        $left = [];
         foreach ($txs as $tx) {
             if ($isUsed($tx['txid'])) {
                 continue;
             }
+            $hit = false;
             foreach ($idx as $i) {
                 if (isset($done[$i]) || !cofAmountMatches($tx['amount'], $pending[$i]['meta']['usdt'])) {
                     continue;
                 }
-                $m = $pending[$i]['meta'];
-                if ($tx['time'] === null) {
-                    $tx['time'] = cofBscBlockTime($tx['block']);
-                    if ($tx['time'] === null) {
-                        break;
-                    }
+                $w = $inWindow($tx, $pending[$i]['meta']);
+                if ($w === null) {
+                    $hit = true;
+                    break;
                 }
-                if ($tx['time'] < (int) $m['created'] - 120 || $tx['time'] > (int) $m['created'] + COF_INVOICE_TTL + COF_GRACE) {
+                if (!$w) {
                     continue;
                 }
-                if (cofSettle($pending[$i]['row'], $m, $tx['txid'], $tx['amount'], 'scan')) {
+                $hit = true;
+                if (cofSettle($pending[$i]['row'], $pending[$i]['meta'], $tx['txid'], $tx['amount'], 'scan')) {
                     $done[$i] = true;
                     $stats['settled']++;
                 }
                 break;
+            }
+            if (!$hit) {
+                $left[] = $tx;
+            }
+        }
+        // pass 2: less than the invoice (exchange fee) - only when exactly one open invoice can explain it
+        foreach ($left as $tx) {
+            $cand = [];
+            foreach ($idx as $i) {
+                if (isset($done[$i]) || !cofAmountShort($tx['amount'], $pending[$i]['meta']['usdt'])) {
+                    continue;
+                }
+                $w = $inWindow($tx, $pending[$i]['meta']);
+                if ($w === null) {
+                    $cand = [];
+                    break;
+                }
+                if ($w) {
+                    $cand[] = $i;
+                }
+            }
+            if (count($cand) === 1 && cofSettle($pending[$cand[0]]['row'], $pending[$cand[0]]['meta'], $tx['txid'], $tx['amount'], 'scan')) {
+                $done[$cand[0]] = true;
+                $stats['settled']++;
             }
         }
     }
