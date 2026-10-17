@@ -16,6 +16,7 @@ class PanelRegistry
         'nexora' => 'Nexora',
         'wg_mate' => 'WGMate',
         'cloudius' => 'Cloudius',
+        'drproxy' => 'Drproxy',
     ];
 
     private static $instances = [];

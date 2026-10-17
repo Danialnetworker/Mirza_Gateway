@@ -11,6 +11,7 @@ require_once __DIR__ . '/Api/mirza_agent.php';
 require_once __DIR__ . '/Api/Rebeca.php';
 require_once __DIR__ . '/Api/nexora.php';
 require_once __DIR__ . '/Api/wgmate.php';
+require_once __DIR__ . '/Api/drproxy.php';
 
 require_once __DIR__ . '/BasePanelDriver.php';
 require_once __DIR__ . '/PanelRegistry.php';

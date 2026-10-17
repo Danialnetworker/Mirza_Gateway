@@ -2396,6 +2396,7 @@ function finishAddPanel()
         "ibsng" => "noteSetGroupNameIbsng",
         "mikrotik" => "noteMikrotikAccounting",
         "cloudius" => "noteCloudiusGroupId",
+        "drproxy" => "noteDrproxyServices",
         "hiddify" => "noteSetAdminUuid",
     ];
     if (isset($panelNotes[$panelData['type']])) {
@@ -3276,7 +3277,7 @@ function sendMessageService($panel_info, $config, $sub_link, $username_service, 
         sendmessage($user_id, $caption, $reply_markup, 'HTML');
     }
     if ($panel_info['config'] == "onconfig" && $setting['status_keyboard_config'] == "1"
-        && ($panel_info['type'] ?? '') != "cloudius") {
+        && ($panel_info['type'] ?? '') != "cloudius" && ($panel_info['type'] ?? '') != "drproxy") {
         if (is_array($config)) {
             sendmessage($user_id, $textbotlang['users']['status']['getConfigHint'], keyboard_config($config, $invoice_id, false), 'HTML');
         }

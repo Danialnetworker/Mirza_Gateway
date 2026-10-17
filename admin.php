@@ -769,7 +769,7 @@ if ($datain == "paygwback") {
 } elseif ($text == $textbotlang['Admin']['btnKeyboard']['addPanel'] && $adminrulecheck['rule'] == "administrator") {
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['Inbound']['getPanelType'], $keyboardtypepanel, 'HTML');
 } elseif (preg_match('/^typepanel#(.+)$/', $datain, $dataget) && $adminrulecheck['rule'] == "administrator") {
-    if (!in_array($dataget[1], ["marzban", "marzneshin", "pasarguard", "mirza_agent", "x-ui_single", "Manualsale", "hiddify", "WGDashboard", "ibsng", "mikrotik", "cloudius", "rebecca", "nexora", "wg_mate"], true)) {
+    if (!in_array($dataget[1], ["marzban", "marzneshin", "pasarguard", "mirza_agent", "x-ui_single", "Manualsale", "hiddify", "WGDashboard", "ibsng", "mikrotik", "cloudius", "drproxy", "rebecca", "nexora", "wg_mate"], true)) {
         return;
     }
     deletemessage($from_id, $message_id);
@@ -816,6 +816,10 @@ if ($datain == "paygwback") {
         savedata("save", "username", "null");
         sendmessage($from_id, $textbotlang['Admin']['agentbot']['askToken'], $backadmin, 'HTML');
         step('add_password_panel', $from_id);
+    } elseif ($paneltype == "drproxy") { // [drproxy]
+        savedata("save", "username", "null");
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['askDrproxyToken'] ?? '🔐 توکن ربات پنل DrProxy را بفرستید', $backadmin, 'HTML');
+        step('add_password_panel', $from_id);
     } elseif ($paneltype == "cloudius") {
         savedata("save", "username", "null");
         sendmessage($from_id, $textbotlang['Admin']['managepanel']['askCloudiusToken'], $backadmin, 'HTML');
@@ -829,6 +833,15 @@ if ($datain == "paygwback") {
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['getPassword'], $backadmin, 'HTML');
     step('add_password_panel', $from_id);
 } elseif ($user['step'] == "add_password_panel") {
+    $drpPv = json_decode($user['Processing_value'], true);
+    if (($drpPv['type'] ?? '') == "drproxy") { // [drproxy] check url + token before the panel is saved
+        $drpPing = drproxy_call(array('url_panel' => $drpPv['url_panel'] ?? '', 'password_panel' => trim($text)), 'GET', '/ping');
+        if (!$drpPing['ok']) {
+            sendmessage($from_id, ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $backadmin, 'HTML');
+            return;
+        }
+        sendmessage($from_id, drproxy_status_text($drpPing['obj']), null, 'HTML');
+    }
     savedata("save", "password", trim($text));
     finishAddPanel();
 }
@@ -2669,6 +2682,9 @@ elseif ($datain == "systemsms") {
         } else {
             sendmessage($from_id, $result['msg'], $panelOptions['ibsng'], 'HTML');
         }
+    } elseif ($marzban_list_get['type'] == "drproxy") { // [drproxy] panel status
+        $drpPing = drproxy_call($marzban_list_get, 'GET', '/ping');
+        sendmessage($from_id, $drpPing['ok'] ? drproxy_status_text($drpPing['obj']) : ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $panelOptions['drproxy'], 'HTML');
     } elseif ($marzban_list_get['type'] == "cloudius") {
         $result = login_cloudius($marzban_list_get['url_panel'], $marzban_list_get['username_panel'], $marzban_list_get['password_panel']);
         if (empty($result['status'])) {
@@ -7813,6 +7829,13 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
             return;
         }
         $datainbound = json_encode($data['obj']['inboundIds']);
+    } elseif ($marzban_list_get['type'] == "drproxy") { // [drproxy] product services: v2ray,wg,openvpn,l2tp ('' = all)
+        $drpSvc = drproxy_services($text);
+        if ($drpSvc === null) {
+            sendmessage($from_id, $textbotlang['Admin']['managepanel']['drproxyServicesInvalid'] ?? '❌ v2ray, wg, openvpn, l2tp | all', null, 'HTML');
+            return;
+        }
+        $datainbound = implode(',', $drpSvc);
     } elseif ($marzban_list_get['type'] == "ibsng" || $marzban_list_get['type'] == "mikrotik" || $marzban_list_get['type'] == "cloudius") {
         $datainbound = $text;
     } else {

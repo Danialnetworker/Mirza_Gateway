@@ -198,7 +198,7 @@ class ManagePanel
             'time' => false,
         ));
         update("invoice", "notifctions", $notifctions, 'id_invoice', $invoice['id_invoice']);
-        if ($panel['type'] == "cloudius") { // [cloudius-renew]
+        if ($panel['type'] == "cloudius" || $panel['type'] == "drproxy") { // [cloudius-renew] [drproxy]
             return PanelRegistry::driver($panel['type'], $this)->extendService(get_defined_vars());
         }
         $data_limit_old = $data_user['data_limit'];
@@ -290,7 +290,7 @@ class ManagePanel
                 'msg' => $user_info['msg']
             );
         }
-        if ($panel['type'] == "cloudius") { // [cloudius-renew]
+        if ($panel['type'] == "cloudius" || $panel['type'] == "drproxy") { // [cloudius-renew] [drproxy]
             return PanelRegistry::driver($panel['type'], $this)->extraVolume(get_defined_vars());
         }
         $old_limit_volume = $user_info['data_limit'];
@@ -338,7 +338,7 @@ class ManagePanel
                 'msg' => $user_info['msg']
             );
         }
-        if ($panel['type'] == "cloudius") { // [cloudius-renew]
+        if ($panel['type'] == "cloudius" || $panel['type'] == "drproxy") { // [cloudius-renew] [drproxy]
             return PanelRegistry::driver($panel['type'], $this)->extraTime(get_defined_vars());
         }
         $old_limit_time = $user_info['expire'];

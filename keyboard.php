@@ -1146,6 +1146,7 @@ $panelOptionRows = [
 ];
 $panelOptionRows['mikrotik'] = $panelOptionRows['ibsng'];
 $panelOptionRows['cloudius'] = $panelOptionRows['ibsng'];
+$panelOptionRows['drproxy'] = [['panelName', 'deletePanel'], ['editPassword'], ['editPanelUrl'], ['renewalMethod', 'usernameMethod'], ['accountCreateLimit', 'changeUserGroup'], $panelTestRow, ...$panelPriceRows, ...$panelLimitRows];
 $panelOptionRows['nexora'] = $panelOptionRows['rebecca'];
 $panelOptionRows['wg_mate'] = $panelOptionRows['rebecca'];
 $panelOptions = [];
@@ -1243,7 +1244,8 @@ $keyboardtypepanel = json_encode([
             ['text' => $textbotlang['keyboard']['mikrotik'], 'callback_data' => 'typepanel#mikrotik']
         ],
         [
-            ['text' => $textbotlang['keyboard']['cloudius'] ?? 'Cloudius', 'callback_data' => 'typepanel#cloudius']
+            ['text' => $textbotlang['keyboard']['cloudius'] ?? 'Cloudius', 'callback_data' => 'typepanel#cloudius'],
+            ['text' => 'DrProxy', 'callback_data' => 'typepanel#drproxy']
         ],
         [
             ['text' => $textbotlang['keyboard']['rebecca'], 'callback_data' => 'typepanel#rebecca'],
