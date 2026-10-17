@@ -73,7 +73,15 @@ function drproxy_services($raw)
 }
 
 /** Short status for the admin (panel added / panel status). */
-function drproxy_status_text($o)
+/** How to choose the services of a product (shown in panel status and in «set inbound»). */
+function drproxy_services_guide($svc = '')
+{
+    global $textbotlang;
+    $t = $textbotlang['Admin']['managepanel']['drproxyServicesGuide'] ?? "💡 <b>سرویس هر محصول</b>\nدر «مدیریت محصول» ← «تنظیم اینباند» سرویس‌ها را با کاما بفرستید:\n• <code>v2ray,wg</code> یا <code>openvpn,l2tp</code> یا فقط <code>v2ray</code>\n• خالی یا <code>all</code> = همه‌ی سرویس‌هایی که نماینده دارد\nهر خرید یک لینک /u/ می‌گیرد که همه‌ی سرویس‌های آن محصول داخلش است.";
+    return $svc !== '' ? str_replace('{services}', $svc, $t) : str_replace(' ({services})', '', $t);
+}
+
+function drproxy_status_text($o, $url = '')
 {
     $gib = 1073741824;
     $q = is_array($o['quota'] ?? null) ? $o['quota'] : array();
@@ -83,5 +91,7 @@ function drproxy_status_text($o)
     $name = htmlspecialchars((string) ($o['reseller']['name'] ?? ''), ENT_QUOTES, 'UTF-8');
     $code = htmlspecialchars((string) ($o['reseller']['code'] ?? ''), ENT_QUOTES, 'UTF-8');
     $svc = htmlspecialchars(implode(', ', (array) ($o['services'] ?? array())), ENT_QUOTES, 'UTF-8');
-    return "✅ <b>DrProxy</b>\n👤 {$name} ({$code})\n🧩 {$svc}\n📦 {$used} / {$left}\n⏳ " . ($days === null ? '∞' : $days);
+    $u = $url !== '' ? "🌐 <code>" . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . "</code>\n" : '';
+    return "✅ <b>DrProxy</b>\n{$u}👤 {$name} ({$code})\n🧩 {$svc}\n📦 {$used} / {$left}\n⏳ " . ($days === null ? '∞' : $days)
+        . "\n\n" . drproxy_services_guide($svc);
 }

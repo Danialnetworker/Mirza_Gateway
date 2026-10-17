@@ -2023,6 +2023,8 @@ The support access level has access to user services and support message reply s
                         'getPassword' => '🔑 The username was saved. Enter your password',
                 'askCloudiusToken' => '🔐 Enter the Cloudius panel StaticToken (API section of the Cloudius panel). No username needed.',
                 'askDrproxyToken' => '🔐 Send the DrProxy bot token (reseller dashboard → ⚙️ Settings → 🤖 Mirza bot → make token). Looks like <code>drpb_…</code>',
+                'askDrproxyUrl' => "🌐 Send the DrProxy panel address (the one shown in the reseller dashboard → Settings → Mirza bot; any domain).\nExample: <code>https://panel.example.com</code>",
+                'drproxyServicesGuide' => "💡 <b>Services of a product</b>\nIn product management → «Set inbound» send the services, comma separated:\n• <code>v2ray,wg</code> or <code>openvpn,l2tp</code> or just <code>v2ray</code>\n• empty or <code>all</code> = every service the reseller has ({services})\nEach purchase gets one /u/ link with all services of that product.",
                 'noteDrproxyServices' => 'ℹ️ DrProxy: set each product\'s services with «Set inbound», e.g. <code>v2ray,wg</code> or <code>openvpn,l2tp</code>. Empty or <code>all</code> = every service the reseller has. Each purchase gets one /u/ link with all of them.',
                 'drproxyPingFail' => '❌ Could not reach the DrProxy panel; check the address and token.',
                 'drproxyServicesInvalid' => '❌ Unknown service. Only v2ray, wg, openvpn, l2tp (comma separated) or all.',

@@ -800,7 +800,11 @@ if ($datain == "paygwback") {
         finishAddPanel();
         return;
     }
-    sendmessage($from_id, $textbotlang['Admin']['managepanel']['addPanelUrl'], $backadmin, 'HTML');
+    if ((json_decode($user['Processing_value'], true)['type'] ?? '') == "drproxy") { // [drproxy] address of the reseller panel
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['askDrproxyUrl'] ?? "🌐 آدرس پنل DrProxy را بفرستید (همان آدرسی که در داشبورد نمایندگی ← تنظیمات ← اتصال ربات میرزا نوشته شده).\nنمونه: <code>https://panel.example.com</code>", $backadmin, 'HTML');
+    } else {
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['addPanelUrl'], $backadmin, 'HTML');
+    }
     step('add_link_panel', $from_id);
 } elseif ($user['step'] == "add_link_panel") {
     $text = normalizePanelUrl($text);
@@ -842,7 +846,7 @@ if ($datain == "paygwback") {
             sendmessage($from_id, ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $backadmin, 'HTML');
             return;
         }
-        sendmessage($from_id, drproxy_status_text($drpPing['obj']), null, 'HTML');
+        sendmessage($from_id, drproxy_status_text($drpPing['obj'], $drpPv['url_panel'] ?? ''), null, 'HTML');
     }
     savedata("save", "password", trim($text));
     finishAddPanel();
@@ -2686,7 +2690,7 @@ elseif ($datain == "systemsms") {
         }
     } elseif ($marzban_list_get['type'] == "drproxy") { // [drproxy] panel status
         $drpPing = drproxy_call($marzban_list_get, 'GET', '/ping');
-        sendmessage($from_id, $drpPing['ok'] ? drproxy_status_text($drpPing['obj']) : ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $panelOptions['drproxy'], 'HTML');
+        sendmessage($from_id, $drpPing['ok'] ? drproxy_status_text($drpPing['obj'], $marzban_list_get['url_panel']) : ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $panelOptions['drproxy'], 'HTML');
     } elseif ($marzban_list_get['type'] == "cloudius") {
         $result = login_cloudius($marzban_list_get['url_panel'], $marzban_list_get['username_panel'], $marzban_list_get['password_panel']);
         if (empty($result['status'])) {
@@ -2797,6 +2801,12 @@ elseif ($datain == "systemsms") {
     update("user", "Processing_value", $text, "id", $from_id);
     step('home', $from_id);
 } elseif ($text == $textbotlang['keyboard']['editPanelUrl'] && $adminrulecheck['rule'] == "administrator") {
+    $drpP = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
+    if (($drpP['type'] ?? '') == "drproxy") { // [drproxy] current address + example
+        sendmessage($from_id, ($textbotlang['Admin']['managepanel']['askDrproxyUrl'] ?? "🌐 آدرس جدید پنل DrProxy را بفرستید.\nنمونه: <code>https://panel.example.com</code>") . "\n\n🔗 <code>" . htmlspecialchars((string) $drpP['url_panel']) . "</code>", $backadmin, 'HTML');
+        step('GeturlNew', $from_id);
+        return;
+    }
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['getUrlNew'], $backadmin, 'HTML');
     step('GeturlNew', $from_id);
 } elseif ($user['step'] == "GeturlNew") {
@@ -2806,6 +2816,14 @@ elseif ($datain == "systemsms") {
         return;
     }
     $typepanel = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
+    if (($typepanel['type'] ?? '') == "drproxy") { // [drproxy] new address must answer with the saved token
+        $drpPing = drproxy_call(array('url_panel' => $text, 'password_panel' => $typepanel['password_panel']), 'GET', '/ping');
+        if (!$drpPing['ok']) {
+            sendmessage($from_id, ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $backadmin, 'HTML');
+            return;
+        }
+        sendmessage($from_id, drproxy_status_text($drpPing['obj'], $text), null, 'HTML');
+    }
     outtypepanel($typepanel['type'], $textbotlang['Admin']['managepanel']['changedUrlPanel']);
     update("marzban_panel", "url_panel", $text, "name_panel", $user['Processing_value']);
     update("marzban_panel", "datelogin", null, "name_panel", $user['Processing_value']);
@@ -2908,10 +2926,24 @@ elseif ($datain == "systemsms") {
     update("marzban_panel", "datelogin", null, "name_panel", $user['Processing_value']);
     step('home', $from_id);
 } elseif ($text == $textbotlang['keyboard']['editPassword'] && $adminrulecheck['rule'] == "administrator") {
+    $drpP = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
+    if (($drpP['type'] ?? '') == "drproxy") { // [drproxy] new bot token
+        sendmessage($from_id, $textbotlang['Admin']['managepanel']['askDrproxyToken'] ?? '🔐 توکن ربات پنل DrProxy را بفرستید', $backadmin, 'HTML');
+        step('GetpaawordNew', $from_id);
+        return;
+    }
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['getPasswordNew'], $backadmin, 'HTML');
     step('GetpaawordNew', $from_id);
 } elseif ($user['step'] == "GetpaawordNew") {
     $typepanel = select("marzban_panel", "*", "name_panel", $user['Processing_value'], "select");
+    if (($typepanel['type'] ?? '') == "drproxy") { // [drproxy] token must work before it replaces the old one
+        $text = trim($text);
+        $drpPing = drproxy_call(array('url_panel' => $typepanel['url_panel'], 'password_panel' => $text), 'GET', '/ping');
+        if (!$drpPing['ok']) {
+            sendmessage($from_id, ($textbotlang['Admin']['managepanel']['drproxyPingFail'] ?? '❌ اتصال به پنل DrProxy برقرار نشد') . "\n" . htmlspecialchars($drpPing['msg']), $backadmin, 'HTML');
+            return;
+        }
+    }
     outtypepanel($typepanel['type'], $textbotlang['Admin']['managepanel']['changedPasswordPanel']);
     update("marzban_panel", "password_panel", $text, "name_panel", $user['Processing_value']);
     update("marzban_panel", "datelogin", null, "name_panel", $user['Processing_value']);
@@ -7893,6 +7925,12 @@ elseif ($text == $textbotlang['keyboard']['hidePanelForUser'] && $adminrulecheck
     $text_order = sprintf($textbotlang['Admin']['Payment']['detailRow2'], $paymentUser['id_order'], $paymentUser['id_user'], $paymentUser['price'], $paymentUser['payment_Status'], $paymentUser['Payment_Method'], $paymentUser['time']);
     sendmessage($from_id, $text_order, null, 'HTML');
 } elseif ($text == $textbotlang['keyboard']['setInbound']) {
+    $drpP = select("marzban_panel", "*", "code_panel", $user['Processing_value_one'], "select");
+    if (($drpP['type'] ?? '') == "drproxy") { // [drproxy] services of this product
+        sendmessage($from_id, drproxy_services_guide(), $backadmin, 'HTML');
+        step("getdatainboundproduct", $from_id);
+        return;
+    }
     sendmessage($from_id, $textbotlang['Admin']['managepanel']['askConfigUsername'], $backadmin, 'HTML');
     step("getdatainboundproduct", $from_id);
 } elseif ($user['step'] == "getdatainboundproduct") {

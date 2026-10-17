@@ -2019,6 +2019,8 @@ nowpayments.io
                         'getPassword' => '🔑 نام کاربری ذخیره شد. رمز عبور  خود را وارد نمایید',
                 'askCloudiusToken' => '🔐 توکن (StaticToken) پنل کلودیوس را وارد کنید\n\nراهنما: در پنل کلودیوس به بخش API بروید و StaticToken را کپی کنید.\nنمونه: <code>#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX#</code>\n\nℹ️ نیازی به نام کاربری نیست؛ توکن به‌تنهایی کافی است.',
                 'askDrproxyToken' => '🔐 توکن ربات پنل DrProxy را بفرستید (داشبورد نمایندگی ← ⚙️ تنظیمات ← 🤖 اتصال ربات میرزا ← ساخت توکن). نمونه: <code>drpb_…</code>',
+                'askDrproxyUrl' => "🌐 آدرس پنل DrProxy را بفرستید (همان آدرسی که در داشبورد نمایندگی ← تنظیمات ← اتصال ربات میرزا نوشته شده؛ دامنه می‌تواند هر چیزی باشد).\nنمونه: <code>https://panel.example.com</code>",
+                'drproxyServicesGuide' => "💡 <b>سرویس هر محصول</b>\nدر «مدیریت محصول» ← «تنظیم اینباند» سرویس‌ها را با کاما بفرستید:\n• <code>v2ray,wg</code> یا <code>openvpn,l2tp</code> یا فقط <code>v2ray</code>\n• خالی یا <code>all</code> = همه‌ی سرویس‌هایی که نماینده دارد ({services})\nهر خرید یک لینک /u/ می‌گیرد که همه‌ی سرویس‌های آن محصول داخلش است.",
                 'noteDrproxyServices' => 'ℹ️ DrProxy: برای هر محصول با «تنظیم اینباند» سرویس‌ها را بفرستید، مثلاً <code>v2ray,wg</code> یا <code>openvpn,l2tp</code>. خالی یا <code>all</code> = همه‌ی سرویس‌هایی که نماینده دارد. هر خرید یک لینک /u/ می‌دهد که همه‌ی سرویس‌ها داخلش است.',
                 'drproxyPingFail' => '❌ اتصال به پنل DrProxy برقرار نشد؛ آدرس پنل و توکن را بررسی کنید.',
                 'drproxyServicesInvalid' => '❌ سرویس نامعتبر. فقط v2ray، wg، openvpn، l2tp (با کاما جدا) یا all.',
