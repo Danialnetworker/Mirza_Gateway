@@ -91,7 +91,11 @@ function drproxy_status_text($o, $url = '')
     $name = htmlspecialchars((string) ($o['reseller']['name'] ?? ''), ENT_QUOTES, 'UTF-8');
     $code = htmlspecialchars((string) ($o['reseller']['code'] ?? ''), ENT_QUOTES, 'UTF-8');
     $svc = htmlspecialchars(implode(', ', (array) ($o['services'] ?? array())), ENT_QUOTES, 'UTF-8');
-    $u = $url !== '' ? "🌐 <code>" . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . "</code>\n" : '';
-    return "✅ <b>DrProxy</b>\n{$u}👤 {$name} ({$code})\n🧩 {$svc}\n📦 {$used} / {$left}\n⏳ " . ($days === null ? '∞' : $days)
+    $u = $url !== '' ? "🌐 آدرس پنل: <code>" . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . "</code>\n" : '';
+    $limited = array_key_exists('remaining_bytes', $q) && $q['remaining_bytes'] !== null;
+    $total = $limited ? round(((int) $q['remaining_bytes'] + (int) ($q['used_bytes'] ?? 0)) / $gib, 1) . ' GB' : 'نامحدود';
+    return "✅ <b>DrProxy</b>\n{$u}👤 نماینده: {$name} ({$code})\n🧩 سرویس‌ها: {$svc}"
+        . "\n📦 حجم مصرف‌شده: {$used} از {$total}" . ($limited ? "\n📥 حجم باقی‌مانده: {$left}" : '')
+        . "\n⏳ زمان باقی‌مانده: " . ($days === null ? 'نامحدود' : $days . ' روز')
         . "\n\n" . drproxy_services_guide($svc);
 }
