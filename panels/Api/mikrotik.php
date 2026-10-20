@@ -161,7 +161,7 @@ function deleteUser_mikrotik($name_panel,$username){
 
 $response = curl_exec($curl);
 if($response === false)return array("error" => 404);
-$response = json_decode($response,true)[0];
+$response = json_decode($response,true);
 curl_close($curl);
 return $response;
 }

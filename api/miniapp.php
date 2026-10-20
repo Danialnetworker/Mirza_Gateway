@@ -68,6 +68,18 @@ if (!$usercheck || !is_string($usercheck['token']) || !hash_equals($usercheck['t
     return;
 }
 $data['user_id'] = $usercheck['id'];
+if ($method !== "GET") {
+    $userLock = $pdo->prepare("SELECT GET_LOCK(?, 0)");
+    $userLock->execute(["mirza_user_" . $usercheck['id']]);
+    if ((int) $userLock->fetchColumn() !== 1) {
+        http_response_code(429);
+        echo json_encode([
+            'status' => false,
+            'msg' => "Too many requests",
+        ]);
+        return;
+    }
+}
 
 if ($usercheck['User_Status'] == "block") {
     http_response_code(402);
@@ -356,7 +368,7 @@ function mini_countries(array $data, string $method): void
     }
     $user_info = select("user", "*", "token", $tokencheck, "select");
     if ($user_info) {
-        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all') AND type != 'Manualsale'");
+        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :agent OR agent = 'all') AND type != 'Manualsale' ORDER BY display_order, id");
         $stmt->bindParam(':agent', $user_info['agent']);
         $stmt->execute();
         $panel_list = [];
@@ -426,7 +438,7 @@ function mini_categories(array $data, string $method): void
             ));
             return;
         }
-        $stmt = $pdo->prepare("SELECT * FROM category");
+        $stmt = $pdo->prepare("SELECT * FROM category ORDER BY display_order, id");
         $stmt->execute();
         $category_list = [];
         $panel = select("marzban_panel", "*", "code_panel", $data['id_panel'], "select");
@@ -656,7 +668,7 @@ function mini_services(array $data, string $method): void
             $time_range_day = "AND Service_time = :trd";
             $queryParams[':trd'] = $data['time_range_day'];
         }
-        $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :loc OR Location = '/all')AND agent= :ag AND status_product != 'disable' $category_remarks $time_range_day");
+        $stmt = $pdo->prepare("SELECT * FROM product WHERE (Location = :loc OR Location = '/all')AND agent= :ag AND status_product != 'disable' $category_remarks $time_range_day ORDER BY display_order, id");
         $stmt->execute($queryParams);
         $product_list = [];
         $countorder = null;
@@ -789,13 +801,26 @@ function mini_purchase(array $data, string $method): void
         ));
         return;
     }
-    if ($panel['status'] == "disable") {
+    $hidden_users = json_decode($panel['hide_user'] ?? '', true);
+    if ($panel['status'] != "active" || !in_array($panel['agent'], [$usercheck['agent'], 'all']) || $panel['type'] == "Manualsale" || (is_array($hidden_users) && in_array($usercheck['id'], $hidden_users))) {
         http_response_code(500);
         echo json_encode(array(
             'status' => false,
             'msg' => $textbotlang['users']['sell']['panelInactive']
         ));
         return;
+    }
+    if (is_numeric($panel['limit_panel'])) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM invoice WHERE Status IN ('active', 'end_of_time', 'end_of_volume', 'sendedwarn', 'send_on_hold') AND Service_location = ?");
+        $stmt->execute([$panel['name_panel']]);
+        if ((int) $stmt->fetchColumn() >= intval($panel['limit_panel'])) {
+            http_response_code(500);
+            echo json_encode(array(
+                'status' => false,
+                'msg' => strip_tags($textbotlang['users']['sell']['panelCapacityFull'])
+            ));
+            return;
+        }
     }
     $user_info = $usercheck;
     if (empty($data['custom_service'])) {

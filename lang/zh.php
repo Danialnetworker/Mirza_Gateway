@@ -1252,7 +1252,7 @@ https://t.me/%s?start=%s',
                 'botCommandsSet' => '✅ 机器人命令已设置。请退出机器人聊天一次后重新进入以查看更改。',
                 'confirmByButton' => '如需确认，请点击确认按钮',
                 'confirmByWord' => '如需确认，请发送下方的词语。
-<code>تایید</code>',
+<code>确认</code>',
                 'errorCode' => '❌  发生了错误。错误代码：%s',
                 'errorCode2' => '❌  发生了错误。错误代码：%s',
                 'errorCode3' => '❌  发生了错误。错误代码：%s',
@@ -1803,6 +1803,10 @@ trojan://xyz',
                         'deleted' => '📌 所选部分已删除。',
                 ],
                 'gateway' => [
+                        'askMinAmount' => '💵 请发送此网关的最低支付金额（单位：托曼）。',
+                        'askMaxAmount' => '💵 请发送此网关的最高支付金额（单位：托曼）。',
+                        'askCashback' => '🎁 请发送通过此网关支付后的返现百分比。发送 0 以关闭。',
+                        'askEducation' => '📚 请发送此网关的教程文本。',
                         'detail' => "💳 网关：<b>%s</b>\n\n状态：%s\n\n📌 点击按钮以更改状态或设置。",
                         'cubepayFeeOn' => "✅ 已<b>开启</b>向客户收取手续费。\n\n💵 当前数值：<b>%s</b>\n该数值会加到客户的账单上，但用户余额仍按其请求的金额充值。",
                         'cubepayFeeOff' => "❌ 已<b>关闭</b>向客户收取手续费。",
@@ -2380,6 +2384,8 @@ f,n.n2',
                         'reportCron' => '📝 通知报告',
                         'reportNight' => '🌙 夜间报告',
                         'btnDontShowAgain' => '不再显示 ⛓️‍💥',
+                        'btnDonate' => '💖 支持（捐赠）',
+                        'adminMenuHint' => '👇 管理菜单',
                         'msgHidden' => '
 
 ✅ 此消息将不再向您显示。',
@@ -2404,18 +2410,6 @@ f,n.n2',
 7 - 将删除已过期的付款
 8 - 将删除超过 7 天的 API 日志
 9 - 将优化数据库表',
-                        'botReportIntro' => '💬 | 机器人反馈
-
-🔹 | 如果您在机器人运行中遇到<b>错误或问题</b>，请将其报告给我们以便审核。
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | 如果您遇到<b>严重错误</b>或异常行为，请尽快报告以便修复。
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | 如果您有<b>添加新功能</b>的建议或改进机器人性能的想法，我们很乐意听取。
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | 此外，如果您需要<b>指导</b>或帮助，可以通过私信联系客服团队。
-
-📩 | 要发送报告、建议或请求指导，请在 <b>Mirza 群组</b>中留言：
-<a href="https://t.me/mirzapanelgroup" rel="nofollow" target="_blank">Mirza Group</a>',
                         'aboutBot' => '💎 | Version Bot: %s
 📌 | Version Mini App: 0.1.1
 
@@ -2425,7 +2419,7 @@ f,n.n2',
 
 <blockquote>🔹 | 如果您发现任何出售或收费行为，请追踪并追回您的款项。</blockquote>
 
-<blockquote>🐞 | 如果您在机器人运行中遇到错误或问题，请通过管理面板中的 **📬 机器人反馈** 按钮联系我们。</blockquote>',
+<blockquote>🐞 | 如需报告问题，请在 <a href="https://t.me/mirzapanel?direct">Mirza 频道私信</a> 中留言。</blockquote>',
                         'gatewayRow' => '
 📌 网关名称：<code>%s</code>
  - 成功支付次数：<code>%s</code>
@@ -3816,7 +3810,6 @@ f,n.n2',
                 'backupError' => '❌❌❌❌❌❌ 备份出错 ',
                 'baseTimePrice' => '⏳ 时间基础价格',
                 'baseVolumePrice' => '🔋 流量基础价格',
-                'botReport' => '📬 机器人反馈',
                 'botReports' => '📣 机器人反馈',
                 'both' => '两者',
                 'broadcastForward' => '群发转发',
@@ -4280,6 +4273,7 @@ f,n.n2',
                 'categoryNameExists' => '该分类名称已存在。',
                 'categoryAdded' => '分类添加成功。',
                 'categoryEdited' => '分类编辑成功。',
+                'categoryFieldPosition' => '显示顺序',
                 'categoryDeleted' => '分类删除成功。',
                 'categoryDeleteConfirm' => '确定要删除此分类吗？',
                 'categoryEmpty' => '未找到分类。',
@@ -4319,6 +4313,19 @@ f,n.n2',
                 'dashStatusWarning' => '警告',
                 'dashTodaySpan' => ' 今天</span>',
                 'dashTodayTransaction' => '今日交易',
+                'dashChartSalesAmount' => '销售额',
+                'dashChartSalesCount' => '订单数',
+                'dashChartPayments' => '成功付款',
+                'dashChartNewUsers' => '新用户',
+                'dashChartTotal' => '合计：',
+                'dashRangeToday' => '今天',
+                'dashRangeWeek' => '7天',
+                'dashRangeMonth' => '30天',
+                'dashRangeQuarter' => '90天',
+                'dashRangeYear' => '12个月',
+                'dashChartUnitToman' => '托曼',
+                'dashChartUnitOrder' => '单',
+                'dashChartUnitUser' => '位用户',
                 'dashTomanShort' => '托',
                 'dashTomanShort2' => '托',
                 'dashTotalRevenue' => '总收入',
@@ -4488,6 +4495,7 @@ f,n.n2',
                 'productDbError' => '数据库错误：',
                 'productDeleteBtn' => '删除',
                 'productDeleted' => '产品已删除。',
+                'productFieldPosition' => '显示顺序',
                 'productDescriptionOptional' => '可选说明',
                 'productDetailCategory' => '代理',
                 'productDetailDescription' => '普通用户',
@@ -4581,6 +4589,13 @@ f,n.n2',
                 'settingsPasswordMinLength' => '密码必须至少 6 个字符。',
                 'settingsPasswordStrengthLabel' => '更改密码',
                 'settingsPhpMemory' => 'PHP 内存',
+                'settingsReportIssue' => '报告问题',
+                'settingsReportIssueLink' => 'Mirza 频道私信',
+                'settingsDonate' => '支持',
+                'settingsDonateLink' => '捐赠',
+                'donatePopupTitle' => '💖 支持 Mirza',
+                'donatePopupText' => '本机器人和面板是免费开发的。如果它们对您有帮助，一笔小额捐赠将有助于持续开发和支持。',
+                'donatePopupLater' => '稍后',
                 'settingsSaveBtn' => '当前密码',
                 'settingsSecuritySection' => '开启',
                 'settingsServerTime' => '服务器时间',

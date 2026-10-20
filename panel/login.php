@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       session_regenerate_id(true);
       $_SESSION['admin_user'] = $admin['username'];
       $_SESSION['login_time'] = time();
+      $_SESSION['show_donate'] = true;
       flash('success', $textbotlang['panel']['loginWelcomeBack'] . $admin['username']);
       header('Location: index.php');
       exit;

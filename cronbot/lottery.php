@@ -15,12 +15,13 @@ if (!$setting || !isset($setting['scorestatus'])) {
     return;
 }
 
-$midnight_time = date("H:i");
+$lotteryDateFile = dirname(__DIR__) . '/storage/lottery_date';
 
 if (intval($setting['scorestatus']) == 1) {
     $otherreport = select("topicid", "idreport", "report", "otherreport", "select")['idreport'];
 
-    if ($midnight_time == "00:00") {
+    if (date("H") == "00" && @file_get_contents($lotteryDateFile) !== date("Y-m-d")) {
+        file_put_contents($lotteryDateFile, date("Y-m-d"));
         $temp = [];
         $Lottery_prize = json_decode($setting['Lottery_prize'], true);
 

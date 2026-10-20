@@ -451,7 +451,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
         file_put_contents('product.json', "{}");
     }
     $product = [];
-    $getdataproduct = $pdo->prepare("SELECT * FROM product WHERE agent = ?");
+    $getdataproduct = $pdo->prepare("SELECT * FROM product WHERE agent = ? ORDER BY display_order, id");
     $getdataproduct->bindValue(1, $userbot['agent'], PDO::PARAM_STR);
     $getdataproduct->execute();
     while ($row = ($getdataproduct)->fetch(PDO::FETCH_ASSOC)) {
@@ -660,7 +660,7 @@ if ($text == "📞 تنظیم نام کاربری پشتیبانی") {
         file_put_contents('product_name.json', "{}");
     }
     $product = [];
-    $getdataproduct = $pdo->prepare("SELECT * FROM product WHERE agent = ?");
+    $getdataproduct = $pdo->prepare("SELECT * FROM product WHERE agent = ? ORDER BY display_order, id");
     $getdataproduct->bindValue(1, $userbot['agent'], PDO::PARAM_STR);
     $getdataproduct->execute();
     while ($row = ($getdataproduct)->fetch(PDO::FETCH_ASSOC)) {

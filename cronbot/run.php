@@ -23,6 +23,7 @@ $scorestatus = null;
 $cronStatusFile = dirname($cronbotDir) . '/storage/cron_status.json';
 $cronStatus = json_decode((string) @file_get_contents($cronStatusFile), true) ?: [];
 $cronStatus['dispatcher'] = time();
+$dispatchNow = new DateTimeImmutable('now');
 $cronStatus['php_cli'] = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 $cronStatus['pdo_mysql'] = extension_loaded('pdo_mysql');
 
@@ -33,11 +34,11 @@ try {
             continue;
         }
 
-        if (!mirza_cron_is_due($job['schedule'])) {
+        if (!mirza_cron_is_due($job['schedule'], $dispatchNow)) {
             continue;
         }
 
-        if (date('YmdHi', (int) ($cronStatus['jobs'][$job['job']]['time'] ?? 0)) === date('YmdHi')) {
+        if (date('YmdHi', (int) ($cronStatus['jobs'][$job['job']]['time'] ?? 0)) === $dispatchNow->format('YmdHi')) {
             continue;
         }
 

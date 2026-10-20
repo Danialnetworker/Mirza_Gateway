@@ -34,11 +34,12 @@ class MikrotikPanelDriver extends BasePanelDriver
         $Get_Data_Panel = $vars['Get_Data_Panel'];
         $username = $vars['username'];
         $Output = $vars['Output'];
-        $UsernameData = GetUsermikrotik($Get_Data_Panel['name_panel'], $username)[0];
-        if (isset($UsernameData['error'])) {
+        $UsernameResponse = GetUsermikrotik($Get_Data_Panel['name_panel'], $username);
+        $UsernameData = $UsernameResponse[0] ?? null;
+        if (!is_array($UsernameData)) {
             $Output = array(
                 'status' => 'Unsuccessful',
-                'msg' => $UsernameData['msg']
+                'msg' => $UsernameResponse['message'] ?? 'user not found on panel'
             );
         } else {
             $invocie = select("invoice", "*", "username", $username, "select");
@@ -68,18 +69,26 @@ class MikrotikPanelDriver extends BasePanelDriver
         $Get_Data_Panel = $vars['Get_Data_Panel'];
         $username = $vars['username'];
         $Output = $vars['Output'];
-        $UsernameData = GetUsermikrotik($Get_Data_Panel['name_panel'], $username)[0];
-        if (isset($UsernameData['error'])) {
+        $UsernameResponse = GetUsermikrotik($Get_Data_Panel['name_panel'], $username);
+        $UsernameData = $UsernameResponse[0] ?? null;
+        if (!is_array($UsernameData)) {
             $Output = array(
                 'status' => 'Unsuccessful',
-                'msg' => $UsernameData['msg']
+                'msg' => $UsernameResponse['message'] ?? 'user not found on panel'
             );
         } else {
-            deleteUser_mikrotik($Get_Data_Panel['name_panel'], $UsernameData['.id']);
-            $Output = array(
-                'status' => 'successful',
-                'username' => $username,
-            );
+            $removeResponse = deleteUser_mikrotik($Get_Data_Panel['name_panel'], $UsernameData['.id']);
+            if (isset($removeResponse['error'])) {
+                $Output = array(
+                    'status' => 'Unsuccessful',
+                    'msg' => $removeResponse['message'] ?? $removeResponse['error']
+                );
+            } else {
+                $Output = array(
+                    'status' => 'successful',
+                    'username' => $username,
+                );
+            }
         }
         return $Output;
     }

@@ -156,7 +156,6 @@ if ($adminrulecheck['rule'] == "administrator") {
             [['text' => $textbotlang['Admin']['btnKeyboard']['manageUser']], ['text' => $textbotlang['keyboard']['shopSettings']]],
             [['text' => $textbotlang['keyboard']['financial']], ['text' => $textbotlang['keyboard']['cronStatus']]],
             [['text' => $textbotlang['keyboard']['supportSection']], ['text' => $textbotlang['keyboard']['educationSection']]],
-            [['text' => $textbotlang['keyboard']['botReport']]],
             [['text' => $textbotlang['keyboard']['generalSettings']], ['text' => $textbotlang['keyboard']['pendingReceipts']]],
             [['text' => $textbotlang['bottext']['open_button']]],
             [['text' => $textbotlang['users']['backbtn']]]
@@ -696,7 +695,7 @@ function discountPanelsKeyboard()
 {
     global $pdo, $textbotlang;
     $rows = [[['text' => $textbotlang['keyboard']['allPanels'], 'callback_data' => "discountpanel_all"]]];
-    foreach ($pdo->query("SELECT name_panel, code_panel FROM marzban_panel")->fetchAll(PDO::FETCH_ASSOC) as $panel) {
+    foreach ($pdo->query("SELECT name_panel, code_panel FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC) as $panel) {
         $rows[] = [['text' => $panel['name_panel'], 'callback_data' => "discountpanel_{$panel['code_panel']}"]];
     }
     $rows[] = [['text' => $textbotlang['keyboard']['backToPreviousMenu'], 'callback_data' => "discountcode_list"]];
@@ -705,7 +704,7 @@ function discountPanelsKeyboard()
 function discountProductsKeyboard($location)
 {
     global $pdo, $textbotlang;
-    $stmt = $pdo->prepare("SELECT name_product, code_product FROM product WHERE Location = :location OR Location = '/all'");
+    $stmt = $pdo->prepare("SELECT name_product, code_product FROM product WHERE Location = :location OR Location = '/all' ORDER BY display_order, id");
     $stmt->execute([':location' => $location]);
     $rows = [[['text' => $textbotlang['keyboard']['allProducts'], 'callback_data' => "discountproduct_all"]]];
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $product) {
@@ -798,7 +797,7 @@ $backadmin = json_encode([
 ]);
 //------------------  [ list panel ]----------------//
 $namepanel = [];
-    $allPanelRows = $pdo->query("SELECT * FROM marzban_panel")->fetchAll(PDO::FETCH_ASSOC);
+    $allPanelRows = $pdo->query("SELECT * FROM marzban_panel ORDER BY display_order, id")->fetchAll(PDO::FETCH_ASSOC);
     foreach ($allPanelRows as $row) {
         $namepanel[] = [$row['name_panel']];
     }
@@ -1067,7 +1066,7 @@ $list_marzban_usertest = json_encode($list_marzban_panel_usertest);
 
 //--------------------------------------------------
     $product = [];
-    $stmt = $pdo->prepare("SELECT * FROM product WHERE Location = :text or Location = '/all' ");
+    $stmt = $pdo->prepare("SELECT * FROM product WHERE Location = :text or Location = '/all' ORDER BY display_order, id");
     $stmt->bindParam(':text', $text, PDO::PARAM_STR);
     $stmt->execute();
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -1472,7 +1471,7 @@ function KeyboardCategory($location, $agent, $backuser = "backuser")
         $categoryKey = mb_strtolower(trim((string) $catRow['category']), 'UTF-8');
         $categoryCounts[$categoryKey] = ($categoryCounts[$categoryKey] ?? 0) + (int) $catRow['c'];
     }
-    $stmt = $pdo->prepare("SELECT * FROM category");
+    $stmt = $pdo->prepare("SELECT * FROM category ORDER BY display_order, id");
     $stmt->execute();
     $list_category = ['inline_keyboard' => [],];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -1592,7 +1591,7 @@ $keyboardchangelimit = json_encode([
 function KeyboardCategoryadmin()
 {
     global $pdo, $textbotlang;
-    $stmt = $pdo->prepare("SELECT * FROM category");
+    $stmt = $pdo->prepare("SELECT * FROM category ORDER BY display_order, id");
     $stmt->execute();
     $list_category = [
         'keyboard' => [],

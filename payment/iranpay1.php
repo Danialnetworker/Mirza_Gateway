@@ -21,7 +21,7 @@ $StatusPayment = $data['status'];
 $setting = select("setting", "*");
 $PaySetting = select("PaySetting", "*", "NamePay", "marchent_floypay", "select")['ValuePay'];
 $Payment_reports = select("Payment_report", "*", "id_order", $hashid, "select");
-if (!is_array($Payment_reports)) {
+if (!is_array($Payment_reports) || $Payment_reports['Payment_Method'] !== "Currency Rial 1") {
     http_response_code(404);
     exit('order not found');
 }

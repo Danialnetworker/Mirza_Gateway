@@ -5,7 +5,7 @@ return [
     'create' => <<<SQL
         id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         id_user varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-        id_order varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+        id_order varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
         time varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
         at_updated varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
         price varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,

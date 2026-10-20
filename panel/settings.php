@@ -62,7 +62,7 @@ include __DIR__ . '/inc/layout_head.php';
     <?php foreach ($tabs as $key => $tab_data): ?>
         <a href="?tab=<?= $key ?>"
             style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font-size:.82rem;font-weight:600;white-space:nowrap;flex-shrink:0;transition:all .15s;text-decoration:none;
-                  <?= $tab === $key ? 'background:var(--ac);color:#fff;box-shadow:0 0 14px var(--acg)' : 'color:var(--mute)' ?>">
+                  <?= $tab === $key ? 'background:var(--ac);color:var(--btn-ac-text, #fff);box-shadow:0 0 14px var(--acg)' : 'color:var(--mute)' ?>">
             <?= icon($tab_data['icon'], 15) ?>     <?= $tab_data['label'] ?>
         </a>
     <?php endforeach; ?>
@@ -255,6 +255,14 @@ include __DIR__ . '/inc/layout_head.php';
                     <span class="kv-val cm" style="font-size:.78rem"><?= htmlspecialchars($value) ?></span>
                 </div>
             <?php endforeach; ?>
+            <div class="kv">
+                <span class="kv-key"><?= $textbotlang['panel']['settingsReportIssue'] ?></span>
+                <a class="kv-val btn-link" style="font-size:.78rem" href="https://t.me/mirzapanel?direct" target="_blank" rel="noopener"><?= $textbotlang['panel']['settingsReportIssueLink'] ?></a>
+            </div>
+            <div class="kv">
+                <span class="kv-key"><?= $textbotlang['panel']['settingsDonate'] ?></span>
+                <a class="btn-glass" href="https://nowpayments.io/donation/mahdi" target="_blank" rel="noopener"><?= icon('heart', 14) ?> <?= $textbotlang['panel']['settingsDonateLink'] ?></a>
+            </div>
         </div>
     </div>
 

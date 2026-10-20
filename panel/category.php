@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
   }
   try {
     db_query($pdo, "INSERT INTO category (remark) VALUES (?)", [$remark]);
+    db_query($pdo, "UPDATE category SET display_order = id WHERE id = ?", [$pdo->lastInsertId()]);
     flash('success', $textbotlang['panel']['categoryAdded']);
   } catch (Exception $e) {
     flash('error', $textbotlang['panel']['productDbError'] . $e->getMessage());
@@ -32,9 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
   $remark = trim($_POST['remark'] ?? '');
   if ($cid && $remark !== '') {
     try {
+      $pdo->beginTransaction();
       db_query($pdo, "UPDATE category SET remark=? WHERE id=?", [$remark, $cid]);
+      if (isset($_POST['position'])) {
+        move_display_order($pdo, 'category', $cid, (int) $_POST['position']);
+      }
+      $pdo->commit();
       flash('success', $textbotlang['panel']['categoryEdited']);
     } catch (Exception $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
       flash('error', $textbotlang['panel']['productErrorPrefix'] . $e->getMessage());
     }
   }
@@ -50,7 +59,7 @@ if (isset($_GET['delete'])) {
   exit;
 }
 
-$categories = db_fetchAll($pdo, "SELECT * FROM category ORDER BY id");
+$categories = db_fetchAll($pdo, "SELECT * FROM category ORDER BY display_order, id");
 
 $pageTitle = $textbotlang['panel']['categoryPageTitle'];
 $pageLede = $textbotlang['panel']['categoryPageLede'];
@@ -106,7 +115,7 @@ include __DIR__ . '/inc/layout_head.php';
               <td>
                 <div style="display:flex;gap:5px;justify-content:flex-end">
                   <button class="btn btn-ghost btn-sm btn-icon" title="<?= htmlspecialchars($textbotlang['panel']['productEditBtn']) ?>"
-                    onclick="openEditModal(<?= htmlspecialchars(json_encode($c), ENT_QUOTES) ?>)">
+                    onclick="openEditModal(<?= htmlspecialchars(json_encode($c + ['position' => $i - 1]), ENT_QUOTES) ?>)">
                     <?= icon('edit', 13) ?>
                   </button>
                   <a href="category.php?delete=<?= (int) $c['id'] ?>&_csrf=<?= csrf_token() ?>"
@@ -165,6 +174,10 @@ include __DIR__ . '/inc/layout_head.php';
             <label><?= $textbotlang['panel']['categoryNameLabel'] ?></label>
             <input type="text" name="remark" id="edit_remark" class="input" required>
           </div>
+          <div class="field full">
+            <label><?= $textbotlang['panel']['categoryFieldPosition'] ?></label>
+            <input type="number" name="position" id="edit_position" class="input" min="1" max="<?= count($categories) ?>" required>
+          </div>
         </div>
       </div>
       <div class="modal-foot">
@@ -179,6 +192,7 @@ include __DIR__ . '/inc/layout_head.php';
 window.openEditModal = function(c) {
   document.getElementById('edit_id').value = c.id || '';
   document.getElementById('edit_remark').value = c.remark || '';
+  document.getElementById('edit_position').value = c.position || '';
   openModal('editModal');
 };
 </script>

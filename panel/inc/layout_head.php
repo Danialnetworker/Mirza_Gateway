@@ -42,7 +42,7 @@ $initials = mb_strtoupper(mb_substr($currentUser, 0, 1, 'UTF-8'), 'UTF-8');
     window.PANEL_I18N = <?= json_encode(
       array_filter(
         $textbotlang['panel'] ?? [],
-        fn($k) => strncmp($k, 'js_', 3) === 0,
+        fn($k) => preg_match('/^js[A-Z]/', $k) === 1,
         ARRAY_FILTER_USE_KEY
       ),
       JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES

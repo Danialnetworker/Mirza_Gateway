@@ -52,7 +52,7 @@ $backuser = json_encode([
 
 // keyboard list panel for test 
 
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = :mp1 OR agent = 'all')");
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE TestAccount = 'ONTestAccount' AND (agent = :mp1 OR agent = 'all') ORDER BY display_order, id");
 $stmt->execute([':mp1' => $userbot['agent']]);
 $list_marzban_panel_usertest = ['inline_keyboard' => []];
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -152,7 +152,7 @@ $backadmin = json_encode([
 ]);
 
 //------------------  [ listpanelusers ]----------------//
-$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :mp2 OR agent = 'all')");
+$stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' AND (agent = :mp2 OR agent = 'all') ORDER BY display_order, id");
 $stmt->execute([':mp2' => $userbot['agent']]);
 $list_marzban_panel_users = ['inline_keyboard' => []];
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -220,11 +220,11 @@ function KeyboardProduct($location, $query, $pricediscount, $datakeyboard, $stat
 function KeyboardCategory($location, $agent, $backuser = "backuser")
 {
     global $pdo, $textbotlang;
-    $stmt = $pdo->prepare("SELECT * FROM category");
+    $stmt = $pdo->prepare("SELECT * FROM category ORDER BY display_order, id");
     $stmt->execute();
     $list_category = ['inline_keyboard' => [],];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent");
+        $stmts = $pdo->prepare("SELECT * FROM product WHERE (Location = :location OR Location = '/all') AND category = :category AND agent = :agent AND status_product != 'disable'");
         $stmts->bindParam(':location', $location, PDO::PARAM_STR);
         $stmts->bindParam(':category', $row['remark'], PDO::PARAM_STR);
         $stmts->bindParam(':agent', $agent);

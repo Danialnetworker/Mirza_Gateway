@@ -117,7 +117,7 @@ function usr_user(array $data, string $method): void
         $bot_agent = select("botsaz", "*", "id_user", $data['chat_id'], "select");
         $list_panel = [];
         if ($bot_agent) {
-            $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active'");
+            $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE status = 'active' ORDER BY display_order, id");
             $stmt->execute();
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $list_panel[] = $row['name_panel'];

@@ -32,7 +32,7 @@ function cat_categorys(array $data, string $method): void
         $stmt->execute([':remark' => $search]);
         $totalcategory = (int) $stmt->fetchColumn();
         $totalPages = (int) ceil($totalcategory / $limit);
-        $query = "SELECT * FROM category WHERE remark  LIKE CONCAT('%', :remark, '%') ORDER BY id LIMIT :limit OFFSET :offset";
+        $query = "SELECT * FROM category WHERE remark  LIKE CONCAT('%', :remark, '%') ORDER BY display_order, id LIMIT :limit OFFSET :offset";
         $stmt = $pdo->prepare($query);
         $stmt->bindValue(':remark', $q, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -102,6 +102,7 @@ function cat_category_add(array $data, string $method): void
         }
 
         $stmt->execute();
+        $pdo->prepare("UPDATE category SET display_order = id WHERE id = ?")->execute([$pdo->lastInsertId()]);
         sendJsonResponse(true, "Successful");
 
     } catch (Exception $e) {

@@ -12,7 +12,7 @@ $txToday = 0;
 
 try {
     $totalUsers = db_count($pdo, "SELECT COUNT(*) FROM user");
-    $newToday = db_count($pdo, "SELECT COUNT(*) FROM user WHERE register > ?", [strtotime('today')]);
+    $newToday = db_count($pdo, "SELECT COUNT(*) FROM user WHERE CAST(register AS UNSIGNED) >= ?", [strtotime('today')]);
 } catch (Exception $e) {
 }
 
@@ -24,8 +24,67 @@ try {
 
 try {
     $pendingPay = db_count($pdo, "SELECT COUNT(*) FROM Payment_report WHERE payment_Status='waiting'");
-    $txToday = db_count($pdo, "SELECT COUNT(*) FROM Payment_report WHERE time > ?", [strtotime('today')]);
+    $txToday = db_count($pdo, "SELECT COUNT(*) FROM Payment_report WHERE time LIKE ?", [date('Y/m/d') . '%']);
 } catch (Exception $e) {
+}
+
+$chartRanges = [
+    'today' => [strtotime('today'), 24, 'hour', 'Y-m-d H', 'H:00'],
+    'week' => [strtotime('today -6 days'), 7, 'day', 'Y-m-d', 'm-d'],
+    'month' => [strtotime('today -29 days'), 30, 'day', 'Y-m-d', 'm-d'],
+    'quarter' => [strtotime('today -89 days'), 90, 'day', 'Y-m-d', 'm-d'],
+    'year' => [strtotime(date('Y-m-01') . ' -11 months'), 12, 'month', 'Y-m', 'Y-m'],
+];
+$chartRange = isset($chartRanges[$_GET['range'] ?? '']) ? $_GET['range'] : 'month';
+[$chartStart, $chartCount, $chartStep, $chartKey, $chartLabel] = $chartRanges[$chartRange];
+$chartBuckets = [];
+$chartLabels = [];
+for ($slot = 0; $slot < $chartCount; $slot++) {
+    $slotTime = strtotime("+$slot $chartStep", $chartStart);
+    $chartBuckets[date($chartKey, $slotTime)] = 0;
+    $chartLabels[date($chartKey, $slotTime)] = date($chartLabel, $slotTime);
+}
+$salesAmount = $salesCount = $paymentAmount = $newUsers = $chartBuckets;
+try {
+    $rows = db_fetchAll($pdo, "SELECT time_sell, price_product FROM invoice WHERE CAST(time_sell AS UNSIGNED) >= ? AND Status IN ('active','end_of_time','end_of_volume','sendedwarn','send_on_hold') AND name_product != ?", [$chartStart, $textbotlang['common']['labels']['testServiceName']]);
+    foreach ($rows as $row) {
+        $slot = date($chartKey, (int) $row['time_sell']);
+        if (isset($salesCount[$slot])) {
+            $salesCount[$slot]++;
+            $salesAmount[$slot] += (int) $row['price_product'];
+        }
+    }
+    $rows = db_fetchAll($pdo, "SELECT time, price FROM Payment_report WHERE payment_Status = 'paid' AND time >= ?", [date('Y/m/d H:i:s', $chartStart)]);
+    foreach ($rows as $row) {
+        $paidAt = strtotime((string) $row['time']);
+        $slot = $paidAt ? date($chartKey, $paidAt) : null;
+        if (isset($paymentAmount[$slot])) {
+            $paymentAmount[$slot] += (int) $row['price'];
+        }
+    }
+    $rows = db_fetchAll($pdo, "SELECT register FROM user WHERE CAST(register AS UNSIGNED) >= ?", [$chartStart]);
+    foreach ($rows as $row) {
+        $slot = date($chartKey, (int) $row['register']);
+        if (isset($newUsers[$slot])) {
+            $newUsers[$slot]++;
+        }
+    }
+} catch (Exception $e) {
+}
+$dailyCharts = [
+    ['title' => $textbotlang['panel']['dashChartSalesAmount'], 'unit' => $textbotlang['panel']['dashChartUnitToman'], 'series' => $salesAmount],
+    ['title' => $textbotlang['panel']['dashChartSalesCount'], 'unit' => $textbotlang['panel']['dashChartUnitOrder'], 'series' => $salesCount],
+    ['title' => $textbotlang['panel']['dashChartPayments'], 'unit' => $textbotlang['panel']['dashChartUnitToman'], 'series' => $paymentAmount],
+    ['title' => $textbotlang['panel']['dashChartNewUsers'], 'unit' => $textbotlang['panel']['dashChartUnitUser'], 'series' => $newUsers],
+];
+foreach ($dailyCharts as $index => $chart) {
+    $dailyCharts[$index]['points'] = array_map(fn($slot, $value) => ['d' => $chartLabels[$slot], 'v' => $value], array_keys($chart['series']), $chart['series']);
+    $dailyCharts[$index]['total'] = number_format(array_sum($chart['series']));
+}
+if (isset($_GET['ajax'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(array_map(fn($chart) => ['points' => $chart['points'], 'total' => $chart['total']], $dailyCharts));
+    exit;
 }
 
 $recentInvoices = [];
@@ -74,6 +133,28 @@ include __DIR__ . '/inc/layout_head.php';
             <?= $pendingPay > 0 ? $textbotlang['panel']['dashReviewLink'] : $textbotlang['panel']['dashStatusRegistered'] ?>
         </div>
     </div>
+</div>
+
+<div class="range-tabs fade-up" id="charts">
+    <?php foreach (['today' => 'dashRangeToday', 'week' => 'dashRangeWeek', 'month' => 'dashRangeMonth', 'quarter' => 'dashRangeQuarter', 'year' => 'dashRangeYear'] as $rangeKey => $rangeText): ?>
+        <a href="?range=<?= $rangeKey ?>#charts" class="<?= $chartRange === $rangeKey ? 'active' : '' ?>"><?= $textbotlang['panel'][$rangeText] ?></a>
+    <?php endforeach; ?>
+</div>
+
+<div class="two-col chart-grid fade-up">
+    <?php foreach ($dailyCharts as $chart): ?>
+        <div class="card">
+            <div class="card-head">
+                <div>
+                    <div class="card-title"><?= htmlspecialchars($chart['title']) ?></div>
+                    <div class="card-subtitle"><?= $textbotlang['panel']['dashChartTotal'] ?> <span class="chart-total"><?= $chart['total'] ?></span> <?= htmlspecialchars($chart['unit']) ?></div>
+                </div>
+            </div>
+            <div class="day-chart" role="img" aria-label="<?= htmlspecialchars($chart['title']) ?>"
+                data-unit="<?= htmlspecialchars($chart['unit']) ?>"
+                data-series="<?= htmlspecialchars(json_encode($chart['points']), ENT_QUOTES) ?>"></div>
+        </div>
+    <?php endforeach; ?>
 </div>
 
 <div class="two-col">
@@ -201,5 +282,7 @@ include __DIR__ . '/inc/layout_head.php';
         </div>
     </div>
 </div>
+
+<script src="js/dashboard.js"></script>
 
 <?php include __DIR__ . '/inc/layout_foot.php'; ?>

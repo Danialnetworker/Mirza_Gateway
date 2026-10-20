@@ -92,8 +92,12 @@ function addpear($namepanel, $usernameac)
         );
     }
     $ipconfig = json_decode($ipconfig['body'], true);
-    if (!empty($ipconfig['status']) && $ipconfig['status'] == false)
-        return $ipconfig;
+    if (empty($ipconfig['status']) || empty($ipconfig['data'])) {
+        return array(
+            'status' => false,
+            'msg' => $ipconfig['message'] ?? 'no available ip'
+        );
+    }
     $key = array_keys($ipconfig['data'])[0];
     $ipconfig = $ipconfig['data'][$key][0];
     $config = array(

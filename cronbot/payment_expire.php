@@ -15,7 +15,11 @@ $month_date_time_start = date('Y/m/d H:i:s',$month_date_time_start);
 $stmt = $pdo->prepare("SELECT * FROM Payment_report WHERE time < :mp1 AND payment_Status = 'Unpaid'");
 $stmt->execute([':mp1' => $month_date_time_start]);
 
+$expireStmt = $pdo->prepare("UPDATE Payment_report SET payment_Status = 'expire' WHERE id_order = ? AND payment_Status = 'Unpaid'");
 while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $expireStmt->execute([$result['id_order']]);
+    if ($expireStmt->rowCount() === 0) {
+        continue;
+    }
     deletemessage($result['id_user'], $result['message_id']);
-    update("Payment_report", "payment_Status", "expire", "id_order", $result['id_order']);
 }

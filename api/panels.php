@@ -78,7 +78,7 @@ function panel_panels(array $data, string $method): void
         $totalpanel = (int) $stmt->fetchColumn();
         $totalPages = (int) ceil($totalpanel / $limit);
 
-        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE name_panel LIKE CONCAT('%', :name_panel, '%') ORDER BY id LIMIT :limit OFFSET :offset");
+        $stmt = $pdo->prepare("SELECT * FROM marzban_panel WHERE name_panel LIKE CONCAT('%', :name_panel, '%') ORDER BY display_order, id LIMIT :limit OFFSET :offset");
         $stmt->bindValue(':name_panel', $q, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -200,6 +200,7 @@ function panel_panel_add(array $data, string $method): void
             $stmt->bindValue(":{$key}", $value);
         }
         $stmt->execute();
+        $pdo->prepare("UPDATE marzban_panel SET display_order = id WHERE id = ?")->execute([$pdo->lastInsertId()]);
 
         sendJsonResponse(true, "Successful");
 

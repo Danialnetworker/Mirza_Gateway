@@ -142,7 +142,11 @@ function tronado_dispute_apply(array $p, string $paymentId, string $outcome): ar
     $userId = (string) $pr['id_user'];
     $price = (int) $pr['price'];
     $parts = explode('|', (string) $pr['id_invoice'], 2);
-    $kind = $parts[0];
+    $kind = paymentOrderKind($pr); // [mirza-0.8-link]
+    $linkedInvoice = paymentOrder((string) $pr['id_order'])['invoice'];
+    if ($linkedInvoice) {
+        $parts[1] = $linkedInvoice['username'];
+    }
     // [tronado-shortpaid] a short payment was only credited to the wallet:
     // reverse what was credited, never remove a service it did not buy.
     $settled = tronadoOrderMeta($pr)['settled'] ?? [];

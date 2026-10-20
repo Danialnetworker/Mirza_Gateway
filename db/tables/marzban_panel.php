@@ -51,7 +51,8 @@ return [
         on_hold_test varchar(60) NOT NULL,
         version_panel varchar(60) NOT NULL,
         customvolume TEXT NULL,
-        hide_user TEXT NULL
+        hide_user TEXT NULL,
+        display_order INT NOT NULL DEFAULT 0
         SQL,
     'columns' => [
         ['code_panel', null, 'VARCHAR(50)'],
@@ -92,5 +93,6 @@ return [
         ['version_panel', '0', 'VARCHAR(60)'],
         ['customvolume', $zeroVolume, 'TEXT'],
         ['hide_user', null, 'TEXT'],
+        ['display_order', null, 'INT NOT NULL DEFAULT 0'],
     ],
 ];

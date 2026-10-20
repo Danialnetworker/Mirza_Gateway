@@ -63,7 +63,7 @@ $sqlExtensions = "SELECT COUNT(*) AS count, SUM(price) AS total_price
                   FROM service_other 
                   WHERE (time BETWEEN :startDate AND :endDate) 
                   AND type = 'extend_user'
-                  AND status != 'unpaid'";
+                  AND status NOT IN ('unpaid', 'failed')";
 $params = [':startDate' => $datefirstextend, ':endDate' => $dateendextend];
 $stmt = executeQuery($pdo, $sqlExtensions, $params);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -16,7 +16,9 @@ return [
         inbounds TEXT NULL,
         proxies TEXT NULL,
         category varchar(400) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
-        hide_panel TEXT NOT NULL
+        hide_panel TEXT NOT NULL,
+        status_product varchar(20) NOT NULL DEFAULT 'active',
+        display_order INT NOT NULL DEFAULT 0
         SQL,
     'columns' => [
         ['code_product', null, 'varchar(50)'],
@@ -29,6 +31,7 @@ return [
         ['proxies', null, 'TEXT'],
         ['category', null, 'varchar(200)'],
         ['hide_panel', '{}', 'TEXT'],
-        ['status_product', 'active', 'VARCHAR(20)'],
+        ['status_product', 'active', "VARCHAR(20) NOT NULL DEFAULT 'active'"],
+        ['display_order', null, 'INT NOT NULL DEFAULT 0'],
     ],
 ];

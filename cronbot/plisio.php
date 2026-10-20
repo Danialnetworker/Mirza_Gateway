@@ -39,8 +39,9 @@ while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
     $StatusPayment = statusplisio($Payment_report['id_order']);
     if (!is_array($StatusPayment) || !isset($StatusPayment['data']['operations']) || !is_array($StatusPayment['data']['operations']))
         continue;
-    $operationStatus = $StatusPayment['data']['operations'][0]['status'] ?? null;
-    if ($operationStatus == null || $operationStatus == "cancelled") {
+    $operation = $StatusPayment['data']['operations'][0] ?? [];
+    $operationStatus = $operation['status'] ?? null;
+    if (in_array($operationStatus, ["cancelled", "expired"], true)) {
         $textexpire = sprintf($textbotlang['users']['Balance']['plisioExpired'], $Payment_report['id_order'], $Payment_report['price']);
         sendmessage($Payment_report['id_user'], $textexpire, null, 'html');
         update("Payment_report", "payment_Status", "expire", "id_order", $Payment_report['id_order']);
@@ -62,7 +63,7 @@ while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
             $text_report = sprintf($textbotlang['users']['Balance']['giftDepositPlisio'], $result);
             sendmessage($Balance_id['id'], $text_report, null, 'HTML');
         }
-        $text_reportpayment = sprintf($textbotlang['Admin']['reportgroup']['newPaymentPlisio'], $Balance_id['username'], $Balance_id['id'], $Payment_report['price'], $StatusPayment['tx_url'][0], $StatusPayment['invoice_url'], $StatusPayment['invoice_total_sum']);
+        $text_reportpayment = sprintf($textbotlang['Admin']['reportgroup']['newPaymentPlisio'], $Balance_id['username'], $Balance_id['id'], $Payment_report['price'], $operation['tx_url'][0] ?? '', $operation['invoice_url'] ?? '', $operation['invoice_total_sum'] ?? '');
         if (strlen($setting['Channel_Report']) > 0) {
             telegram('sendmessage', [
                 'chat_id' => $setting['Channel_Report'],

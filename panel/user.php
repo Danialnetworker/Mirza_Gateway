@@ -251,7 +251,7 @@ include __DIR__ . '/inc/layout_head.php';
             <div class="card-head">
                 <div class="u-tab-bar" style="display:flex;gap:4px;background:var(--sf2);border-radius:7px;padding:3px">
                     <button class="btn btn-sm" id="tabOrders" onclick="switchTab('orders')"
-                        style="background:var(--ac);color:#fff;border-radius:5px;font-size:.75rem">
+                        style="background:var(--ac);color:var(--btn-ac-text, #fff);border-radius:5px;font-size:.75rem">
                         <?= $textbotlang['panel']['userColProduct'] ?>
                     </button>
                     <button class="btn btn-sm" id="tabPay" onclick="switchTab('pay')"

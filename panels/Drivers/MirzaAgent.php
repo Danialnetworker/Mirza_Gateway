@@ -34,10 +34,10 @@ class MirzaAgentPanelDriver extends BasePanelDriver
                 $Output['msg'] = '';
             }
         } else {
+            $data_Output = $data_Output['obj'];
             if ($invoice != false) {
                 $data_Output['subscription_url'] = "https://$domainhosts/sub/" . $invoice['id_invoice'];
             }
-            $data_Output = $data_Output['obj'];
             $Output['status'] = 'successful';
             $Output['username'] = $data_Output['username'];
             $Output['subscription_url'] = $data_Output['subscription_url'];

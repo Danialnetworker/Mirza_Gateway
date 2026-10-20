@@ -33,7 +33,7 @@ function prod_products(array $data, string $method): void
         $stmt->execute([':id_product' => $search, ':name_product' => $search]);
         $totalproduct = (int) $stmt->fetchColumn();
         $totalPages = (int) ceil($totalproduct / $limit);
-        $query = "SELECT * FROM product WHERE (id  LIKE CONCAT('%', :id_product, '%') OR name_product  LIKE CONCAT('%', :name_product, '%')) ORDER BY id LIMIT :limit OFFSET :offset";
+        $query = "SELECT * FROM product WHERE (id  LIKE CONCAT('%', :id_product, '%') OR name_product  LIKE CONCAT('%', :name_product, '%')) ORDER BY display_order, id LIMIT :limit OFFSET :offset";
         $stmt = $pdo->prepare($query);
         $stmt->bindValue(':name_product', $q, PDO::PARAM_STR);
         $stmt->bindValue(':id_product', $q, PDO::PARAM_STR);
@@ -148,6 +148,7 @@ function prod_product_add(array $data, string $method): void
         }
 
         $stmt->execute();
+        $pdo->prepare("UPDATE product SET display_order = id WHERE id = ?")->execute([$pdo->lastInsertId()]);
         sendJsonResponse(true, "Successful");
 
     } catch (Exception $e) {

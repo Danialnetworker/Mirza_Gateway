@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add')
       "INSERT INTO product (name_product,code_product,price_product,Volume_constraint,Service_time,Location,agent,data_limit_reset,note,category,hide_panel,one_buy_status) VALUES (?,?,?,?,?,?,?,'no_reset',?,?,'{}','0')",
       [$name, $code, (int) ($_POST['price_product'] ?? 0), (int) ($_POST['volume_product'] ?? 0), (int) ($_POST['time_product'] ?? 0), $_POST['namepanel'] ?? '', $_POST['agent_product'] ?? '', $_POST['note_product'] ?? '', $_POST['category_product'] ?? '']
     );
+    db_query($pdo, "UPDATE product SET display_order = id WHERE id = ?", [$pdo->lastInsertId()]);
     flash('success', $textbotlang['panel']['productAddedPrefix'] . $name . $textbotlang['panel']['productAddedSuffix']);
   } catch (Exception $e) {
     flash('error', $textbotlang['panel']['productDbError'] . $e->getMessage());
@@ -37,13 +38,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
   $name = trim($_POST['name_product'] ?? '');
   if ($pid && $name !== '') {
     try {
+      $pdo->beginTransaction();
       db_query(
         $pdo,
         "UPDATE product SET name_product=?,price_product=?,Volume_constraint=?,Service_time=?,Location=?,agent=?,note=?,category=? WHERE id=?",
         [$name, (int) ($_POST['price_product'] ?? 0), (int) ($_POST['volume_product'] ?? 0), (int) ($_POST['time_product'] ?? 0), $_POST['namepanel'] ?? '', $_POST['agent_product'] ?? '', $_POST['note_product'] ?? '', $_POST['category_product'] ?? '', $pid]
       );
+      if (isset($_POST['position'])) {
+        move_display_order($pdo, 'product', $pid, (int) $_POST['position']);
+      }
+      $pdo->commit();
       flash('success', $textbotlang['panel']['productEdited']);
     } catch (Exception $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
       flash('error', $textbotlang['panel']['productErrorPrefix'] . $e->getMessage());
     }
   }
@@ -62,11 +71,11 @@ if (isset($_GET['delete'])) {
 $panels = [];
 $categories = [];
 try {
-  $panels = db_fetchAll($pdo, "SELECT * FROM marzban_panel");
-  $categories = db_fetchAll($pdo, "SELECT * FROM category");
+  $panels = db_fetchAll($pdo, "SELECT * FROM marzban_panel ORDER BY display_order, id");
+  $categories = db_fetchAll($pdo, "SELECT * FROM category ORDER BY display_order, id");
 } catch (Exception $e) {
 }
-$products = db_fetchAll($pdo, "SELECT * FROM product ORDER BY id");
+$products = db_fetchAll($pdo, "SELECT * FROM product ORDER BY display_order, id");
 
 $pageTitle = $textbotlang['panel']['productsTitle'];
 $pageLede = $textbotlang['panel']['productsSubtitle'];
@@ -136,7 +145,7 @@ include __DIR__ . '/inc/layout_head.php';
               <td>
                 <div style="display:flex;gap:5px">
                   <button class="btn btn-ghost btn-sm btn-icon" title="<?= htmlspecialchars($textbotlang['panel']['productEditBtn']) ?>"
-                    onclick="openEditModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES) ?>)">
+                    onclick="openEditModal(<?= htmlspecialchars(json_encode($p + ['position' => $i - 1]), ENT_QUOTES) ?>)">
                     <?= icon('edit', 13) ?>
                   </button>
                   <a href="product.php?delete=<?= (int) $p['id'] ?>&_csrf=<?= csrf_token() ?>"
@@ -251,6 +260,10 @@ include __DIR__ . '/inc/layout_head.php';
           <div class="field">
             <label><?= $textbotlang['panel']['productDetailTime'] ?></label>
             <input type="number" name="time_product" id="edit_time" class="input" min="0">
+          </div>
+          <div class="field">
+            <label><?= $textbotlang['panel']['productFieldPosition'] ?></label>
+            <input type="number" name="position" id="edit_position" class="input" min="1" max="<?= count($products) ?>" required>
           </div>
           <div class="field">
             <label><?= $textbotlang['panel']['productDetailPrice'] ?></label>

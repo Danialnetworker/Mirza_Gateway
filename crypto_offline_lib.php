@@ -592,8 +592,16 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
         $meta['short'] = 1;
         $meta['orig_price'] = (int) $row['price'];
         $meta['orig_invoice'] = $row['id_invoice'];
+        $meta['orig_kind'] = paymentOrderKind($row); // [mirza-0.8-link]
         $upd = $pdo->prepare("UPDATE Payment_report SET price = ?, id_invoice = 'getbalance|' WHERE id_order = ?");
         $upd->execute([$credit, $row['id_order']]);
+        // [mirza-0.8-link] unlink the order: DirectPayment then credits the wallet only
+        $pdo->prepare("UPDATE invoice SET id_payment = NULL WHERE id_payment = ?")->execute([$row['id_order']]);
+        $pdo->prepare("UPDATE service_other SET id_payment = NULL, status = 'failed' WHERE id_payment = ?")->execute([$row['id_order']]);
+        if (function_exists('clearSelectCache')) {
+            clearSelectCache('invoice');
+            clearSelectCache('service_other');
+        }
         if (function_exists('clearSelectCache')) {
             clearSelectCache('Payment_report');
         }
@@ -608,7 +616,7 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
         error_log("cof DirectPayment failed for {$row['id_order']}: " . $e->getMessage());
     }
     if ($short) {
-        $purchase = explode('|', (string) $row['id_invoice'])[0] !== 'getbalance';
+        $purchase = ($meta['orig_kind'] ?? 'getbalance') !== 'getbalance'; // [mirza-0.8-link]
         sendmessage($row['id_user'], "ℹ️ مقدار رسیده (" . cofTrimAmount($amount) . " USDT) کمتر از مقدار فاکتور ({$meta['usdt']} USDT) بود؛ احتمالاً صرافی کارمزد کم کرده است.\n"
             . "💰 معادل همان مقدار رسیده، <b>" . number_format($credit) . " تومان</b> به موجودی کیف پول شما اضافه شد."
             . ($purchase ? "\n🛍 خرید/تمدید سرویس خودکار انجام نشد؛ می‌توانید با موجودی کیف پول (و در صورت نیاز شارژ مابقی) آن را انجام دهید." : ''), null, 'HTML');

@@ -1800,6 +1800,10 @@ trojan://xyz',
                         'deleted' => '📌 بخش مورد نظر حذف گردید.',
                 ],
                 'gateway' => [
+                        'askMinAmount' => '💵 حداقل مبلغ قابل پرداخت با این درگاه را به تومان ارسال کنید.',
+                        'askMaxAmount' => '💵 حداکثر مبلغ قابل پرداخت با این درگاه را به تومان ارسال کنید.',
+                        'askCashback' => '🎁 درصد هدیه (کش‌بک) پس از پرداخت با این درگاه را ارسال کنید. برای غیرفعال کردن عدد 0 را بفرستید.',
+                        'askEducation' => '📚 متن آموزش این درگاه را ارسال کنید.',
                         'detail' => "💳 درگاه: <b>%s</b>\n\nوضعیت: %s\n\n📌 برای تغییر وضعیت یا تنظیمات، روی دکمه‌ها بزنید.",
                         'cubepayFeeOn' => "✅ انتقال کارمزد به مشتری <b>روشن</b> شد.\n\n💵 مقدار فعلی: <b>%s</b>\nاین مقدار به فاکتور مشتری اضافه می‌شود، ولی موجودی کاربر فقط به اندازه‌ی مبلغ درخواستی شارژ می‌شود.",
                         'cubepayFeeOff' => "❌ انتقال کارمزد به مشتری <b>خاموش</b> شد.",
@@ -2384,6 +2388,8 @@ f,n.n2',
                         'reportCron' => '📝 گزارش اطلاع رسانی ها',
                         'reportNight' => '🌙 گزارش شبانه',
                         'btnDontShowAgain' => 'دیگر نمایش نده ⛓️‍💥',
+                        'btnDonate' => '💖 حمایت مالی (دونیت)',
+                        'adminMenuHint' => '👇 منوی مدیریت',
                         'msgHidden' => '
 
 ✅ این پیام دیگر برای شما نمایش داده نخواهد شد.',
@@ -2409,18 +2415,6 @@ f,n.n2',
 8 - لاگ های API قدیمی تر از ۷ روز حذف خواهند شد
 9 - جداول دیتابیس بهینه سازی خواهند شد
 ',
-                        'botReportIntro' => '💬 | گزارش ربات
-
-🔹 | اگر در عملکرد ربات با <b>باگ یا مشکلی</b> روبه‌رو شدید، لطفاً مورد را برای بررسی به ما اطلاع دهید.
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | در صورتی که با <b>باگ جدی</b> یا رفتار غیرعادی مواجه شدید، سریع‌تر گزارش دهید تا رفع شود.
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | اگر پیشنهادی برای <b>افزودن قابلیت جدید</b> دارید یا ایده‌ای برای بهبود عملکرد ربات در نظر دارید، خوشحال می‌شویم بشنویم.
-➖➖➖➖➖➖➖➖➖➖➖
-🔹 | همچنین اگر نیاز به <b>راهنمایی</b> یا کمک دارید، می‌توانید از طریق دایرکت با تیم پشتیبانی در ارتباط باشید.
-
-📩 | برای ارسال گزارش، پیشنهاد یا درخواست راهنمایی، در <b>گروه میرزا</b> پیام بگذارید:
-<a href="https://t.me/mirzapanelgroup" rel="nofollow" target="_blank">Mirza Group</a>',
                         'aboutBot' => '💎 | Version Bot: %s
 📌 | Version Mini App: 0.1.1
 
@@ -2430,7 +2424,7 @@ f,n.n2',
 
 <blockquote>🔹 | در صورت مشاهدهٔ فروش یا دریافت وجه، لطفاً وجه خود را پیگیری کرده و بازپس‌گیری نمایید.</blockquote>
 
-<blockquote>🐞 | اگر در عملکرد ربات با باگ یا مشکلی مواجه شدید، از طریق دکمهٔ **📬 گزارش ربات** در پنل ادمین با ما در ارتباط باشید.</blockquote>',
+<blockquote>🐞 | برای گزارش مشکل، در <a href="https://t.me/mirzapanel?direct">دایرکت کانال میرزا</a> پیام بدهید.</blockquote>',
                         'gatewayRow' => '
 📌 نام درگاه : <code>%s</code>
  - تعداد پرداخت موفق : <code>%s</code>
@@ -3808,7 +3802,6 @@ f,n.n2',
                 'backupError' => '❌❌❌❌❌❌ خطا در بکاپ گیری ',
                 'baseTimePrice' => '⏳ قیمت پایه زمان',
                 'baseVolumePrice' => '🔋 قیمت پایه حجم',
-                'botReport' => '📬 گزارش ربات',
                 'botReports' => '📣 گزارشات ربات',
                 'both' => 'هردو',
                 'broadcastForward' => 'فوروارد همگانی',
@@ -4273,6 +4266,7 @@ f,n.n2',
                 'categoryNameExists' => 'این نام دسته‌بندی قبلاً ثبت شده است.',
                 'categoryAdded' => 'دسته‌بندی با موفقیت اضافه شد.',
                 'categoryEdited' => 'دسته‌بندی با موفقیت ویرایش شد.',
+                'categoryFieldPosition' => 'ترتیب نمایش',
                 'categoryDeleted' => 'دسته‌بندی با موفقیت حذف شد.',
                 'categoryDeleteConfirm' => 'آیا از حذف این دسته‌بندی مطمئن هستید؟',
                 'categoryEmpty' => 'هیچ دسته‌بندی یافت نشد.',
@@ -4312,6 +4306,19 @@ f,n.n2',
                 'dashStatusWarning' => 'اخطار',
                 'dashTodaySpan' => ' امروز</span>',
                 'dashTodayTransaction' => 'تراکنش امروز',
+                'dashChartSalesAmount' => 'مبلغ فروش',
+                'dashChartSalesCount' => 'تعداد سفارش',
+                'dashChartPayments' => 'پرداخت‌های موفق',
+                'dashChartNewUsers' => 'کاربران جدید',
+                'dashChartTotal' => 'مجموع:',
+                'dashRangeToday' => 'امروز',
+                'dashRangeWeek' => '۷ روز',
+                'dashRangeMonth' => '۳۰ روز',
+                'dashRangeQuarter' => '۹۰ روز',
+                'dashRangeYear' => '۱۲ ماه',
+                'dashChartUnitToman' => 'تومان',
+                'dashChartUnitOrder' => 'سفارش',
+                'dashChartUnitUser' => 'کاربر',
                 'dashTomanShort' => 'ت',
                 'dashTomanShort2' => 'ت',
                 'dashTotalRevenue' => 'درآمد کل',
@@ -4481,6 +4488,7 @@ f,n.n2',
                 'productDbError' => 'خطای پایگاه داده: ',
                 'productDeleteBtn' => 'حذف',
                 'productDeleted' => 'محصول حذف شد.',
+                'productFieldPosition' => 'ترتیب نمایش',
                 'productDescriptionOptional' => 'توضیحات اختیاری',
                 'productDetailCategory' => 'نمایندگی',
                 'productDetailDescription' => 'کاربر عادی',
@@ -4574,6 +4582,13 @@ f,n.n2',
                 'settingsPasswordMinLength' => 'رمز عبور باید حداقل ۶ کاراکتر باشد.',
                 'settingsPasswordStrengthLabel' => 'تغییر رمز',
                 'settingsPhpMemory' => 'حافظه PHP',
+                'settingsReportIssue' => 'گزارش مشکل',
+                'settingsReportIssueLink' => 'دایرکت کانال میرزا',
+                'settingsDonate' => 'حمایت مالی',
+                'settingsDonateLink' => 'دونیت',
+                'donatePopupTitle' => '💖 حمایت از میرزا',
+                'donatePopupText' => 'این ربات و پنل به‌صورت رایگان توسعه داده می‌شوند. اگر از آن راضی هستید، با یک دونیت کوچک به ادامه توسعه و پشتیبانی کمک کنید.',
+                'donatePopupLater' => 'بعداً',
                 'settingsSaveBtn' => 'رمز فعلی',
                 'settingsSecuritySection' => 'روشن',
                 'settingsServerTime' => 'زمان سرور',

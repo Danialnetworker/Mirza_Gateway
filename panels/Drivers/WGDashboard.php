@@ -11,6 +11,12 @@ class WGDashboardPanelDriver extends BasePanelDriver
         $Output = $vars['Output'];
         $data_limit = round($data_limit / (1024 * 1024 * 1024), 2);
         $data_Output = addpear($Get_Data_Panel['name_panel'], $usernameC);
+        if (isset($data_Output['status']) && $data_Output['status'] === false) {
+            return array(
+                'status' => 'Unsuccessful',
+                'msg' => $data_Output['msg']
+            );
+        }
         if (!empty($data_Output['status']) && $data_Output['status'] != 200) {
             return array(
                 'status' => 'Unsuccessful',
@@ -25,17 +31,17 @@ class WGDashboardPanelDriver extends BasePanelDriver
         }
         $data_Output = $data_Output['body'];
         $response = json_decode($data_Output['response'], true);
-        if ($data_limit != 0) {
-            setjob($Get_Data_Panel['name_panel'], "total_data", $data_limit, $data_Output['public_key']);
-        }
-        if ($expire != 0) {
-            setjob($Get_Data_Panel['name_panel'], "date", date('Y-m-d H:i:s', $expire), $data_Output['public_key']);
-        }
-        update("invoice", "user_info", json_encode($data_Output), "username", $usernameC);
-        if (!$response['status']) {
+        if (empty($response['status'])) {
             $Output['status'] = 'Unsuccessful';
-            $Output['msg'] = $data_Output['msg'];
+            $Output['msg'] = $response['message'] ?? '';
         } else {
+            if ($data_limit != 0) {
+                setjob($Get_Data_Panel['name_panel'], "total_data", $data_limit, $data_Output['public_key']);
+            }
+            if ($expire != 0) {
+                setjob($Get_Data_Panel['name_panel'], "date", date('Y-m-d H:i:s', $expire), $data_Output['public_key']);
+            }
+            update("invoice", "user_info", json_encode($data_Output), "username", $usernameC);
             $download_config = downloadconfig($Get_Data_Panel['name_panel'], $data_Output['public_key']);
             if (!empty($download_config['status']) && $download_config['status'] != 200) {
                 return array(
@@ -135,10 +141,10 @@ class WGDashboardPanelDriver extends BasePanelDriver
         $username = $vars['username'];
         $Output = $vars['Output'];
         $UsernameData = remove_userwg($Get_Data_Panel['name_panel'], $username);
-        if (!$UsernameData['status']) {
+        if (!empty($UsernameData['error']) || $UsernameData['status'] != 200 || empty(json_decode($UsernameData['body'], true)['status'])) {
             $Output = array(
                 'status' => 'Unsuccessful',
-                'msg' => $UsernameData['msg']
+                'msg' => $UsernameData['error'] ?? $UsernameData['body']
             );
         } else {
             $Output = array(

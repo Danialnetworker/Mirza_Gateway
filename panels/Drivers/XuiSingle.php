@@ -138,6 +138,7 @@ class XuiSinglePanelDriver extends BasePanelDriver
             'username' => $user_data['client']['email'],
             'data_limit' => $user_data['client']['totalGB'],
             'expire' => $expire,
+            'expiry_time' => $user_data['client']['expiryTime'],
             'online_at' => $used_data_3xui['obj']['lastOnline'],
             'used_traffic' => $used_data_3xui['obj']['up'] + $used_data_3xui['obj']['down'],
             'links' => $links_user,
@@ -168,9 +169,12 @@ class XuiSinglePanelDriver extends BasePanelDriver
                 'msg' => 'Unsuccessful'
             );
         } else {
+            $links_user = outputlink($Get_Data_Panel['linksubx'] . "/{$subId}");
+            if (isBase64($links_user))
+                $links_user = base64_decode($links_user);
             $Output = array(
                 'status' => 'successful',
-                'configs' => [outputlink($Get_Data_Panel['linksubx'] . "/{$subId}")],
+                'configs' => explode("\n", trim($links_user)),
                 'subscription_url' => $Get_Data_Panel['linksubx'] . "/{$subId}",
             );
         }
@@ -216,10 +220,16 @@ class XuiSinglePanelDriver extends BasePanelDriver
         $config = $vars['config'];
         $Get_Data_Panel = $vars['Get_Data_Panel'];
         $data_user = $this->DataUser($name_panel, $username);
+        if (($data_user['status'] ?? '') == 'Unsuccessful') {
+            return array(
+                'status' => false,
+                'msg' => $data_user['msg'] ?? ''
+            );
+        }
         $data = array(
             "email" => $username,
             "totalGB" => isset($config['totalGB']) ? $config['totalGB'] : $data_user['data_limit'],
-            "expiryTime" => isset($config['expiryTime']) ? $config['expiryTime'] : ($data_user['expire'] == 0 ? 0 : $data_user['expire'] * 1000),
+            "expiryTime" => isset($config['expiryTime']) ? $config['expiryTime'] : $data_user['expiry_time'],
             "tgId" => 0,
             "enable" => isset($config['enable']) ? $config['enable'] : true,
         );
@@ -229,7 +239,7 @@ class XuiSinglePanelDriver extends BasePanelDriver
             $data['subId'] = $config['subId'];
 
         $modify = updateClient($Get_Data_Panel, $username, $data);
-        attach_service($Get_Data_Panel, $username, json_decode($Get_Data_Panel['inbounds']));
+        attach_service($Get_Data_Panel, $username, json_encode(['inboundIds' => json_decode($Get_Data_Panel['inbounds'], true)]));
         if (!empty($modify['error'])) {
             return array(
                 'status' => false,
