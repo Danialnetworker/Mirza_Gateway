@@ -23,6 +23,17 @@ if (!$webhookSecret['created'] && $webhookSecret['secret'] !== '' && !webhookSec
     die("Unauthorized access");
 if ($is_bot)
     return;
+$admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
+if (!is_array($admin_ids)) {
+    $admin_ids = [];
+}
+if (version_compare(PHP_VERSION, MIN_PHP_VERSION, '<')) {
+    if ($callback_query_id)
+        telegram('answerCallbackQuery', ['callback_query_id' => $callback_query_id]);
+    if (intval($from_id) != 0 && $Chat_type == "private")
+        sendmessage($from_id, sprintf($textbotlang['phpVersion'][in_array($from_id, $admin_ids) ? 'admin' : 'user'], PHP_VERSION, MIN_PHP_VERSION), null, 'html');
+    return;
+}
 if (isset($update['chat_member'])) {
     $status = $update['chat_member']['new_chat_member']['status'];
     $from_id = $update['chat_member']['new_chat_member']['user']['id'];
@@ -128,10 +139,6 @@ if ($user == false) {
         'score' => "",
         'limitchangeloc' => ''
     );
-}
-$admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
-if (!is_array($admin_ids)) {
-    $admin_ids = [];
 }
 $channels_id = select("channels", "link", null, null, "FETCH_COLUMN");
 $topic_id = select("topicid", "*", null, null, "fetchAll");

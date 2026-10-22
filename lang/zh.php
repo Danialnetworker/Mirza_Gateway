@@ -4886,4 +4886,16 @@ f,n.n2',
                 'namecardNotSet' => '未设置',
                 'departmanGeneral' => '☎️ 公共部分',
         ],
+        'phpVersion' => [
+                'user' => '⚠️ 机器人当前不可用，很快将恢复。',
+                'admin' => '⚠️ <b>服务器 PHP 版本过旧</b>
+
+当前版本：<code>%s</code>
+最低要求：<code>%s</code>
+
+在升级 PHP 之前，机器人对所有用户停用。
+
+🖥 <b>服务器（VPS）：</b>运行 <code>mirza update-php</code>，或在 <code>mirza</code> 菜单中选择 “Update PHP”。
+🌐 <b>虚拟主机：</b>在主机控制面板中打开 Select PHP Version（或 MultiPHP Manager / PHP Version），为机器人域名选择 PHP 8.5。如果主机不提供 %2$s 或更高版本，请联系主机客服升级 PHP。',
+        ],
 ];

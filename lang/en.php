@@ -4894,4 +4894,16 @@ Normal right after you change the IPN signing key; otherwise worth a look.',
                 'namecardNotSet' => 'Not set',
                 'departmanGeneral' => '☎️ General section',
         ],
+        'phpVersion' => [
+                'user' => '⚠️ The bot is currently unavailable and will be back soon.',
+                'admin' => '⚠️ <b>The server PHP version is outdated</b>
+
+Current version: <code>%s</code>
+Minimum required: <code>%s</code>
+
+The bot is disabled for all users until PHP is upgraded.
+
+🖥 <b>Server (VPS):</b> run <code>mirza update-php</code> or choose "Update PHP" in the <code>mirza</code> menu.
+🌐 <b>Shared hosting:</b> in the hosting control panel open Select PHP Version (or MultiPHP Manager / PHP Version) and choose PHP 8.5 for the bot domain. If the host does not offer %2$s or newer, ask the hosting support to upgrade PHP.',
+        ],
 ];

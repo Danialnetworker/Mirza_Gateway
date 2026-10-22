@@ -60,7 +60,6 @@ class CurlRequest {
         $response = curl_exec($ch);
         if (curl_errno($ch)) {
             $error = curl_error($ch);
-            curl_close($ch);
             return [
                 'status' => null,
                 'body' => null,
@@ -68,7 +67,6 @@ class CurlRequest {
             ];
         }
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         return [
             'status' => $httpCode,
