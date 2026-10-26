@@ -99,7 +99,7 @@ class MarzneshinPanelDriver extends BasePanelDriver
                     $UsernameData['status'] = "expired";
                 }
                 if (($UsernameData['data_limit'] - $UsernameData['used_traffic'] <= 0) and $UsernameData['data_limit'] != null) {
-                    $UsernameData['status'] = "limtied";
+                    $UsernameData['status'] = "limited";
                 }
                 $UsernameData['links'] = outputlink($UsernameData['subscription_url']);
                 if (isBase64($UsernameData['links'])) {

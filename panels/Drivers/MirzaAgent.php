@@ -12,7 +12,7 @@ class MirzaAgentPanelDriver extends BasePanelDriver
         $invoice = $vars['invoice'];
         $domainhosts = $vars['domainhosts'];
         //create user
-        $ConnectToPanel = create_user_mirza($Get_Data_Panel, $data_limit / pow(1024, 3), $expire == 0 ? 0 : ($expire - time()) / 86400, $usernameC);
+        $ConnectToPanel = create_user_mirza($Get_Data_Panel, $data_limit / pow(1024, 3), $expire == 0 ? 0 : (int) round(($expire - time()) / 86400), $usernameC);
         if (!empty($ConnectToPanel['status']) && $ConnectToPanel['status'] != 200) {
             return array(
                 'status' => 'Unsuccessful',

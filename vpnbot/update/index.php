@@ -86,7 +86,7 @@ if (!is_dir('data')) {
 }
 if (!in_array($from_id, $users_ids) && $settingmain['statusnewuser'] == "onnewuser" && $from_id != 0) {
 
-    $newuser = sprintf($textbotlang['Admin']['reportgroup']['newUser'], $first_name, $username, "<a href = \"tg://user?id=$from_id\">$from_id</a>");
+    $newuser = sprintf($textbotlang['Admin']['reportgroup']['newUser'], htmlspecialchars($first_name), $username, "<a href = \"tg://user?id=$from_id\">$from_id</a>");
     foreach ($admin_ids as $admin) {
         sendmessage($admin, $newuser, null, 'HTML');
     }
@@ -126,7 +126,7 @@ $reportcron = select("topicid", "idreport", "report", "reportcron", "select")['i
 $otherservice = select("topicid", "idreport", "report", "otherservice", "select")['idreport'];
 
 $paymentreports = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'];
-$admin_idsmain = select("admin", "id_admin", null, null, "FETCH_COLUMN");
+$admin_idsmain = select("admin", "id_admin", "rule", "administrator", "FETCH_COLUMN");
 $id_invoice = select("invoice", "id_invoice", null, null, "FETCH_COLUMN");
 $userbot = select("user", "*", "id", $dataBase['id_user'], "select");
 if ($user['bottype'] != $ApiToken) {
@@ -136,7 +136,7 @@ if ($user['username'] != $username) {
     update("user", "username", $username, "id", $from_id);
 }
 if ($text == "/start") {
-    $textstart = "✋سلام $first_name عزیز به ربات ما خوش اومدی.
+    $textstart = "✋سلام " . htmlspecialchars($first_name) . " عزیز به ربات ما خوش اومدی.
 
 برای ادامه  یک بخش را انتخاب کنید:";
     if (!in_array($from_id, $admin_ids)) {
@@ -1334,7 +1334,7 @@ $textonebuy
 ⚜️ نام کاربری: @$username
 💸 مبلغ پرداختی: $format_price_cart تومان
                 
-توضیحات: $caption $text
+توضیحات: " . htmlspecialchars("$caption $text") . "
 ✍️ در صورت درست بودن رسید پرداخت را تایید نمایید.";
     foreach ($admin_ids as $id_admin) {
         if ($photo) {
@@ -1644,7 +1644,6 @@ $output
     sendmessage($from_id, $textcustom, $backuser, 'html');
     step('gettimecustomvolextend', $from_id);
 } elseif ($user['step'] == "gettimecustomvolextend") {
-    savedata("save", "volume", $text);
     $userdate = json_decode($user['Processing_value'], true);
     $stmt = $pdo->prepare("SELECT * FROM invoice WHERE id_invoice = ? AND id_user = ? AND bottype = ?");
     $stmt->execute([$userdate['id_invoice'], $from_id, $ApiToken]);
@@ -1667,8 +1666,9 @@ $output
         sendmessage($from_id, $textbotlang['common']['invalidVolume'], $backuser, 'HTML');
         return;
     }
+    savedata("save", "volume", $text);
     $customtimevalueprice = $setting['pricetime'];
-    $textcustom = "⌛️ زمان سرویس خود را انتخاب نمایید 
+    $textcustom = "⌛️ زمان سرویس خود را انتخاب نمایید
     📌 تعرفه هر روز  : $customtimevalueprice  تومان
     ⚠️ حداقل زمان $maintime روز  و حداکثر $maxtime روز  می توانید تهیه کنید";
     sendmessage($from_id, $textcustom, $backuser, 'html');
@@ -1776,6 +1776,9 @@ $output
             "price_productMain" => $priceproductmain,
         );
     } else {
+        if (!ctype_digit((string) ($userdate['volume'] ?? '')) || !ctype_digit((string) ($userdate['time'] ?? ''))) {
+            return;
+        }
         $custompricevalue = $setting['pricevolume'];
         $customtimevalueprice = $setting['pricetime'];
         $custompricevalueBot = $setting['minpricevolume'];

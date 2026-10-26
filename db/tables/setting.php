@@ -63,7 +63,8 @@ return [
         cron_status TEXT NOT NULL,
         text_edit JSON NULL,
         limitnumber varchar(200) NULL,
-        webhook_secret varchar(200) NOT NULL DEFAULT ''
+        webhook_secret varchar(200) NOT NULL DEFAULT '',
+        api_token varchar(200) NOT NULL DEFAULT ''
         SQL,
     'seedOnCreate' => [
         [
@@ -159,6 +160,7 @@ return [
         ['cron_status', $cronStatus, 'TEXT'],
         ['text_edit', '{}', 'JSON'],
         ['webhook_secret', null, "VARCHAR(200) NOT NULL DEFAULT ''"],
+        ['api_token', null, "VARCHAR(200) NOT NULL DEFAULT ''"],
         ['alert_balance', '0', 'VARCHAR(10)'],
         ['balance_value_alert', '10000', 'VARCHAR(30)'],
     ],

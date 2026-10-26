@@ -53,7 +53,9 @@ function links_wgmate($location, $user_id)
 }
 function adduser_wgmate($location, $data_limit, $username_ac, $timestamp, $name_product, $note = '', $limitip = null)
 {
-    $product = select('product', "*", "name_product", $name_product, "select");
+    $stmt = $GLOBALS['pdo']->prepare("SELECT * FROM product WHERE name_product = ? AND (Location = ? OR Location = '/all') ORDER BY Location = '/all' LIMIT 1");
+    $stmt->execute([$name_product, $location]);
+    $product = $stmt->fetch(PDO::FETCH_ASSOC);
     $panel = select("marzban_panel", "*", "name_panel", $location, "select");
     $template = json_decode($product['inbounds'] ?? $panel['proxies'] ?? '', true);
     $data = array(

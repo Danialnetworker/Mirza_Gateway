@@ -233,7 +233,7 @@ class RebecaPanelDriver extends BasePanelDriver
         $panel = $vars['panel'];
         $data = array(
             'data_limit' => $data_limit_new,
-            'expire' => $time_new == 0 ? null : $time_new,
+            'expire' => $time_new == 0 ? 0 : $time_new,
         );
         return $this->applyModify($username, $panel['name_panel'], $data);
     }
@@ -255,7 +255,7 @@ class RebecaPanelDriver extends BasePanelDriver
         $username_account = $vars['username_account'];
         $panel = $vars['panel'];
         $data = array(
-            'expire' => $new_limit == 0 ? null : $new_limit,
+            'expire' => $new_limit == 0 ? 0 : $new_limit,
         );
         return $this->applyModify($username_account, $panel['name_panel'], $data);
     }

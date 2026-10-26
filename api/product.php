@@ -276,29 +276,29 @@ function prod_set_inbounds(array $data, string $method): void
         // Marzban >= 1.0 renamed "proxies" to "proxy_settings" and moved the
         // inbound list into "group_ids".
         $isNewMarzban = $panel['version_panel'] == "1";
-        $proxyKey = $isNewMarzban ? 'proxy_settings' : 'proxies';
-        if ((isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") or !isset($DataUserOut[$proxyKey]))
+        if ((isset($DataUserOut['msg']) && $DataUserOut['msg'] == "User not found") or !isset($DataUserOut[$isNewMarzban ? 'group_ids' : 'proxies']))
             sendJsonResponse(false, "User Not Found", [], 200);
 
-        foreach ($DataUserOut[$proxyKey] as $key => $value) {
-            if ($key == "shadowsocks" || $key == "trojan") {
-                unset($DataUserOut[$proxyKey][$key]['password']);
-            } elseif ($key == "wireguard") {
-                unset($DataUserOut[$proxyKey][$key]['private_key']);
-                unset($DataUserOut[$proxyKey][$key]['public_key']);
-                unset($DataUserOut[$proxyKey][$key]['peer_ips']);
-            } elseif ($key == "hysteria") {
-                unset($DataUserOut[$proxyKey][$key]['auth']);
-            } else {
-                unset($DataUserOut[$proxyKey][$key]['id']);
+        if (!$isNewMarzban) {
+            foreach ($DataUserOut['proxies'] as $key => $value) {
+                if ($key == "shadowsocks" || $key == "trojan") {
+                    unset($DataUserOut['proxies'][$key]['password']);
+                } elseif ($key == "wireguard") {
+                    unset($DataUserOut['proxies'][$key]['private_key']);
+                    unset($DataUserOut['proxies'][$key]['public_key']);
+                    unset($DataUserOut['proxies'][$key]['peer_ips']);
+                } elseif ($key == "hysteria") {
+                    unset($DataUserOut['proxies'][$key]['auth']);
+                } else {
+                    unset($DataUserOut['proxies'][$key]['id']);
+                }
+                if (count($DataUserOut['proxies'][$key]) == 0) {
+                    $DataUserOut['proxies'][$key] = new stdClass();
+                }
             }
-            if (count($DataUserOut[$proxyKey][$key]) == 0) {
-                $DataUserOut[$proxyKey][$key] = new stdClass();
-            }
+            $stmt = $pdo->prepare("UPDATE product SET proxies = :proxies WHERE id = :id_product");
+            $stmt->execute([':proxies' => json_encode($DataUserOut['proxies']), ':id_product' => $data['id']]);
         }
-        $proxy_output = json_encode($DataUserOut[$proxyKey]);
-        $stmt = $pdo->prepare("UPDATE product SET proxies = :proxies WHERE id = :id_product");
-        $stmt->execute([':proxies' => $proxy_output, ':id_product' => $data['id']]);
         $datainbound = json_encode($isNewMarzban ? ($DataUserOut['group_ids'] ?? []) : ($DataUserOut['inbounds'] ?? []));
     } elseif ($panel['type'] == "marzneshin") {
         $userdata = json_decode(getuserm($data['input'], $panel['name_panel'])['body'] ?? '', true);

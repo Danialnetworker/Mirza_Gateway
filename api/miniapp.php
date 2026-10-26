@@ -90,6 +90,20 @@ if ($usercheck['User_Status'] == "block") {
     return;
 }
 
+if (!in_array($usercheck['id'], select("admin", "id_admin", null, null, "FETCH_COLUMN"))) {
+    if ($setting['Bot_Status'] == "botstatusoff"
+        || ($setting['verifystart'] == "onverify" && intval($usercheck['verify']) == 0)
+        || ($setting['roll_Status'] == "rolleon" && $usercheck['roll_Status'] == 0)
+        || ($setting['get_number'] == "onAuthenticationphone" && $usercheck['number'] == "none")) {
+        http_response_code(403);
+        echo json_encode([
+            'status' => false,
+            'msg' => "access denied",
+        ]);
+        return;
+    }
+}
+
 $errorreport = topicId('errorreport');
 $porsantreport = topicId('porsantreport');
 $buyreport = topicId('buyreport');
@@ -1080,7 +1094,7 @@ function mini_purchase(array $data, string $method): void
     $countinvoice = (int) $stmt->fetchColumn();
     if ($affiliatescommission['status_commission'] == "oncommission" && ($user_info['affiliates'] != null && intval($user_info['affiliates']) != 0)) {
         if ($marzbanporsant_one_buy['porsant_one_buy'] == "on_buy_porsant") {
-            if ($countinvoice == 1) {
+            if ($countinvoice <= 1) {
                 $result = ($product['price_product'] * $setting['affiliatespercentage']) / 100;
                 $user_Balance = select("user", "*", "id", $user_info['affiliates'], "select");
                 $Balance_prim = $user_Balance['Balance'] + $result;
@@ -1103,31 +1117,30 @@ function mini_purchase(array $data, string $method): void
                     ]);
                 }
                 sendmessage($user_info['affiliates'], $textadd, null, 'HTML');
-            } else {
-
-                $result = ($product['price_product'] * $setting['affiliatespercentage']) / 100;
-                $user_Balance = select("user", "*", "id", $user_info['affiliates'], "select");
-                $Balance_prim = $user_Balance['Balance'] + $result;
-                if (intval($setting['scorestatus']) == 1) {
-                    sendmessage($user_info['affiliates'], $textbotlang['users']['affiliates']['pointsEarned2b'], null, 'html');
-                    $scorenew = $user_Balance['score'] + 2;
-                    update("user", "score", $scorenew, "id", $user_info['affiliates']);
-                }
-                update("user", "Balance", $Balance_prim, "id", $user_info['affiliates']);
-                $result = number_format($result);
-                $dateacc = date('Y/m/d H:i:s');
-                $textadd = sprintf($textbotlang['users']['affiliates']['commissionPaidMiniapp2'], $result);
-                $textreportport = sprintf($textbotlang['Admin']['reportgroup']['commissionPaidMiniapp2'], $result, $user_info['affiliates'], $user_info['id'], $dateacc);
-                if (strlen($setting['Channel_Report']) > 0) {
-                    telegram('sendmessage', [
-                        'chat_id' => $setting['Channel_Report'],
-                        'message_thread_id' => $porsantreport,
-                        'text' => $textreportport,
-                        'parse_mode' => "HTML"
-                    ]);
-                }
-                sendmessage($user_info['affiliates'], $textadd, null, 'HTML');
             }
+        } else {
+            $result = ($product['price_product'] * $setting['affiliatespercentage']) / 100;
+            $user_Balance = select("user", "*", "id", $user_info['affiliates'], "select");
+            $Balance_prim = $user_Balance['Balance'] + $result;
+            if (intval($setting['scorestatus']) == 1) {
+                sendmessage($user_info['affiliates'], $textbotlang['users']['affiliates']['pointsEarned2b'], null, 'html');
+                $scorenew = $user_Balance['score'] + 2;
+                update("user", "score", $scorenew, "id", $user_info['affiliates']);
+            }
+            update("user", "Balance", $Balance_prim, "id", $user_info['affiliates']);
+            $result = number_format($result);
+            $dateacc = date('Y/m/d H:i:s');
+            $textadd = sprintf($textbotlang['users']['affiliates']['commissionPaidMiniapp2'], $result);
+            $textreportport = sprintf($textbotlang['Admin']['reportgroup']['commissionPaidMiniapp2'], $result, $user_info['affiliates'], $user_info['id'], $dateacc);
+            if (strlen($setting['Channel_Report']) > 0) {
+                telegram('sendmessage', [
+                    'chat_id' => $setting['Channel_Report'],
+                    'message_thread_id' => $porsantreport,
+                    'text' => $textreportport,
+                    'parse_mode' => "HTML"
+                ]);
+            }
+            sendmessage($user_info['affiliates'], $textadd, null, 'HTML');
         }
     }
     if (intval($setting['scorestatus']) == 1) {

@@ -34,7 +34,9 @@ function revoke_sub_rebecca($username_account, $location)
 #-----------------------------#
 function adduser_rebecca($location, $data_limit, $username_ac, $timestamp, $name_product, $note = '', $data_limit_reset = 'no_reset', $limitip = null)
 {
-    $product = select('product', "*", "name_product", $name_product, "select");
+    $stmt = $GLOBALS['pdo']->prepare("SELECT * FROM product WHERE name_product = ? AND (Location = ? OR Location = '/all') ORDER BY Location = '/all' LIMIT 1");
+    $stmt->execute([$name_product, $location]);
+    $product = $stmt->fetch(PDO::FETCH_ASSOC);
     $panel = select("marzban_panel", "*", "name_panel", $location, "select");
     if ($product['inbounds'] != null) {
         $panel['proxies'] = $product['inbounds'];

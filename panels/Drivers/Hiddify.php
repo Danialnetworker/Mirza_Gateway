@@ -209,7 +209,7 @@ class HiddifyPanelDriver extends BasePanelDriver
         $panel = $vars['panel'];
         $day = $time_new - time();
         $data = array(
-            "package_days" => $time_new == 0 ? 111111 : $day / 86400,
+            "package_days" => $time_new == 0 ? 111111 : (int) round($day / 86400),
             "usage_limit_GB" => $data_limit_new / pow(1024, 3),
             "start_date" => null
         );
@@ -242,7 +242,7 @@ class HiddifyPanelDriver extends BasePanelDriver
         $data = array(
             "current_usage_GB" => $datauser['current_usage_GB'],
             "usage_limit_GB" => $datauser['usage_limit_GB'],
-            "package_days" => $limit_time_new == 0 ? 0 : ($new_limit - time()) / 86400,
+            "package_days" => $limit_time_new == 0 ? 0 : (int) round(($new_limit - time()) / 86400),
             "start_date" => null
         );
         return $this->applyModify($username_account, $panel['name_panel'], $data);

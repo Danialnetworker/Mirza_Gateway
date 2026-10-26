@@ -102,7 +102,7 @@ function usr_user(array $data, string $method): void
         $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
         $users[0]['count_invoice'] = $invoice['count_invoice'];
         $users[0]['sum_invoice'] = $invoice['sum_price'];
-        $stmt = $pdo->prepare("SELECT SUM(price) as sum_price,COUNT(*) as count_payment FROM Payment_report WHERE id_user = :user_id AND Payment_Method not in ('Unpaid','reject','expire')");
+        $stmt = $pdo->prepare("SELECT SUM(price) as sum_price,COUNT(*) as count_payment FROM Payment_report WHERE id_user = :user_id AND payment_Status = 'paid'");
         $stmt->bindValue(':user_id', intval($users[0]['user_id']), PDO::PARAM_INT);
         $stmt->execute();
         $payment_report = $stmt->fetch(PDO::FETCH_ASSOC);

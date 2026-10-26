@@ -39,7 +39,14 @@ while ($Payment_report = ($list_service)->fetch(PDO::FETCH_ASSOC)) {
     $StatusPayment = statusplisio($Payment_report['id_order']);
     if (!is_array($StatusPayment) || !isset($StatusPayment['data']['operations']) || !is_array($StatusPayment['data']['operations']))
         continue;
-    $operation = $StatusPayment['data']['operations'][0] ?? [];
+    $operation = [];
+    foreach ($StatusPayment['data']['operations'] as $op) {
+        if (in_array($Payment_report['dec_not_confirmed'], [$op['txn_id'] ?? null, $op['id'] ?? null], true)
+            || ($op['params']['order_number'] ?? $op['order_number'] ?? null) === $Payment_report['id_order']) {
+            $operation = $op;
+            break;
+        }
+    }
     $operationStatus = $operation['status'] ?? null;
     if (in_array($operationStatus, ["cancelled", "expired"], true)) {
         $textexpire = sprintf($textbotlang['users']['Balance']['plisioExpired'], $Payment_report['id_order'], $Payment_report['price']);

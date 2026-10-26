@@ -373,9 +373,7 @@ class IBSng
         $data_limit_pos3 = strpos($data_limit_trim2, $data_limit_pattern3);
         $data_limit_trim3 = substr($data_limit_trim2, 0, $data_limit_pos3);
         $data_limit = trim($data_limit_trim3);
-        $data_limit = str_replace('G','',$data_limit);
-        $data_limit = str_replace('M','',$data_limit);
-        $data_limit = intval($data_limit) * pow(1024,3);
+        $data_limit = (int) (floatval($data_limit) * (strpos($data_limit, 'M') !== false ? pow(1024, 2) : pow(1024, 3)));
         
         
         
@@ -389,13 +387,7 @@ class IBSng
         $used_traffic_pos3 = strpos($used_traffic_trim2, $used_traffic_pattern3);
         $used_traffic_trim3 = substr($used_traffic_trim2, 0, $used_traffic_pos3);
         $used_traffic = trim($used_traffic_trim3);
-        $used_traffic = str_replace('G','',$used_traffic);
-        $used_traffic = str_replace('M','',$used_traffic);
-        if($used_traffic == false){
-        $used_traffic = intval($used_traffic) * pow(1024,3);
-        }else{
-        $used_traffic = intval($used_traffic) * pow(1024,2);
-        }
+        $used_traffic = (int) (floatval($used_traffic) * (strpos($used_traffic, 'G') !== false ? pow(1024, 3) : pow(1024, 2)));
 
         $info['username'] = $username;
         $info['name'] = $name;

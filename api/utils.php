@@ -68,12 +68,9 @@ function apiTokens()
 
     $tokens = [];
 
-    $hashFile = __DIR__ . '/hash.txt';
-    if (is_file($hashFile)) {
-        $fileToken = trim((string) file_get_contents($hashFile));
-        if ($fileToken !== '') {
-            $tokens[] = $fileToken;
-        }
+    $settingToken = trim((string) (select("setting", "*", null, null, "select", ['cache' => false])['api_token'] ?? ''));
+    if ($settingToken !== '') {
+        $tokens[] = $settingToken;
     }
 
     if (empty($tokens) && isset($APIKEY) && $APIKEY !== '') {

@@ -16,7 +16,7 @@ if ($token === '' || !preg_match('/^[a-f0-9]{4,64}$/i', $token)) {
 }
 try {
     $nameloc = select("invoice", "*", "id_invoice", $token, "select");
-    if (!is_array($nameloc)) {
+    if (!is_array($nameloc) || !in_array($nameloc['Status'], ['active', 'end_of_time', 'end_of_volume', 'sendedwarn', 'send_on_hold'], true)) {
         echo "ERROR!";
         exit;
     }

@@ -20,12 +20,16 @@ if ($invoice_id === '' || $transid === '') {
 $setting = select("setting", "*");
 $PaySetting = select("PaySetting", "ValuePay", "NamePay", "merchant_id_aqayepardakht","select")['ValuePay'];
 $payment_row = select("Payment_report", "*", "id_order", $invoice_id, "select");
-if (!is_array($payment_row)) {
+if (!is_array($payment_row) || $payment_row['Payment_Method'] !== "aqayepardakht") {
     http_response_code(404);
     exit('order not found');
 }
 if ($payment_row['payment_Status'] == "expire") {
     exit('order expired');
+}
+if (!empty($payment_row['dec_not_confirmed']) && !hash_equals((string) $payment_row['dec_not_confirmed'], (string) $transid)) {
+    http_response_code(400);
+    exit('invalid transid');
 }
 $Payment_report = $payment_row['price'];
 $price = $Payment_report;

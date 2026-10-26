@@ -61,7 +61,7 @@ class ServiceMonitor
                 $this->shouldRemoveService($data['invoice'], $data['user'], $data['userData'], $invoice['username']);
             if ($this->status_cron['remove_volume'])
                 $this->shouldRemoveServiceـvolume($data['invoice'], $data['user'], $data['userData'], $invoice['username']);
-            if ($data['panel']['inboundstatus'] == "oninbounddisable" && $data['panel']['type'] == "marzban")
+            if ($data['panel']['inboundstatus'] == "oninbounddisable" && $data['panel']['type'] == "marzban" && $data['panel']['version_panel'] != "1")
                 $this->active_inbound_expire($data['invoice'], $data['userData'], $data['panel']);
         }
     }
@@ -128,6 +128,8 @@ class ServiceMonitor
     private function shouldRemoveService($invoice, $user, $userData, $username)
     {
         if (!in_array($userData['status'], ['limited', 'expired']))
+            return false;
+        if (empty($userData['expire']))
             return false;
         $timeService = $userData['expire'] - time();
         $daysRemaining = intval($timeService / 86400);

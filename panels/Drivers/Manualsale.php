@@ -14,12 +14,18 @@ class ManualsalePanelDriver extends BasePanelDriver
         $statement->bindParam(":code_product", $code_product);
         $statement->execute();
         $configman = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!$configman) {
+            return array('status' => 'Unsuccessful', 'msg' => 'manual stock is empty');
+        }
+        $claim = $pdo->prepare("UPDATE manualsell SET status = 'selled', username = :username WHERE id = :id AND status = 'active'");
+        $claim->execute([':username' => $usernameC, ':id' => $configman['id']]);
+        if ($claim->rowCount() == 0) {
+            return array('status' => 'Unsuccessful', 'msg' => 'manual stock is empty');
+        }
         $Output['status'] = 'successful';
         $Output['username'] = $usernameC;
         $Output['subscription_url'] = $configman['contentrecord'];
         $Output['configs'] = "";
-        update("manualsell", "status", "selled", "id", $configman['id']);
-        update("manualsell", "username", $usernameC, "id", $configman['id']);
         return $Output;
     }
 
