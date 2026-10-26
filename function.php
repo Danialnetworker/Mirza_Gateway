@@ -3240,11 +3240,39 @@ function isBase64($string)
     }
     return false;
 }
+// [drproxy-helplink] DrProxy services: the tutorial button opens the purchased subscription link
+function drproxy_helplink_markup($panel_info, $sub_link, $reply_markup)
+{
+    if (($panel_info['type'] ?? '') != "drproxy" || $reply_markup === null || $reply_markup === '') {
+        return $reply_markup;
+    }
+    $url = trim((string) strtok((string) $sub_link, "\n"));
+    if (!preg_match('#^https?://\S+$#i', $url)) {
+        return $reply_markup;
+    }
+    $kb = is_array($reply_markup) ? $reply_markup : json_decode((string) $reply_markup, true);
+    if (!is_array($kb) || !isset($kb['inline_keyboard']) || !is_array($kb['inline_keyboard'])) {
+        return $reply_markup;
+    }
+    $changed = false;
+    foreach ($kb['inline_keyboard'] as $r => $row) {
+        foreach ((array) $row as $c => $btn) {
+            if (is_array($btn) && ($btn['callback_data'] ?? '') === 'helpbtn') {
+                unset($kb['inline_keyboard'][$r][$c]['callback_data']);
+                $kb['inline_keyboard'][$r][$c]['url'] = $url;
+                $changed = true;
+            }
+        }
+    }
+    return $changed ? json_encode($kb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $reply_markup;
+}
+
 function sendMessageService($panel_info, $config, $sub_link, $username_service, $reply_markup, $caption, $invoice_id, $user_id = null, $image = 'images.jpg', $wireguard = [])
 {
     global $setting, $from_id, $textbotlang;
     if (!check_active_btn($setting['keyboardmain'], "text_help"))
         $reply_markup = null;
+    $reply_markup = drproxy_helplink_markup($panel_info, $sub_link, $reply_markup); // [drproxy-helplink]
     $user_id = $user_id == null ? $from_id : $user_id;
     if (isTelegramChatIdEmpty($user_id)) {
         return;
