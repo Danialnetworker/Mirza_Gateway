@@ -1008,7 +1008,7 @@ get_latest_version() {
 # repo); when the live list is reachable it wins - otherwise the zip URL 404s.
 get_latest_tag_checked() {
     local l avail
-    l=$(get_latest_tag_checked)
+    l=$(get_latest_version)
     avail=$(list_tags_desc)
     if [ -n "$avail" ] && { [ -z "$l" ] || ! echo "$avail" | grep -qx -- "$l"; }; then
         l=$(echo "$avail" | head -1)
