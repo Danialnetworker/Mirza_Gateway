@@ -74,7 +74,11 @@ class CloudiusPanelDriver extends BasePanelDriver
             'username' => $UsernameData['username'],
             'data_limit' => $data_limit,
             'expire' => $UsernameData['expire'],
-            'online_at' => null,
+            // [cloudius-online] Cloudius has no last-online time: OnlineCount = live sessions,
+            // FirstLogin = set once the user has ever connected. Used traffic also proves a
+            // past connection. null stays only for users that really never connected.
+            'online_at' => !empty($UsernameData['online_count']) ? 'online'
+                : ((!empty($UsernameData['first_login']) || $used_traffic > 0) ? 'offline' : null),
             'used_traffic' => $used_traffic,
             'links' => [],
             'subscription_url' => $cloudius_pw_live !== ''

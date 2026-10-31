@@ -489,6 +489,8 @@ function GetUser_cloudius($name_panel, $username)
             'remained_days' => $remainingDays,
             'expire' => $expire,
             'online_count' => (int) ($row['OnlineCount'] ?? 0),
+            // [cloudius-online] null until the user connects for the first time
+            'first_login' => cloudius_jalali_to_ts($row['FirstLogin'] ?? null),
             // FetchByUserName masks the password; User/Fetch by UserID does not.
             'password' => cloudius_live_password($name_panel, $row['UserID'] ?? 0),
             'raw' => $row,
