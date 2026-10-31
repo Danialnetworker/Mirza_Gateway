@@ -3267,6 +3267,23 @@ function drproxy_helplink_markup($panel_info, $sub_link, $reply_markup)
     return $changed ? json_encode($kb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $reply_markup;
 }
 
+// [disorder-nodesc] a disruption report needs a real description (not empty, not a /command)
+function disorder_description_ok($text)
+{
+    $t = trim((string) $text);
+    if ($t === '' || $t[0] === '/') {
+        return false;
+    }
+    return mb_strlen($t) >= 3;
+}
+
+function disorder_nodesc_text()
+{
+    global $textbotlang;
+    return $textbotlang['users']['support']['disruptionNoDesc']
+        ?? '⚠️ لطفاً شرح مشکل خود را به صورت متن ارسال کنید تا بتوانیم کمک کنیم؛ بدون توضیحات امکان بررسی گزارش وجود ندارد.';
+}
+
 function sendMessageService($panel_info, $config, $sub_link, $username_service, $reply_markup, $caption, $invoice_id, $user_id = null, $image = 'images.jpg', $wireguard = [])
 {
     global $setting, $from_id, $textbotlang;

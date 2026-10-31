@@ -2581,6 +2581,10 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     Editmessagetext($from_id, $message_id, $textdisorder, $keyboarddisorder);
     step("getdesdisorder", $from_id);
 } elseif ($user['step'] == "getdesdisorder") {
+    if (!disorder_description_ok($text)) { // [disorder-nodesc] empty or command-only description -> ask again
+        sendmessage($from_id, disorder_nodesc_text(), null, 'html');
+        return;
+    }
     update("user", "Processing_value", $text, "id", $from_id);
     $nameloc = select("invoice", "*", "id_invoice", $user['Processing_value'], "select");
     $DataUserOut = $ManagePanel->DataUser($nameloc['Service_location'], $nameloc['username']);
@@ -2605,6 +2609,12 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     $id_invoice = $dataget[1];
     $nameloc = select("invoice", "*", "id_invoice", $id_invoice, "select");
     if (!invoiceBelongsToUser($nameloc, $from_id)) {
+        return;
+    }
+    if (!disorder_description_ok($user['Processing_value'] ?? '')) { // [disorder-nodesc] stale confirm without a real description
+        update("user", "Processing_value", $id_invoice, "id", $from_id);
+        step("getdesdisorder", $from_id);
+        sendmessage($from_id, disorder_nodesc_text(), null, 'html');
         return;
     }
     $Response = json_encode([
