@@ -1663,6 +1663,7 @@ function cubepayCardDetailsText($payment)
 function formatBytes($bytes, $precision = 2): string
 {
     global $textbotlang;
+    $bytes = max(0, (float) $bytes); // [fmtbytes-neg] over-quota remaining is negative: log() gave NAN
     $base = log($bytes, 1024);
     $power = $bytes > 0 ? floor($base) : 0;
     $suffixes = [
