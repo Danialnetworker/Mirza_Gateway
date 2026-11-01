@@ -12,6 +12,8 @@ mirzaEnsureInstallerRemoved();
 require_once 'keyboard.php';
 require_once 'vendor/autoload.php';
 require_once 'panels.php';
+if (is_file(__DIR__ . '/agent/agent.php'))
+    require_once __DIR__ . '/agent/agent.php'; // [agent] AI support agent, off until enabled in the admin panel
 $textbotlang = languagechange();
 $text = restoreCustomEmojiLabel($text);
 #-----------telegram_ip_ranges------------#
@@ -2677,6 +2679,12 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $Percent = -($Percent);
     $Percent = round($Percent, 2);
     $textdisorder .= sprintf($textbotlang['users']['status']['summary'], $status_var, $LastTraffic, $usedTrafficGb, $RemainingVolume, $Percent, $expirationDate, $day, $DataUserOut['subscription_url'], $lastonline, $lastupdate, $DataUserOut['sub_last_user_agent']);
+    if (function_exists('agent_enabled') && agent_enabled()) { // [agent] the agent tests the service first; admins get this report on handoff
+        agent_start($from_id, $user['Processing_value'], ['kind' => 'disorder', 'invoice' => $id_invoice, 'username' => $username, 'handoff_text' => $textdisorder, 'handoff_kb' => $Response]);
+        step("agentchat", $from_id);
+        Editmessagetext($from_id, $message_id, "🤖 گزارشت رسید. دارم سرویست را بررسی می‌کنم، چند لحظه صبر کن…", null);
+        return;
+    }
     foreach ($admin_ids as $admin) {
         $adminrulecheck = select("admin", "*", "id_admin", $admin, "select");
         if ($adminrulecheck['rule'] == "Seller")
@@ -3401,6 +3409,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         sendmessage($from_id, $textbotlang['users']['support']['btnsupport'], $supportoption, 'HTML');
     }
 } elseif ($datain == "support") {
+    if (function_exists('agent_enabled') && agent_enabled())
+        $list_departman = agent_dep_keyboard(); // [agent] only finance + technical while the agent is on
     Editmessagetext($from_id, $message_id, $textbotlang['users']['support']['selectDepartment'], $list_departman, 'HTML');
 } elseif (preg_match('/^departman_(.*)/', $datain, $dataget)) {
     $iddeparteman = $dataget[1];
@@ -3411,6 +3421,15 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
 } elseif ($user['step'] == "gettextticket" && $text) {
     $userdata = json_decode($user['Processing_value'], true);
     $departeman = select("departman", "*", "id", $userdata['iddeparteman'], "select");
+    if (function_exists('agent_enabled') && agent_enabled() && !$photo && !$video && trim((string) $text) !== '') { // [agent] the agent answers first; humans get it on handoff
+        if (agent_start($from_id, $text, ['kind' => 'ticket', 'dep_id' => $userdata['iddeparteman'], 'username' => $username]) === false) {
+            step("home", $from_id);   // refused (technical support needs an active service); reason already sent
+            return;
+        }
+        step("agentchat", $from_id);
+        sendmessage($from_id, "🤖 پیامت رسید، دارم بررسی می‌کنم…", $keyboard, 'HTML');
+        return;
+    }
     $time = date('Y/m/d H:i:s');
     $timejalali = jdate('Y/m/d H:i:s');
     $randomString = bin2hex(random_bytes(4));
@@ -7236,10 +7255,17 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         ]
     ]);
     Editmessagetext($from_id, $message_id, $textbotlang['language']['setSuccess'], $keyboard_back);
+} elseif ($user['step'] == "agentchat" && $text != "" && $Chat_type == "private" && function_exists('agent_push') && !agent_leave_on_button($from_id, $text)) { // [agent] next message of a live agent conversation
+    if (!agent_push($from_id, $text)) {
+        step("home", $from_id);
+        sendmessage($from_id, $textbotlang['users']['invalidCommand'], $keyboard, 'HTML');
+    }
 } elseif ($text != "" && $Chat_type == "private" && !in_array($from_id, $admin_ids)) {
     sendmessage($from_id, $textbotlang['users']['invalidCommand'], $keyboard, 'HTML');
 }
-if (in_array($from_id, $admin_ids))
-    require_once 'admin.php';
+if (in_array($from_id, $admin_ids)) {
+    if (!(function_exists('agent_enabled') && (require_once __DIR__ . '/agent/admin.php') && agent_admin())) // [agent] settings page
+        require_once 'admin.php';
+}
 
 $pdo = null;

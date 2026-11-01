@@ -2633,6 +2633,9 @@ function update_bot() {
     LANG_OVERRIDE_BACKUP="/root/mirzapro_lang_override_backup"
     rm -rf "$LANG_OVERRIDE_BACKUP"
     [ -d "$BOT_DIR/lang/override" ] && cp -a "$BOT_DIR/lang/override" "$LANG_OVERRIDE_BACKUP"
+    AGENT_STORE_BACKUP="/root/mirzapro_agent_storage_backup"   # [agent] AI support settings + keys
+    rm -rf "$AGENT_STORE_BACKUP"
+    [ -d "$BOT_DIR/storage/agent" ] && cp -a "$BOT_DIR/storage/agent" "$AGENT_STORE_BACKUP"
     run_step "Backing up vpnbots" "backup_vpnbots '$BOT_DIR'" \
         || { show_step_error
              echo -e "\e[91mError: Failed to backup vpnbots.\033[0m"
@@ -2673,6 +2676,11 @@ function update_bot() {
         sudo rm -rf "$BOT_DIR/lang/override"
         sudo mv "$LANG_OVERRIDE_BACKUP" "$BOT_DIR/lang/override"
     fi
+    if [ -d "$AGENT_STORE_BACKUP" ]; then   # [agent]
+        sudo mkdir -p "$BOT_DIR/storage"
+        sudo rm -rf "$BOT_DIR/storage/agent"
+        sudo mv "$AGENT_STORE_BACKUP" "$BOT_DIR/storage/agent"
+    fi
     run_step "Restoring vpnbots" "restore_vpnbots '$BOT_DIR'" \
         || { show_step_error
              echo -e "\e[91mError: Failed to restore vpnbots. Backup: ${VPNBOT_BACKUP}\033[0m"; }
@@ -2696,6 +2704,10 @@ function update_bot() {
     fi
     sudo chown -R www-data:www-data "$BOT_DIR"
     sudo chmod -R 755 "$BOT_DIR"
+    if [ -d "$BOT_DIR/storage/agent" ]; then   # [agent] keys stay private after chmod -R 755
+        sudo find "$BOT_DIR/storage/agent" -type d -exec chmod 700 {} +
+        sudo find "$BOT_DIR/storage/agent" -type f ! -name .htaccess -exec chmod 600 {} +
+    fi
     DOMAIN_NAME=""
     if [ -f "$CONFIG_PATH" ]; then
         DOMAIN_NAME=$(grep "^\$domainhosts" "$CONFIG_PATH" | cut -d"'" -f2 | cut -d'/' -f1)

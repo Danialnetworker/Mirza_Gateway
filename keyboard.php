@@ -158,6 +158,7 @@ if ($adminrulecheck['rule'] == "administrator") {
             [['text' => $textbotlang['keyboard']['supportSection']], ['text' => $textbotlang['keyboard']['educationSection']]],
             [['text' => $textbotlang['keyboard']['generalSettings']], ['text' => $textbotlang['keyboard']['pendingReceipts']]],
             [['text' => $textbotlang['bottext']['open_button']]],
+            [['text' => '🤖 پشتیبان هوشمند']], // [agent]
             [['text' => $textbotlang['users']['backbtn']]]
         ],
         'resize_keyboard' => true
