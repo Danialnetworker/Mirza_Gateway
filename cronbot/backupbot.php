@@ -160,6 +160,20 @@ $backupWorkDir = sys_get_temp_dir();
 if (!is_dir($backupWorkDir) || !is_writable($backupWorkDir)) {
     $backupWorkDir = $destination;
 }
+// [backup-tmpdir] Several installs on one server share /tmp and run this job
+// at the same minute with the same file name (backup_<date>.sql), so one run
+// deleted the other's dump mid-upload ("operation aborted by callback").
+// Work in a private directory per install and per run, removed at exit.
+$backupPrivateDir = $backupWorkDir . '/mirza-backup-' . substr(md5(dirname(__DIR__)), 0, 10) . '-' . getmypid();
+if (@mkdir($backupPrivateDir, 0700, true) || is_dir($backupPrivateDir)) {
+    $backupWorkDir = $backupPrivateDir;
+    register_shutdown_function(function () use ($backupPrivateDir) {
+        foreach ((array) glob($backupPrivateDir . '/*') as $f) {
+            @unlink($f);
+        }
+        @rmdir($backupPrivateDir);
+    });
+}
 $setting = select("setting", "*");
 $canSendReport = !isTelegramChatIdEmpty($setting['Channel_Report'] ?? '');
 if (!$canSendReport) {
@@ -266,6 +280,10 @@ function backupSplit($file, $partSize)
 
 function backupSendDocument($apiKey, $chatId, $threadId, $path, $caption)
 {
+    clearstatcache(true, $path);
+    if (!is_file($path) || filesize($path) === 0) {
+        return 'backup file missing before upload';
+    }
     $ch = curl_init('https://api.telegram.org/bot' . $apiKey . '/sendDocument');
     $fields = ['chat_id' => $chatId, 'document' => new CURLFile($path), 'caption' => $caption];
     if (!empty($threadId)) {
