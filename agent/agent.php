@@ -392,7 +392,69 @@ function agent_rules()
     $r .= "- IP کامل را به مشتری نگو؛ فقط کشور را بگو.\n";
     $r .= "- مشتری همین الان داخل همین ربات با تو حرف می‌زند؛ آیدی ربات را نده و بگو «در همین ربات».\n";
     $r .= agent_help_rules();
+    $r .= agent_guide_rules();
     return $r;
+}
+
+// ------------------------------------------------------------------ [agent-guides] picture guides
+// storage/agent/guides/<key>/guide.json = {"title": "...", "when": "...", "caption": "...", "images": ["step1.png", ...]}
+function agent_guides()
+{
+    $out = [];
+    foreach (glob(AGENT_DIR . '/guides/*/guide.json') ?: [] as $f) {
+        $g = json_decode((string) file_get_contents($f), true);
+        $key = basename(dirname($f));
+        if (!is_array($g) || empty($g['images']) || !preg_match('/^[a-z0-9_]+$/', $key))
+            continue;
+        $imgs = [];
+        foreach ((array) $g['images'] as $i) {
+            $path = dirname($f) . '/' . basename((string) $i);
+            if (is_file($path))
+                $imgs[] = $path;
+        }
+        if ($imgs)
+            $out[$key] = ['title' => (string) ($g['title'] ?? $key), 'when' => (string) ($g['when'] ?? ''),
+                'caption' => (string) ($g['caption'] ?? ''), 'images' => array_slice($imgs, 0, 10)];
+    }
+    ksort($out);
+    return $out;
+}
+
+function agent_guide_rules()
+{
+    $g = agent_guides();
+    if (!$g)
+        return '';
+    $r = "- آموزش تصویری: ابزار send_guide عکس‌های قدم‌به‌قدم را مستقیم همین‌جا برای مشتری می‌فرستد. وقتی مشتری آموزش نصب، تنظیم یا «وارد کردن/بارگذاری فیلدها» را می‌خواهد و یکی از این آموزش‌ها به سرویسش می‌خورد، اول send_guide را صدا بزن، بعد کوتاه بگو «آموزش تصویری را فرستادم» و مقدارهای مخصوص خودش را بگو (مثلاً یوزر سرویسش). برای درخواست آموزش هرگز handoff نکن؛ فقط اگر بعد از آموزش باز وصل نشد، طبق قواعد عیب‌یابی کن. آموزش‌های موجود:\n";
+    foreach ($g as $k => $x)
+        $r .= "  - {$k}: «{$x['title']}»" . ($x['when'] !== '' ? " — {$x['when']}" : '') . "\n";
+    return $r;
+}
+
+// Send one guide as a photo album; [ok, message for the model]
+function agent_send_guide($uid, $key)
+{
+    $g = agent_guides()[$key] ?? null;
+    if (!$g)
+        return 'no such guide; use one of: ' . implode(', ', array_keys(agent_guides()));
+    $media = [];
+    $data = ['chat_id' => $uid];
+    foreach ($g['images'] as $n => $path) {
+        $m = ['type' => 'photo', 'media' => "attach://p$n"];
+        if ($n === 0 && $g['caption'] !== '')
+            $m['caption'] = mb_substr($g['caption'], 0, 1000);
+        $media[] = $m;
+        $data["p$n"] = new CURLFile($path, 'image/png', "step$n.png");
+    }
+    $data['media'] = json_encode($media, JSON_UNESCAPED_UNICODE);
+    $r = count($media) === 1
+        ? telegram('sendPhoto', ['chat_id' => $uid, 'photo' => $data['p0'], 'caption' => $media[0]['caption'] ?? ''])
+        : telegram('sendMediaGroup', $data);
+    if (empty($r['ok'])) {
+        agent_log("guide $key failed: " . json_encode($r));
+        return 'sending failed; explain the steps in text instead';
+    }
+    return 'sent ' . count($media) . ' pictures of «' . $g['title'] . '»; now tell the customer briefly, do not repeat every step';
 }
 
 // What the bot's «📚 آموزش» section really holds, read from the help table.
@@ -431,6 +493,12 @@ function agent_tools()
         ['name' => 'report_outage', 'description' => 'Report a confirmed outage of our service/panel to the admin. Only after check_connection failed or the panel is down.',
             'input_schema' => ['type' => 'object', 'properties' => ['summary' => ['type' => 'string', 'description' => 'what is broken, in Persian']], 'required' => ['summary']]],
     ];
+    if ($guides = agent_guides()) {
+        $t[] = ['name' => 'send_guide', 'description' => 'Send a step-by-step picture guide to the customer in this chat.',
+            'input_schema' => ['type' => 'object', 'properties' => [
+                'guide' => ['type' => 'string', 'enum' => array_keys($guides)],
+            ], 'required' => ['guide']]];
+    }
     if (agent_probe_configured()) {
         $t[] = ['name' => 'check_connection',
             'description' => 'Really connect the given protocol from a filtered server inside Iran with a test account; returns tunnel up, exit IP country, and whether sites open. Takes up to 1-2 minutes.',
@@ -804,6 +872,9 @@ function agent_turn($uid, $text)
                 } else {
                     $res = 'not allowed: no failed test and the panel is up. Run check_connection first or guide the customer.';
                 }
+            } elseif ($b['name'] === 'send_guide') {
+                telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'upload_photo']);
+                $res = agent_send_guide($uid, (string) ($in['guide'] ?? ''));
             } elseif ($b['name'] === 'check_connection') {
                 agent_send($uid, '🔎 دارم اتصال سرویست را از سمت خودمان تست می‌کنم، حدود یک دقیقه صبر کن…');
                 telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
