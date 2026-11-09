@@ -381,7 +381,11 @@ function agent_rules()
     $r .= "- [دپارتمان] می‌گوید مشتری از کدام بخش پیام داده. موضوع مالی (پرداخت، شارژ کیف پول، بازگشت وجه، فاکتور، قیمت، تخفیف، نمایندگی) مال «پشتیبانی مالی» است و اتصال، کانفیگ، کندی و خرابی سرویس مال «پشتیبانی فنی». اگر مشتری بخش را اشتباه انتخاب کرده و کار به همکار می‌کشد، handoff را با department درست صدا بزن تا پیامش خودکار به همان بخش برود و به مشتری بگو «پیامت را به بخش مالی/فنی فرستادم، همین‌جا جواب می‌گیری». هرگز از مشتری نخواه دوباره از بخش دیگر پیام بدهد.\n";
     $r .= "- برای ارجاع به همکار ابزار handoff را صدا بزن (به‌جای نوشتن [[HANDOFF]]) و بعدش فقط یک جملهٔ کوتاه بگو که به همکار ارجاع شد.\n";
     if ($probe) {
-        $r .= "- ابزار check_connection سرویس را واقعاً از یک سرور داخل ایران با اکانت تست همان پروتکل وصل می‌کند و IP خروجی و باز شدن سایت‌ها را می‌سنجد. اولین باری که مشتری می‌گوید وصل نمی‌شود، وصل می‌شود ولی سایتی باز نمی‌شود، یا کند است (و همیشه در «گزارش اختلال»)، قبل از هر راهنمایی اول همین ابزار را صدا بزن؛ بعد بر اساس نتیجه راهنمایی کن. اگر مشکلش سایت خاصی است و اسمش را نگفته، یک بار بپرس کدام سایت، و همان را در sites بده.\n";
+        // [agent-acctprobe]
+        $r .= "- ابزار check_connection با «اکانت خودِ مشتری» (username) و همان پروتکلی که استفاده می‌کند از یک سرور داخل ایران واقعاً وصل می‌شود و IP خروجی و باز شدن سایت‌ها را می‌سنجد. وقتی مشتری می‌گوید وصل نمی‌شود، وصل می‌شود ولی سایتی باز نمی‌شود، یا کند است (و همیشه در «گزارش اختلال»)، قبل از هر راهنمایی این ابزار را صدا بزن و بعد بر اساس نتیجه راهنمایی کن. حتی اگر مشتری متن خطا را گفته یا عکسش را فرستاده (مثل auth failed یا TLS error)، باز هم اول تست کن و از روی متن خطا حدس نزن؛ تست نشان می‌دهد یوزر و رمزِ ثبت‌شدهٔ خودِ سرویس از ایران کار می‌کند یا نه. چیزی دربارهٔ تغییر رمز توسط مشتری نگو.\n";
+        $r .= "- قبل از تست بدان کدام سرویس: اگر فقط یک سرویس فعال دارد یا خودش یوزر را گفته یا [نوع درخواست] گزارش اختلال همان سرویس است، مستقیم تست کن؛ اگر چند سرویس فعال دارد، یک بار بپرس روی کدام یوزر/سرویس مشکل دارد و با کدام برنامه (V2Ray، OpenVPN، L2TP، WireGuard). یوزر را در username بده. اگر مشکلش سایت خاصی است و اسمش را نگفته، یک بار بپرس و در sites بده.\n";
+        $r .= "- سرویس‌های OpenVPN و L2TP فقط یک اتصال هم‌زمان دارند: اگر نتیجه customer_online بود، از مشتری بخواه برنامه را قطع کند و بعد از تأیید او دوباره با customer_disconnected=true تست کن. اگر سرویس منقضی/حجم‌تمام/غیرفعال بود تست نکن و همان را بگو (تمدید یا حجم اضافه).\n";
+        $r .= "- نتیجه با tested_with=customer_account: ok=true یعنی اکانت و سرور مشتری از ایران سالم کار می‌کند؛ مشکل سمت دستگاه/برنامه/نت مشتری است، پس قدم‌به‌قدم عیب‌یابی کن (آپدیت لینک/ساب، حذف و افزودن دوبارهٔ کانفیگ، نسخهٔ برنامه، تعویض نت یا سرور دیگر، ساعت گوشی). AUTH_FAILED یا خطای ورود یعنی یوزر/رمز درست وارد نشده: بگو رمز را دقیقاً از «سرویس‌های من» (کنار «لینک اتصال») کپی کند؛ این اختلال نیست. subscription_update=failed یعنی لینک اشتراک از ایران باز نمی‌شود. اگر اکانت مشتری با خطایی غیر از ورود شکست خورد، یک بار با use_test_account=true و همان پروتکل مقایسه کن: اکانت تست سالم = مشکل مخصوص اکانت مشتری (handoff فنی با جزئیات)، هر دو خراب = اختلال (report_outage). tested_with=our_test_account با note یعنی تست با اکانت خودمان بوده نه اکانت مشتری.\n";
         $r .= "- تفسیر نتیجه: ok=true یعنی سرویس از سمت ما سالم است؛ با مشتری عیب‌یابی کن (اپ، آپدیت لینک، نت، DNS، سرور یا لوکیشن دیگر). iran_exit=true (IP خروجی ایران است)، up=false یا باز نشدن سایت‌ها یعنی سرویس واقعاً مشکل دارد: report_outage را صدا بزن و به مشتری بگو اختلال از سمت ماست و در حال پیگیری است.\n";
         $r .= "- blocked_by_exit_country یعنی آن سایت را خود کشورِ آن لوکیشن فیلتر کرده (مثل یوتیوب در روسیه)؛ این اختلال نیست، بگو برای آن سایت لوکیشن دیگری انتخاب کند.\n";
         $r .= "- اگر تست ناموفق بود چون ابزار در دسترس نبود (error)، نتیجه‌گیری نکن و از روی راهنما جلو برو.\n";
@@ -618,9 +622,12 @@ function agent_tools()
     }
     if (agent_probe_configured()) {
         $t[] = ['name' => 'check_connection',
-            'description' => 'Really connect the given protocol from a filtered server inside Iran with a test account; returns tunnel up, exit IP country, and whether sites open. Takes up to 1-2 minutes.',
-            'input_schema' => ['type' => 'object', 'properties' => [
+            'description' => 'Really connect from a filtered server inside Iran WITH THE CUSTOMER\'S OWN ACCOUNT (username) and the protocol they use; returns tunnel up / auth error, exit IP country, and whether sites open. Takes 1-3 minutes. use_test_account=true tests our own test account instead (only to compare after the customer account failed).',
+            'input_schema' => ['type' => 'object', 'properties' => [   // [agent-acctprobe]
                 'protocol' => ['type' => 'string', 'enum' => ['v2ray', 'wireguard', 'openvpn', 'l2tp']],
+                'username' => ['type' => 'string', 'description' => 'the customer service username to test (from [اطلاعات سرویس] or what the customer said)'],
+                'customer_disconnected' => ['type' => 'boolean', 'description' => 'true once the customer confirmed the app is disconnected (OpenVPN/L2TP accounts allow one session)'],
+                'use_test_account' => ['type' => 'boolean'],
                 'sites' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'extra domains the customer named (max 3)'],
                 'location' => ['type' => 'string', 'description' => 'v2ray only: part of the location name to test'],
             ], 'required' => ['protocol']]];
@@ -678,7 +685,7 @@ function agent_probe_configured()
     return !empty($p['host']) && is_file(AGENT_DIR . '/probe_key');
 }
 
-function agent_probe($proto, array $sites, $location = '')
+function agent_probe($proto, array $sites, $location = '', array $acct = null)
 {
     $map = ['v2ray' => 'v2ray', 'wireguard' => 'wg', 'openvpn' => 'openvpn', 'l2tp' => 'l2tp'];
     if (!isset($map[$proto]))
@@ -700,8 +707,12 @@ function agent_probe($proto, array $sites, $location = '')
         $args[] = '--only';
         $args[] = $location;
     }
-    $ck = agent_dir('probe-cache') . '/' . md5(implode(' ', $args)) . '.json';
-    if (is_file($ck) && time() - filemtime($ck) < 300) {
+    if ($acct) {                     // [agent-acctprobe]
+        $args[] = '--cfg-stdin';
+        $args[] = '1';
+    }
+    $ck = agent_dir('probe-cache') . '/' . md5(implode(' ', $args) . '|' . ($acct['key'] ?? '')) . '.json';
+    if (is_file($ck) && time() - filemtime($ck) < ($acct ? 120 : 300)) {
         $j = json_decode((string) file_get_contents($ck), true);
         if (is_array($j))
             return $j;
@@ -715,7 +726,7 @@ function agent_probe($proto, array $sites, $location = '')
     }, $args));
     $cmd[] = $remote;
     $line = implode(' ', array_map('escapeshellarg', $cmd));
-    $out = agent_run_cmd($line, 200);
+    $out = agent_run_cmd($line, 260, $acct ? json_encode($acct['payload'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null);
     $j = json_decode(trim($out), true);
     if (!is_array($j) || isset($j['error'])) {
         agent_log('probe failed: ' . substr($out, 0, 200));
@@ -726,11 +737,18 @@ function agent_probe($proto, array $sites, $location = '')
     return $sum;
 }
 
-function agent_run_cmd($line, $timeout)
+function agent_run_cmd($line, $timeout, $stdin = null)
 {
-    $pr = proc_open($line, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    $spec = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+    if ($stdin !== null)
+        $spec[0] = ['pipe', 'r'];
+    $pr = proc_open($line, $spec, $pipes);
     if (!is_resource($pr))
         return '';
+    if ($stdin !== null) {           // [agent-acctprobe] the customer's account: stdin only, never argv
+        fwrite($pipes[0], $stdin);
+        fclose($pipes[0]);
+    }
     stream_set_blocking($pipes[1], false);
     $out = '';
     $t0 = time();
@@ -752,6 +770,202 @@ function agent_run_cmd($line, $timeout)
     return $out;
 }
 
+// ------------------------------------------------------------------ [agent-acctprobe] the customer's own account
+// check_connection entry: validate the username belongs to this Telegram user, build the account
+// payload from the panel, run the probe with it. The model only ever sees credential-free results.
+function agent_check_connection($uid, array $in)
+{
+    $proto = (string) ($in['protocol'] ?? '');
+    $sites = (array) ($in['sites'] ?? []);
+    $loc = (string) ($in['location'] ?? '');
+    if (!empty($in['use_test_account'])) {
+        agent_send($uid, '🔎 برای مقایسه، همین مسیر را با اکانت تست خودمان هم امتحان می‌کنم…');
+        telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
+        return ['tested_with' => 'our_test_account'] + agent_probe($proto, $sites, $loc);
+    }
+    $a = agent_customer_account($uid, (string) ($in['username'] ?? ''), $proto, !empty($in['customer_disconnected']));
+    if (isset($a['error']))
+        return $a;
+    if (!empty($a['fallback'])) {
+        agent_send($uid, '🔎 دارم اتصال سرویست را از سمت خودمان تست می‌کنم، حدود یک دقیقه صبر کن…');
+        telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
+        return ['tested_with' => 'our_test_account', 'note' => $a['fallback']] + agent_probe($proto, $sites, $loc);
+    }
+    agent_send($uid, '🔎 دارم با همین اکانت تو (' . $a['username'] . ') و پروتکل ' . agent_proto_label($a['proto']) . ' از یک سرور داخل ایران وصل می‌شوم و تست می‌کنم، ۱ تا ۲ دقیقه صبر کن…');
+    telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
+    agent_log("acct probe uid=$uid user={$a['username']} proto={$a['proto']}");
+    $r = agent_probe($a['proto'], $sites, $loc, ['payload' => $a['payload'], 'key' => $a['username']]);
+    return ['username' => $a['username']] + $r;
+}
+
+function agent_proto_label($p)
+{
+    return ['v2ray' => 'V2Ray', 'wireguard' => 'WireGuard', 'openvpn' => 'OpenVPN', 'l2tp' => 'L2TP'][$p] ?? $p;
+}
+
+// -> ['username','proto','payload'] | ['error'=>..] | ['fallback'=>note]
+function agent_customer_account($uid, $username, $proto, $disconnected)
+{
+    global $pdo, $ManagePanel;
+    $in = implode(',', array_fill(0, count(AGENT_ACTIVE_STATUSES), '?'));
+    $st = $pdo->prepare("SELECT username, Service_location FROM invoice WHERE id_user = ? AND Status IN ($in) ORDER BY time_sell DESC");
+    $st->execute(array_merge([$uid], AGENT_ACTIVE_STATUSES));
+    $mine = $st->fetchAll(PDO::FETCH_ASSOC);
+    if (!$mine)
+        return ['error' => 'no active service in this account: do not test, say technical support is only for active services of this account'];
+    $username = strtolower(trim(preg_replace('/\s+/u', '', $username)));
+    $row = null;
+    foreach ($mine as $m) {
+        if ($username !== '' && strtolower($m['username']) === $username)
+            $row = $m;
+    }
+    if (!$row && $username === '' && count($mine) === 1)
+        $row = $mine[0];
+    if (!$row) {
+        $list = array_map(function ($m) {
+            return $m['username'] . ' (' . $m['Service_location'] . ')';
+        }, array_slice($mine, 0, 8));
+        return ['error' => ($username === '' ? 'ask which service/username has the problem' : 'this username is not an active service of this customer; ask again') . '. Active services: ' . implode(', ', $list)];
+    }
+    $user = $row['username'];
+    $panel = select('marzban_panel', '*', 'name_panel', $row['Service_location'], 'select');
+    if (!is_array($panel))
+        return ['fallback' => 'this service has no panel connected to the bot, so it was tested with our test account (not the customer\'s)'];
+    if (!isset($ManagePanel) && class_exists('ManagePanel'))
+        $ManagePanel = new ManagePanel();
+    $d = $ManagePanel->DataUser($row['Service_location'], $user);
+    if (!is_array($d) || ($d['status'] ?? '') === 'Unsuccessful')
+        return ['error' => 'could not read this service from the panel (' . substr((string) ($d['msg'] ?? 'no answer'), 0, 60) . '); do not conclude an outage from this alone'];
+    $status = strtolower((string) ($d['status'] ?? ''));
+    if (in_array($status, ['expired', 'limited', 'disabled', 'deactive', 'inactive', 'false', '0'], true) || $status === '')
+        return ['error' => 'service is not active on the panel (status: ' . ($status ?: 'off') . '); no test needed: tell the customer (renew / contact support)'];
+    if (!empty($d['expire']) && $d['expire'] < time())
+        return ['error' => 'service expired; no test needed: tell the customer to renew'];
+    if (!empty($d['data_limit']) && ($d['used_traffic'] ?? 0) >= $d['data_limit'])
+        return ['error' => 'service volume is used up; no test needed: tell the customer to buy extra volume or renew'];
+
+    $type = (string) $panel['type'];
+    if ($type === 'cloudius') {
+        $def = preg_match('/l2tp/i', $row['Service_location']) ? 'l2tp' : 'openvpn';
+        $proto = in_array($proto, ['openvpn', 'l2tp'], true) ? $proto : $def;
+        if (($d['online_at'] ?? null) === 'online' && !$disconnected)
+            return ['error' => 'customer_online: this account allows one connection and it is connected right now. Ask the customer to disconnect the app, then call again with customer_disconnected=true'];
+        $pass = trim((string) ($d['subscription_url'] ?? ''));
+        if ($pass === '')
+            return ['fallback' => 'no password stored for this account; tested with our test account'];
+        $ppp = ['username' => (string) ($d['username'] ?? $user), 'password' => $pass];
+        if ($proto === 'l2tp') {
+            $l = agent_l2tp_server();
+            if (!$l)
+                return ['fallback' => 'L2TP server/secret unknown to the bot; tested with our test account'];
+            return ['username' => $user, 'proto' => 'l2tp', 'payload' => ['ppp' => $ppp + $l]];
+        }
+        $files = agent_ovpn_files();
+        if (!$files)
+            return ['fallback' => 'no OpenVPN server files in the bot help section; tested with our test account'];
+        return ['username' => $user, 'proto' => 'openvpn', 'payload' => ['ppp' => $ppp, 'ovpn' => $files]];
+    }
+    if ($type === 'drproxy' && is_file(dirname(__DIR__) . '/panels/Api/drproxy.php')) {
+        require_once dirname(__DIR__) . '/panels/Api/drproxy.php';
+        $r = drproxy_call($panel, 'GET', '/users/' . rawurlencode(strtolower($user)));
+        $u = $r['ok'] ? ($r['obj']['user'] ?? []) : [];
+        if (!$u)
+            return ['error' => 'could not read this service from the panel; do not conclude an outage from this alone'];
+        $sub = (string) ($u['sub_url'] ?? '');
+        $proto = in_array($proto, ['v2ray', 'wireguard', 'openvpn', 'l2tp'], true) ? $proto : 'v2ray';
+        $svc = array_map('strtolower', (array) ($u['services'] ?? []));
+        $need = ['v2ray' => 'v2ray', 'wireguard' => 'wg', 'openvpn' => 'openvpn', 'l2tp' => 'l2tp'][$proto];
+        if ($svc && !in_array($need, $svc, true))
+            return ['error' => 'this service does not include ' . agent_proto_label($proto) . ' (it has: ' . implode(', ', $svc) . '); guide the customer to a protocol the service has'];
+        $ppp = (array) ($u['ppp'] ?? []);
+        if ($proto === 'v2ray')
+            return ['username' => $user, 'proto' => 'v2ray', 'payload' => ['sub_url' => $sub, 'links' => agent_fetch_links($sub)]];
+        if ($proto === 'l2tp')
+            return empty($ppp['username']) ? ['error' => 'no L2TP login on this service'] : ['username' => $user, 'proto' => 'l2tp', 'payload' => ['ppp' => $ppp]];
+        // the DrProxy API gives no WireGuard/OpenVPN client file to the bot: compare with our test account
+        return ['fallback' => 'the bot cannot fetch this service\'s ' . agent_proto_label($proto) . ' file, so it was tested with our test account (not the customer\'s)'];
+    }
+    // Marzban / x-ui / other V2Ray panels: the subscription link (+ any direct links the panel gave)
+    $sub = (string) ($d['subscription_url'] ?? '');
+    $links = array_values(array_filter((array) ($d['links'] ?? []), function ($l) {
+        return is_string($l) && preg_match('#^(vless|vmess|trojan)://#', $l);
+    }));
+    if (!preg_match('#^https?://#', $sub) && !$links)
+        return ['fallback' => 'no subscription link for this service; tested with our test account'];
+    if (!$links && preg_match('#^https?://#', $sub))
+        $links = agent_fetch_links($sub);
+    return ['username' => $user, 'proto' => 'v2ray', 'payload' => ['sub_url' => preg_match('#^https?://#', $sub) ? $sub : '', 'links' => $links]];
+}
+
+function agent_http_get($url, $ua = 'v2rayNG/1.8.19', $timeout = 20)
+{
+    if (!preg_match('#^https?://#', $url))
+        return '';
+    for ($i = 0; $i < 2; $i++) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3,
+            CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_TIMEOUT => $timeout, CURLOPT_USERAGENT => $ua]);
+        $b = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if (is_string($b) && $code == 200 && $b !== '')
+            return $b;
+    }
+    return '';
+}
+
+// V2Ray links of a subscription as the bot sees it (the probe also fetches it itself from Iran).
+function agent_fetch_links($url)
+{
+    $b = agent_http_get($url);
+    if ($b === '')
+        return [];
+    $t = base64_decode(preg_replace('/\s+/', '', $b), true);
+    $t = ($t !== false && preg_match('#(vless|vmess|trojan)://#', $t)) ? $t : $b;
+    preg_match_all('#^(?:vless|vmess|trojan)://\S+#m', $t, $m);
+    return array_slice($m[0], 0, 40);
+}
+
+// OpenVPN server files the bot hands out in its help section (Telegram documents), cached for a day.
+function agent_ovpn_files()
+{
+    global $pdo, $APIKEY;
+    $out = [];
+    $st = $pdo->query("SELECT name_os, Media_os FROM help WHERE type_Media_os = 'document' AND (LOWER(category) LIKE '%openvpn%' OR LOWER(name_os) LIKE '%openvpn%') ORDER BY name_os");
+    foreach (($st ? $st->fetchAll(PDO::FETCH_NUM) : []) as $row) {
+        [$name, $fid] = $row;
+        $ck = agent_dir('ovpn-cache') . '/' . md5($fid) . '.ovpn';
+        if (!is_file($ck) || time() - filemtime($ck) > 86400) {
+            $g = telegram('getFile', ['file_id' => $fid]);
+            $p = $g['result']['file_path'] ?? '';
+            if (!$p || !preg_match('/\.ovpn$/i', $p) || ($g['result']['file_size'] ?? 0) > 200000)
+                continue;
+            $b = agent_http_get('https://api.telegram.org/file/bot' . $APIKEY . '/' . $p, 'Mirza', 20);
+            if (strpos($b, 'remote') === false)
+                continue;
+            file_put_contents($ck, $b);
+            @chmod($ck, 0600);
+        }
+        $out[] = ['name' => mb_substr(preg_replace('/^.*?(S\d+)\s*$/u', '$1', trim($name)), 0, 40), 'text' => (string) file_get_contents($ck)];
+        if (count($out) >= 6)
+            break;
+    }
+    return $out;
+}
+
+// L2TP server + pre-shared key: agent config first, else the public values in the after-purchase text.
+function agent_l2tp_server()
+{
+    $c = agent_cfg()['l2tp'] ?? [];
+    if (!empty($c['server']) && !empty($c['psk']))
+        return ['server' => $c['server'], 'l2tp_psk' => $c['psk']];
+    global $pdo;
+    $t = (string) $pdo->query("SELECT text FROM textbot WHERE id_text = 'textafterpayibsng'")->fetchColumn();
+    if (preg_match('/L2TP[^\n=]*=\s*([a-z0-9.-]+\.[a-z]{2,})/iu', $t, $s) && preg_match('/Secret[^\n=]*=\s*(\S+)/iu', $t, $k))
+        return ['server' => $s[1], 'l2tp_psk' => $k[1]];
+    return null;
+}
+
 // Small, model-friendly result: no IPs, no secrets.
 function agent_probe_summary($proto, array $r, array $asked)
 {
@@ -770,17 +984,26 @@ function agent_probe_summary($proto, array $r, array $asked)
         }
         return $s;
     };
+    $extra = [];                     // [agent-acctprobe]
+    if (!empty($r['account']))
+        $extra['tested_with'] = 'customer_account';
+    if (!empty($r['server']))
+        $extra['server'] = $r['server'];
+    if (!empty($r['servers_tried']))
+        $extra['servers_tried'] = $r['servers_tried'];
+    if (isset($r['sub_fetch']))
+        $extra['subscription_update'] = !empty($r['sub_fetch']['ok']) ? 'ok' : 'failed (' . ($r['sub_fetch']['err'] ?? ('HTTP ' . ($r['sub_fetch']['code'] ?? 0))) . ')';
     if ($proto === 'v2ray') {
         $locs = [];
         foreach (($r['by_location'] ?? []) as $name => $x)
             $locs[$name] = $one($x);
         return ['protocol' => 'v2ray', 'ok' => (bool) ($r['ok'] ?? false), 'up' => (bool) ($r['up'] ?? false),
             'locations_ok' => $r['locations_ok'] ?? 0, 'locations' => $r['locations'] ?? 0, 'by_location' => $locs]
-            + (!empty($r['err']) ? ['error' => $r['err']] : []) + (!empty($r['skip']) ? ['error' => 'not testable: ' . $r['skip']] : []);
+            + (!empty($r['err']) ? ['error' => $r['err']] : []) + (!empty($r['skip']) ? ['error' => 'not testable: ' . $r['skip']] : []) + $extra;
     }
     if (!empty($r['skip']))
-        return ['protocol' => $proto, 'error' => 'not testable: ' . $r['skip']];
-    return ['protocol' => $proto] + $one($r);
+        return ['protocol' => $proto, 'error' => 'not testable: ' . $r['skip']] + $extra;
+    return ['protocol' => $proto] + $one($r) + $extra;
 }
 
 // ------------------------------------------------------------------ escalation
@@ -998,9 +1221,7 @@ function agent_turn($uid, $text)
                 telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'upload_photo']);
                 $res = agent_send_guide($uid, (string) ($in['guide'] ?? ''));
             } elseif ($b['name'] === 'check_connection') {
-                agent_send($uid, '🔎 دارم اتصال سرویست را از سمت خودمان تست می‌کنم، حدود یک دقیقه صبر کن…');
-                telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
-                $res = agent_probe((string) ($in['protocol'] ?? ''), (array) ($in['sites'] ?? []), (string) ($in['location'] ?? ''));
+                $res = agent_check_connection($uid, $in);   // [agent-acctprobe]
                 $c['probes'][] = $res;
                 $res = json_encode($res, JSON_UNESCAPED_UNICODE);
             } else {
