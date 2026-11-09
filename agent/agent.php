@@ -390,6 +390,8 @@ function agent_rules()
         $r .= "- نتیجه با tested_with=customer_account: ok=true یعنی اکانت و سرور مشتری از ایران سالم کار می‌کند؛ مشکل سمت دستگاه/برنامه/نت مشتری است، پس قدم‌به‌قدم عیب‌یابی کن (آپدیت لینک/ساب، حذف و افزودن دوبارهٔ کانفیگ، نسخهٔ برنامه، تعویض نت یا سرور دیگر، ساعت گوشی). AUTH_FAILED با tested_with=customer_account یعنی خودِ یوزر و رمزِ ثبت‌شدهٔ مشتری (همان که در «سرویس‌های من» می‌بیند) روی سرور رد شد؛ این تقصیر تایپ مشتری نیست، پس به او نگو رمز را اشتباه زده: یک بار با use_test_account=true مقایسه کن؛ اگر اکانت تست وصل شد، مشکل مخصوص اکانت اوست (رمز/یوزر در سرور با ربات یکی نیست) و با handoff به پشتیبانی فنی بده، اگر اکانت تست هم رد شد report_outage. subscription_update=failed یعنی لینک اشتراک از ایران باز نمی‌شود. اگر اکانت مشتری با خطایی غیر از ورود شکست خورد، یک بار با use_test_account=true و همان پروتکل مقایسه کن: اکانت تست سالم = مشکل مخصوص اکانت مشتری (handoff فنی با جزئیات)، هر دو خراب = اختلال (report_outage). tested_with=our_test_account با note یعنی تست با اکانت خودمان بوده نه اکانت مشتری.\n";
         // [agent-authfix]
         $r .= "- خطای ورود (مشتری می‌گوید یوزر/رمز را درست زدم ولی auth failed، «نام کاربری یا رمز اشتباه است»، ): اسکرین‌شات نخواه و از مشتری نپرس، همان اول check_connection را با یوزر خودش صدا بزن (این تست تعیین‌کننده است و قاعدهٔ «اول اسکرین‌شات» برای خطای یوزر/رمز اجرا نمی‌شود). اگر تست با اکانت خودش ok=true شد یعنی یوزر و رمزِ ثبت‌شده همین الان از ایران کار می‌کند و مشکل فقط در تایپ آن‌هاست؛ صریح بگو «اکانتت را همین الان تست کردم و با یوزر و رمز درست وصل شد، پس یوزر یا رمز در برنامه اشتباه وارد شده» و این را عیب دستگاه، اختلال یا کار پشتیبان نکن. بعد قدم‌به‌قدم بگو: ۱) نام کاربری دقیقاً همان یوزرِ سرویس است (همان که در [اطلاعات سرویس] آمده، بدون پیشوند مثل openvpn یا اسم فایل و بدون فاصله)؛ ۲) رمز را از «سرویس‌های من» همان سرویس کپی کند نه تایپ، و فاصلهٔ اول/آخر نداشته باشد؛ ۳) اگر تایپ می‌کند کیبورد انگلیسی باشد و عدد فارسی نزند، حروف کوچک/بزرگ مهم است؛ ۴) در OpenVPN Connect پروفایل را باز کند (آیکون مداد/Edit)، Username و Password را پاک کند و دوباره وارد کند و Save password را بزند. در همین جواب یوزر را عیناً بنویس (به شکل «نام کاربری: » و بعد یوزرِ همین سرویس از [اطلاعات سرویس])، ولی رمز را هرگز در چت ننویس. اگر بعد از این باز همان خطا را داد، یک اسکرین‌شات از صفحهٔ ویرایش پروفایل (بدون رمز) بخواه.\n";
+        // [agent-radlog]
+        $r .= "- سرویس‌های OpenVPN و L2TP (از جمله بخش OpenVPN/L2TP سرویس‌های Magic MAX) روی سرور ورود ما ساخته می‌شوند و هر ورودِ ردشده‌شان ثبت می‌شود؛ پس برای هر شکایت اتصالِ OpenVPN یا L2TP، از همان جواب اول check_connection را بزن و قبل از آن اسکرین‌شات یا متن خطا نخواه (اسکرین‌شات فقط اگر بعد از راهنمایی باز وصل نشد). نتیجه login_log دارد: تلاش‌های ردشدهٔ همین مشتری در ۴۸ ساعت اخیر با verdict فارسی هر ردیف. verdict را دنبال کن، چون از روی لاگ واقعی و در کد حساب شده و دقیق‌ترین سند است: یوزر اشتباه تایپ شده → دقیقاً بگو چه زده و درستش چیست؛ فقط رمز اشتباه → بگو یوزرت درست است و رمز را کپی کن؛ سمت ما → handoff فنی بدون مقصر کردن مشتری. رمز را هرگز ننویس و جواب همیشه فارسی است، حتی اگر نتیجهٔ ابزار انگلیسی باشد.\n";
         $r .= "- تفسیر نتیجه: ok=true یعنی سرویس از سمت ما سالم است؛ با مشتری عیب‌یابی کن (اپ، آپدیت لینک، نت، DNS، سرور یا لوکیشن دیگر). iran_exit=true (IP خروجی ایران است)، up=false یا باز نشدن سایت‌ها یعنی سرویس واقعاً مشکل دارد: report_outage را صدا بزن و به مشتری بگو اختلال از سمت ماست و در حال پیگیری است.\n";
         $r .= "- blocked_by_exit_country یعنی آن سایت را خود کشورِ آن لوکیشن فیلتر کرده (مثل یوتیوب در روسیه)؛ این اختلال نیست، بگو برای آن سایت لوکیشن دیگری انتخاب کند.\n";
         $r .= "- اگر تست ناموفق بود چون ابزار در دسترس نبود (error)، نتیجه‌گیری نکن و از روی راهنما جلو برو.\n";
@@ -514,7 +516,7 @@ function agent_send_photos($chat, array $ids)
 
 function agent_photo_rules()
 {
-    $r = "- تو عکس را می‌بینی و می‌خوانی. وقتی مشتری از خطا یا مشکل اتصال می‌گوید (وصل نمی‌شود، ارور می‌دهد، تایم‌اوت، رمز/یوزر را قبول نمی‌کند، لینک اضافه نمی‌شود) و نه عکسی فرستاده و نه متن دقیق خطا را نوشته، قبل از هر کار دیگر (حتی قبل از check_connection) فقط در یک پیام کوتاه بخواه از صفحهٔ برنامه، همان لحظه‌ای که خطا را نشان می‌دهد، اسکرین‌شات بگیرد و همین‌جا بفرستد؛ مثلاً «لطفاً از صفحهٔ خطای برنامه اسکرین‌شات بگیر و همین‌جا بفرست تا دقیق ببینم مشکل چیست.» اگر بلد نیست، یک خط بگو: اندروید معمولاً دکمهٔ پاور + کم‌کردن صدا، آیفون دکمهٔ کناری + زیاد کردن صدا. این را فقط یک بار بخواه؛ اگر گفت نمی‌تواند یا نمی‌خواهد، بدون عکس ادامه بده.\n";
+    $r = "- تو عکس را می‌بینی و می‌خوانی. [agent-radlog] استثنا: اگر سرویسِ مورد شکایت OpenVPN یا L2TP است (پنل OpenVPN/L2TP، یا مشتری از OpenVPN/L2TP سرویس Magic MAX می‌گوید)، این قاعده اجرا نمی‌شود: همان اول check_connection را بزن، چون لاگ ورود سرور ما دقیق‌تر از عکس است؛ عکس را فقط اگر بعد از راهنمایی باز وصل نشد بخواه. برای بقیهٔ پروتکل‌ها: وقتی مشتری از خطا یا مشکل اتصال می‌گوید (وصل نمی‌شود، ارور می‌دهد، تایم‌اوت، رمز/یوزر را قبول نمی‌کند، لینک اضافه نمی‌شود) و نه عکسی فرستاده و نه متن دقیق خطا را نوشته، قبل از هر کار دیگر (حتی قبل از check_connection) فقط در یک پیام کوتاه بخواه از صفحهٔ برنامه، همان لحظه‌ای که خطا را نشان می‌دهد، اسکرین‌شات بگیرد و همین‌جا بفرستد؛ مثلاً «لطفاً از صفحهٔ خطای برنامه اسکرین‌شات بگیر و همین‌جا بفرست تا دقیق ببینم مشکل چیست.» اگر بلد نیست، یک خط بگو: اندروید معمولاً دکمهٔ پاور + کم‌کردن صدا، آیفون دکمهٔ کناری + زیاد کردن صدا. این را فقط یک بار بخواه؛ اگر گفت نمی‌تواند یا نمی‌خواهد، بدون عکس ادامه بده.\n";
     $r .= "- وقتی عکس رسید: نام برنامه، متن خطا (مثل AUTH_FAILED، timeout، TLS handshake، connection refused، invalid config)، وضعیت اتصال، سرور یا لوکیشن انتخاب‌شده و فیلدهای پرشده را از عکس بخوان. در یک جمله بگو چه دیدی و دقیقاً بر اساس همان راهنمایی کن (اگر یوزر/رمز یا آدرس اشتباه تایپ شده، بگو کدام فیلد اشتباه است). اگر مشکل اتصال است و هنوز تست نکرده‌ای، check_connection را هم صدا بزن. اگر عکس ناخوانا یا بی‌ربط است، بگو و یک بار دیگر بخواه.\n";
     $r .= "- رمز کامل، لینک کامل اشتراک، شماره کارت یا هر اطلاعات حساسی را که در عکس می‌بینی در جوابت تکرار نکن.\n";
     $r .= "- ویدیو، ویس و فایل غیرعکس را نمی‌بینی؛ ربات خودش به مشتری می‌گوید اسکرین‌شات بفرستد.\n";
@@ -787,19 +789,86 @@ function agent_check_connection($uid, array $in)
         telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
         return ['tested_with' => 'our_test_account'] + agent_probe($proto, $sites, $loc);
     }
+    $GLOBALS['agent_login_user'] = '';   // [agent-radlog] set by agent_customer_account for OpenVPN/L2TP logins
     $a = agent_customer_account($uid, (string) ($in['username'] ?? ''), $proto, !empty($in['customer_disconnected']));
+    $ll = agent_login_errors($GLOBALS['agent_login_user'], !isset($a['error']) || strpos($a['error'], 'customer_online') === 0);
     if (isset($a['error']))
-        return $a;
+        return $a + $ll;
     if (!empty($a['fallback'])) {
         agent_send($uid, '🔎 دارم اتصال سرویست را از سمت خودمان تست می‌کنم، حدود یک دقیقه صبر کن…');
         telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
-        return ['tested_with' => 'our_test_account', 'note' => $a['fallback']] + agent_probe($proto, $sites, $loc);
+        return ['tested_with' => 'our_test_account', 'note' => $a['fallback']] + $ll + agent_probe($proto, $sites, $loc);
     }
     agent_send($uid, '🔎 دارم با همین اکانت تو (' . $a['username'] . ') و پروتکل ' . agent_proto_label($a['proto']) . ' از یک سرور داخل ایران وصل می‌شوم و تست می‌کنم، ۱ تا ۲ دقیقه صبر کن…');
     telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
     agent_log("acct probe uid=$uid user={$a['username']} proto={$a['proto']}");
     $r = agent_probe($a['proto'], $sites, $loc, ['payload' => $a['payload'], 'key' => $a['username']]);
-    return ['username' => $a['username']] + $r;
+    return ['username' => $a['username']] + $ll + $r;
+}
+
+// [agent-radlog] rejected logins of this login name (and near-miss spellings) on our Cloudius server
+function agent_ago($ts)
+{
+    $m = max(0, intdiv(time() - (int) $ts, 60));
+    return $m < 60 ? $m . ' min ago' : ($m < 2880 ? intdiv($m, 60) . ' h ago' : intdiv($m, 1440) . ' days ago');
+}
+
+function agent_login_errors($login, $active = true)
+{
+    global $pdo;
+    $login = trim((string) $login);
+    if ($login === '' || !isset($pdo))
+        return [];
+    try {
+        $s = $pdo->query('SELECT MAX(seen) seen, MAX(newest) newest FROM agent_radlog_state')->fetch(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        return [];                                   // collector never ran (agent off / no Cloudius panel)
+    }
+    if (!$s || (int) $s['seen'] < time() - 600)
+        return ['login_log' => 'unavailable (login log collector is not running); decide from the test result'];
+    $lo = strtolower($login);
+    // candidate rows: share a prefix of one of the two longest name parts (catches dropped/extra characters)
+    $likes = [];
+    if (preg_match_all('/[a-z0-9]{4,}/', $lo, $m)) {
+        usort($m[0], function ($a, $b) { return strlen($b) - strlen($a); });
+        foreach (array_slice($m[0], 0, 2) as $w)
+            $likes[] = '%' . substr($w, 0, max(4, strlen($w) - 2)) . '%';
+    }
+    if (!$likes)
+        $likes[] = '%' . $lo . '%';
+    $st = $pdo->prepare("SELECT username, reason, SUM(cnt) c, MIN(first_ts) f, MAX(last_ts) l,
+        SUBSTRING_INDEX(GROUP_CONCAT(nas ORDER BY last_ts DESC), ',', 1) nas
+        FROM agent_radlog WHERE last_ts >= ? AND (" . implode(' OR ', array_fill(0, count($likes), 'LOWER(username) LIKE ?')) . ")
+        GROUP BY username, reason ORDER BY l DESC LIMIT 80");
+    $st->execute(array_merge([time() - 48 * 3600], $likes));
+    $out = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $u = (string) $r['username'];
+        $ul = strtolower($u);
+        $same = $u === $login;
+        $near = !$same && ($ul === $lo || ($lo !== '' && strpos($ul, $lo) !== false)
+            || (strlen($ul) >= strlen($lo) - 3 && strpos($lo, trim($ul)) !== false) || levenshtein(trim($ul), $lo) <= 2);
+        if (!$same && !($near && $r['reason'] === 'username_not_found'))
+            continue;                                 // someone else's account: never shown
+        $why = ['wrong_password' => 'رمز اشتباه', 'username_not_found' => 'چنین یوزری وجود ندارد', 'expired' => 'سرویس منقضی', 'no_traffic' => 'حجم تمام'][$r['reason']] ?? 'خطای دیگر';
+        if (!$same)
+            $v = "یوزر را اشتباه تایپ کرده: «{$u}» زده ولی یوزر درست «{$login}» است. دقیقاً فرق این دو را به مشتری بگو و یوزر درست را بده. خودت حلش کن، ارجاع نده.";
+        elseif ($r['reason'] === 'wrong_password')
+            $v = 'یوزر را درست زده و فقط رمز اشتباه است. بگو رمز را از «سرویس‌های من» کپی کند. خودت حلش کن، ارجاع نده.';
+        elseif ($active)
+            $v = "سرور ورود یوزرِ درست را رد کرده ({$why}) در حالی که سرویس در ربات فعال است: مشکل سمت ماست، تقصیر مشتری نیست. به مشتری نگو اشتباه زده؛ با handoff به پشتیبانی فنی بده و این دلیل را بنویس.";
+        else
+            $v = "سرور ورود یوزر را رد کرده ({$why}) و سرویس واقعاً فعال نیست: تمدید یا خرید حجم.";
+        $out[] = ['typed_username' => $u, 'reason' => $r['reason'], 'times' => (int) $r['c'],
+            'last' => agent_ago($r['l']), 'server' => $r['nas'], 'verdict' => $v];
+        if (count($out) >= 8)
+            break;
+    }
+    return ['login_log' => ['login_username' => $login, 'source' => 'our login server, last 48 hours; only REJECTED logins are recorded (successful ones are not)',
+        'log_covers_until' => agent_ago($s['newest']) . ' (the login server writes this log about 30 minutes late; a reject newer than this is not visible yet)',
+        'rejects' => $out ?: 'none',
+        'verdict' => $out ? 'جواب را بر اساس verdict جدیدترین ردیف بده (last).' : 'در ۴۸ ساعت اخیر هیچ ورود ناموفقی با این یوزر یا شبیهش به سرور ما نرسیده (به جز ۳۰ دقیقهٔ آخر که هنوز در لاگ نیامده). پس مشکل احتمالاً یوزر/رمز نیست؛ از روی نتیجهٔ تست راهنمایی کن و نگو یوزر یا رمز اشتباه است.',
+        'reply_language' => 'Persian only: answer the customer in simple Persian (فارسی), never in English']];
 }
 
 function agent_proto_label($p)
@@ -849,6 +918,8 @@ function agent_customer_account($uid, $username, $proto, $disconnected)
         return ['error' => 'service volume is used up; no test needed: tell the customer to buy extra volume or renew'];
 
     $type = (string) $panel['type'];
+    if ($type === 'cloudius')
+        $GLOBALS['agent_login_user'] = (string) ($d['username'] ?? $user);   // [agent-radlog]
     if ($type === 'cloudius') {
         $def = preg_match('/l2tp/i', $row['Service_location']) ? 'l2tp' : 'openvpn';
         $proto = in_array($proto, ['openvpn', 'l2tp'], true) ? $proto : $def;
@@ -882,6 +953,8 @@ function agent_customer_account($uid, $username, $proto, $disconnected)
         if ($svc && !in_array($need, $svc, true))
             return ['error' => 'this service does not include ' . agent_proto_label($proto) . ' (it has: ' . implode(', ', $svc) . '); guide the customer to a protocol the service has'];
         $ppp = (array) ($u['ppp'] ?? []);
+        if (in_array($proto, ['openvpn', 'l2tp'], true) && !empty($ppp['username']))
+            $GLOBALS['agent_login_user'] = (string) $ppp['username'];   // [agent-radlog] Magic MAX OpenVPN/L2TP login lives on Cloudius
         if ($proto === 'v2ray')
             return ['username' => $user, 'proto' => 'v2ray', 'payload' => ['sub_url' => $sub, 'links' => agent_fetch_links($sub)]];
         if ($proto === 'l2tp')
