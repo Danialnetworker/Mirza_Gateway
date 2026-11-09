@@ -391,8 +391,125 @@ function agent_rules()
 ";
     $r .= "- IP کامل را به مشتری نگو؛ فقط کشور را بگو.\n";
     $r .= "- مشتری همین الان داخل همین ربات با تو حرف می‌زند؛ آیدی ربات را نده و بگو «در همین ربات».\n";
+    $r .= agent_photo_rules();    // [agent-photo]
     $r .= agent_help_rules();
     $r .= agent_guide_rules();
+    return $r;
+}
+
+// ------------------------------------------------------------------ [agent-photo] customer screenshots
+// A photo (or an image sent as a file) is queued as "[[IMG:<file_id>]] caption". Only the Telegram
+// file_id is kept on disk; the picture is fetched for the model call and never stored.
+const AGENT_IMG_RE = '/\[\[IMG:([A-Za-z0-9_-]+)\]\]/';
+
+// Inbox entry for a photo message, '' when it is not an image the agent can read.
+function agent_media_msg($photo, $document, $caption)
+{
+    $id = '';
+    if (is_array($photo) && $photo) {
+        $big = end($photo);                  // Telegram lists sizes small -> large
+        $id = (string) ($big['file_id'] ?? '');
+    } elseif (is_array($document) && preg_match('#^image/(jpeg|png|webp|gif)$#', (string) ($document['mime_type'] ?? ''))
+        && (int) ($document['file_size'] ?? 0) <= 5000000) {
+        $id = (string) ($document['file_id'] ?? '');
+    }
+    if ($id === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $id))
+        return '';
+    return trim('[[IMG:' . $id . ']] ' . trim((string) $caption));
+}
+
+// Telegram file -> Anthropic image block, null on any failure.
+function agent_image_block($fileId)
+{
+    global $APIKEY;
+    $f = telegram('getFile', ['file_id' => $fileId]);
+    $path = (string) ($f['result']['file_path'] ?? '');
+    if ($path === '' || (int) ($f['result']['file_size'] ?? 0) > 5000000)
+        return null;
+    $ch = curl_init(AGENT_TG_FILE_BASE . $APIKEY . '/' . $path);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_CONNECTTIMEOUT => 10]);
+    $raw = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code !== 200 || !is_string($raw) || $raw === '' || strlen($raw) > 5000000)
+        return null;
+    $info = @getimagesizefromstring($raw);
+    $mime = is_array($info) ? (string) ($info['mime'] ?? '') : '';
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true))
+        return null;
+    return ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $mime, 'data' => base64_encode($raw)]];
+}
+if (!defined('AGENT_TG_FILE_BASE'))
+    define('AGENT_TG_FILE_BASE', 'https://api.telegram.org/file/bot');
+
+// User turn content: up to 4 pictures, then the text with each tag replaced by a short label.
+function agent_user_content($text)
+{
+    if (!preg_match(AGENT_IMG_RE, $text))
+        return $text;
+    $blocks = [];
+    $text = preg_replace_callback(AGENT_IMG_RE, function ($m) use (&$blocks) {
+        $b = count($blocks) < 4 ? agent_image_block($m[1]) : null;
+        if (!$b) {
+            agent_log('photo fetch failed');
+            return '[مشتری عکسی فرستاد که باز نشد؛ اگر لازم است بخواه دوباره بفرستد]';
+        }
+        $blocks[] = $b;
+        return '[عکس ' . count($blocks) . ' از مشتری، پیوست]';
+    }, $text);
+    $blocks[] = ['type' => 'text', 'text' => $text];
+    return $blocks;
+}
+
+// Pictures are sent once; the saved history keeps a label so old turns are not re-billed.
+function agent_strip_images(array $msgs)
+{
+    foreach ($msgs as &$m) {
+        if (!is_array($m['content'] ?? null))
+            continue;
+        foreach ($m['content'] as $i => $b) {
+            if (($b['type'] ?? '') === 'image')
+                $m['content'][$i] = ['type' => 'text', 'text' => '[عکس مشتری؛ در همان نوبت دیده و بررسی شد]'];
+        }
+    }
+    unset($m);
+    return $msgs;
+}
+
+function agent_img_label($s)
+{
+    return trim(preg_replace(AGENT_IMG_RE, '🖼 [عکس]', (string) $s));
+}
+
+function agent_conv_photos(array $c)
+{
+    $ids = [];
+    foreach ($c['user_msgs'] ?? [] as $s) {
+        if (preg_match_all(AGENT_IMG_RE, (string) $s, $m))
+            $ids = array_merge($ids, $m[1]);
+    }
+    return array_slice(array_values(array_unique($ids)), -5);
+}
+
+// Give the human the customer's screenshots too.
+function agent_send_photos($chat, array $ids)
+{
+    if (trim((string) $chat) === '')
+        return;
+    foreach ($ids as $n => $id) {
+        $cap = '🖼 عکس ' . ($n + 1) . ' از مشتری';
+        $r = telegram('sendPhoto', ['chat_id' => $chat, 'photo' => $id, 'caption' => $cap]);
+        if (empty($r['ok']))
+            telegram('sendDocument', ['chat_id' => $chat, 'document' => $id, 'caption' => $cap]);
+    }
+}
+
+function agent_photo_rules()
+{
+    $r = "- تو عکس را می‌بینی و می‌خوانی. وقتی مشتری از خطا یا مشکل اتصال می‌گوید (وصل نمی‌شود، ارور می‌دهد، تایم‌اوت، رمز/یوزر را قبول نمی‌کند، لینک اضافه نمی‌شود) و نه عکسی فرستاده و نه متن دقیق خطا را نوشته، قبل از هر کار دیگر (حتی قبل از check_connection) فقط در یک پیام کوتاه بخواه از صفحهٔ برنامه، همان لحظه‌ای که خطا را نشان می‌دهد، اسکرین‌شات بگیرد و همین‌جا بفرستد؛ مثلاً «لطفاً از صفحهٔ خطای برنامه اسکرین‌شات بگیر و همین‌جا بفرست تا دقیق ببینم مشکل چیست.» اگر بلد نیست، یک خط بگو: اندروید معمولاً دکمهٔ پاور + کم‌کردن صدا، آیفون دکمهٔ کناری + زیاد کردن صدا. این را فقط یک بار بخواه؛ اگر گفت نمی‌تواند یا نمی‌خواهد، بدون عکس ادامه بده.\n";
+    $r .= "- وقتی عکس رسید: نام برنامه، متن خطا (مثل AUTH_FAILED، timeout، TLS handshake، connection refused، invalid config)، وضعیت اتصال، سرور یا لوکیشن انتخاب‌شده و فیلدهای پرشده را از عکس بخوان. در یک جمله بگو چه دیدی و دقیقاً بر اساس همان راهنمایی کن (اگر یوزر/رمز یا آدرس اشتباه تایپ شده، بگو کدام فیلد اشتباه است). اگر مشکل اتصال است و هنوز تست نکرده‌ای، check_connection را هم صدا بزن. اگر عکس ناخوانا یا بی‌ربط است، بگو و یک بار دیگر بخواه.\n";
+    $r .= "- رمز کامل، لینک کامل اشتراک، شماره کارت یا هر اطلاعات حساسی را که در عکس می‌بینی در جوابت تکرار نکن.\n";
+    $r .= "- ویدیو، ویس و فایل غیرعکس را نمی‌بینی؛ ربات خودش به مشتری می‌گوید اسکرین‌شات بفرستد.\n";
     return $r;
 }
 
@@ -671,17 +788,21 @@ function agent_handoff($uid, array $c, $reason)
 {
     global $pdo, $textbotlang;
     $ctx = $c['ctx'];
-    $talk = implode("\n— ", array_slice($c['user_msgs'] ?? [], -6));
+    $talk = implode("\n— ", array_map('agent_img_label', array_slice($c['user_msgs'] ?? [], -6)));   // [agent-photo]
+    $photos = agent_conv_photos($c);
     $note = "\n\n🤖 پشتیبان هوشمند ارجاع داد: " . htmlspecialchars($reason) . "\nپیام‌های مشتری:\n— " . htmlspecialchars($talk);
     if (($ctx['kind'] ?? '') === 'disorder') {
         $tech = trim((string) (agent_cfg()['tech_id'] ?? ''));
         if ($tech !== '') {   // unresolved disorder -> technical support; admins only if that fails
             $r = sendmessage($tech, $ctx['handoff_text'] . $note, $ctx['handoff_kb'] ?? null, 'html');
-            if (!empty($r['ok']))
+            if (!empty($r['ok'])) {
+                agent_send_photos($tech, $photos);
                 return;
+            }
             agent_log('tech notify failed: ' . json_encode($r));
         }
         agent_notify_admins($ctx['handoff_text'] . $note, $ctx['handoff_kb'] ?? null, 'html');
+        agent_send_photos(agent_fallback_admin(), $photos);
         return;
     }
     $want = $c['handoff_dep'] ?? '';
@@ -693,7 +814,7 @@ function agent_handoff($uid, array $c, $reason)
     if (!$dep) {
         $dep = select('departman', '*', null, null, 'select');
     }
-    $first = $c['user_msgs'][0] ?? '';
+    $first = agent_img_label($c['user_msgs'][0] ?? '');
     $tracking = bin2hex(random_bytes(4));
     $time = date('Y/m/d H:i:s');
     $stmt = $pdo->prepare("INSERT IGNORE INTO support_message (Tracking,idsupport,iduser,name_departman,text,time,status) VALUES (?,?,?,?,?,?,?)");
@@ -702,6 +823,7 @@ function agent_handoff($uid, array $c, $reason)
         $ctx['username'] ?? '', $dep['name_departman'], htmlspecialchars($first), '') . $note;
     $kb = json_encode(['inline_keyboard' => [[['text' => $textbotlang['users']['support']['answermessage'], 'callback_data' => 'Responsesupport_' . $tracking]]]]);
     sendmessage($dep['idsupport'], $txt, $kb, 'HTML');
+    agent_send_photos($dep['idsupport'], $photos);
 }
 
 // The configured admin alone, else every non-seller admin.
@@ -836,7 +958,7 @@ function agent_turn($uid, $text)
         }
         $text = $head . "\n[پیام کاربر] " . $text;
     }
-    $c['messages'][] = ['role' => 'user', 'content' => $text];
+    $c['messages'][] = ['role' => 'user', 'content' => agent_user_content($text)];   // [agent-photo]
     $system = [['type' => 'text', 'text' => agent_prompt(), 'cache_control' => ['type' => 'ephemeral']]];
     $handed = null;
     $outage = false;
@@ -908,6 +1030,7 @@ function agent_turn($uid, $text)
 
 function agent_save($uid, array $c)
 {
+    $c['messages'] = agent_strip_images($c['messages'] ?? []);   // [agent-photo]
     agent_json_update(agent_conv_path($uid), function (&$x) use ($c) {
         $inbox = is_array($x) ? ($x['inbox'] ?? []) : [];
         $msgs = is_array($x) ? ($x['user_msgs'] ?? []) : [];

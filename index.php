@@ -3418,11 +3418,12 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     deletemessage($from_id, $message_id);
     sendmessage($from_id, $textbotlang['users']['support']['sendMessage'], $backuser, 'HTML');
     step("gettextticket", $from_id);
-} elseif ($user['step'] == "gettextticket" && $text) {
+} elseif ($user['step'] == "gettextticket" && ($text || (function_exists('agent_media_msg') && agent_enabled() && agent_media_msg($photo, $document, $caption) !== ''))) { // [agent-photo] a screenshot may open the ticket
     $userdata = json_decode($user['Processing_value'], true);
     $departeman = select("departman", "*", "id", $userdata['iddeparteman'], "select");
-    if (function_exists('agent_enabled') && agent_enabled() && !$photo && !$video && trim((string) $text) !== '') { // [agent] the agent answers first; humans get it on handoff
-        if (agent_start($from_id, $text, ['kind' => 'ticket', 'dep_id' => $userdata['iddeparteman'], 'username' => $username]) === false) {
+    $agentIn = function_exists('agent_media_msg') && ($photo || $document) ? agent_media_msg($photo, $document, $caption) : trim((string) $text); // [agent-photo]
+    if (function_exists('agent_enabled') && agent_enabled() && !$video && $agentIn !== '') { // [agent] the agent answers first; humans get it on handoff
+        if (agent_start($from_id, $agentIn, ['kind' => 'ticket', 'dep_id' => $userdata['iddeparteman'], 'username' => $username]) === false) {
             step("home", $from_id);   // refused (technical support needs an active service); reason already sent
             return;
         }
@@ -7255,6 +7256,14 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         ]
     ]);
     Editmessagetext($from_id, $message_id, $textbotlang['language']['setSuccess'], $keyboard_back);
+} elseif ($user['step'] == "agentchat" && $text == "" && $Chat_type == "private" && function_exists('agent_media_msg') && !empty($update['message'])) { // [agent-photo] screenshots go to the agent
+    $agentIn = agent_media_msg($photo, $document, $caption);
+    if ($agentIn === '') {
+        sendmessage($from_id, "🖼 فقط عکس و اسکرین‌شات را می‌توانم ببینم. لطفاً از صفحهٔ خطای برنامه اسکرین‌شات بگیر و به‌صورت عکس همین‌جا بفرست.", null, 'HTML');
+    } elseif (!agent_push($from_id, $agentIn)) {
+        step("home", $from_id);
+        sendmessage($from_id, $textbotlang['users']['invalidCommand'], $keyboard, 'HTML');
+    }
 } elseif ($user['step'] == "agentchat" && $text != "" && $Chat_type == "private" && function_exists('agent_push') && !agent_leave_on_button($from_id, $text)) { // [agent] next message of a live agent conversation
     if (!agent_push($from_id, $text)) {
         step("home", $from_id);
