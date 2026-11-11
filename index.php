@@ -3827,7 +3827,8 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
     } else {
         $statuscustom = false;
     }
-    Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['serviceSelectFirst'], KeyboardProduct($marzban_list_get['name_panel'], $query, $user['pricediscount'], $datakeyboard, $statuscustom, "backuser", null, "customsellvolume", $queryParams));
+    $backcat = isset($userdate['monthproduct']) ? "productmonth_" . $userdate['monthproduct'] : "backproduct";
+    Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['serviceSelectFirst'], KeyboardProduct($marzban_list_get['name_panel'], $query, $user['pricediscount'], $datakeyboard, $statuscustom, $backcat, null, "customsellvolume", $queryParams));
 } elseif (preg_match('/^productmonth_(\w+)/', $datain, $dataget)) {
     $monthenumber = $dataget[1];
     $userdate = json_decode($user['Processing_value'], true);
@@ -3869,7 +3870,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         } else {
             $statuscustom = false;
         }
-        Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['serviceSelectFirst'], KeyboardProduct($marzban_list_get['name_panel'], $query, $user['pricediscount'], $datakeyboard, $statuscustom, "backuser", null, "customsellvolume", $queryParams));
+        Editmessagetext($from_id, $message_id, $textbotlang['users']['sell']['serviceSelectFirst'], KeyboardProduct($marzban_list_get['name_panel'], $query, $user['pricediscount'], $datakeyboard, $statuscustom, "backproduct", null, "customsellvolume", $queryParams));
     }
 } elseif ($datain == "customsellvolume") {
     $userdate = json_decode($user['Processing_value'], true);
@@ -4077,7 +4078,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $maxvolume = intval(json_decode($marzban_list_get['maxvolume'], true)[$user['agent']] ?? 0);
         $maintime = intval(json_decode($marzban_list_get['maintime'], true)[$user['agent']] ?? 0);
         $maxtime = intval(json_decode($marzban_list_get['maxtime'], true)[$user['agent']] ?? 0);
-        if ((json_decode($marzban_list_get['customvolume'] ?? '[]', true)[$user['agent']] ?? null) != "1" || $marzban_list_get['type'] == "Manualsale"
+        if (((json_decode($marzban_list_get['customvolume'] ?? '[]', true)[$user['agent']] ?? null) != "1" && select("product", "*", null, null, "count") != 0) || $marzban_list_get['type'] == "Manualsale"
             || !ctype_digit((string) $parts[1]) || !ctype_digit((string) $parts[2])
             || $parts[2] < $mainvolume || $parts[2] > $maxvolume || $parts[1] < $maintime || $parts[1] > $maxtime) {
             sendmessage($from_id, $textbotlang['users']['sell']['purchaseError'], $backuser, 'html');
@@ -5534,7 +5535,7 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
         $Payment_Method = "AbanGateway";
         $stmt->execute([$from_id, $randomString, $dateacc, $user['Processing_value'], "Unpaid", $Payment_Method]);
 
-        $pay = createPayiranpay4($user['Processing_value'], $randomString);
+        $pay = createPayiranpay4($user['Processing_value'], $randomString, $from_id);
         if (empty($pay['success']) || empty($pay['payment_link'])) {
             $text_error = json_encode($pay);
             sendmessage($from_id, $textbotlang['users']['Balance']['errorLinkPayment'], $keyboard, 'HTML');
@@ -5561,7 +5562,11 @@ if ($text == "/start" || $datain == "start" || $text == "start") {
             ]
         ]);
         $textiranpay4 = sprintf($textbotlang['users']['Balance']['transactionCreated3'], $randomString, $pricetoman);
-        $message_id = sendmessage($from_id, $textiranpay4, $paymentkeyboard, 'HTML');
+        $cardInvoice = abangatewayCardInvoice($pay, $randomString);
+        $message_id = $cardInvoice === null ? null : sendmessage($from_id, $cardInvoice['text'], $cardInvoice['keyboard'], 'HTML');
+        if (empty($message_id['ok'])) {
+            $message_id = sendmessage($from_id, $textiranpay4, $paymentkeyboard, 'HTML');
+        }
         updatePaymentMessageId($message_id, $randomString);
         step('home', $from_id);
     } elseif ($datain == "tronado") {

@@ -3,7 +3,7 @@ require_once 'vendor/autoload.php';
 require 'config.php';
 ini_set('error_log', 'error_log');
 
-const MIN_PHP_VERSION = '8.5.12';
+const MIN_PHP_VERSION = PHP_VERSION_ID >= 80500 ? '8.5.12' : '8.4.27';
 
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
@@ -783,7 +783,41 @@ function abangatewayEndpoint(): ?string
     return rtrim($endpoint, '/');
 }
 
-function createPayiranpay4($price, $order_id)
+function abangatewayCardInvoice($pay, $order_id)
+{
+    global $textbotlang;
+
+    $number = preg_replace('/\D/', '', (string) ($pay['card']['number'] ?? ''));
+    $rial = intval($pay['payable_rial'] ?? 0);
+    $toman = intval($pay['payable_toman'] ?? 0);
+    $minutes = intval($pay['minutes_left'] ?? 0);
+    if (empty($pay['card_in_bot']) || $number === '' || $rial < 1 || $toman < 1 || $minutes < 1) {
+        return null;
+    }
+
+    $holder = htmlspecialchars(trim((string) ($pay['card']['holder'] ?? '')), ENT_QUOTES, 'UTF-8');
+    $bank = trim((string) ($pay['card']['bank'] ?? ''));
+    if ($bank !== '') {
+        $holder .= ' (' . htmlspecialchars($bank, ENT_QUOTES, 'UTF-8') . ')';
+    }
+
+    $lang = $textbotlang['users']['Balance'];
+    return [
+        'text' => sprintf($lang['abangatewayCardInvoice'], $order_id, $number, $holder, number_format($toman), $rial, $toman, $minutes),
+        'keyboard' => json_encode([
+            'inline_keyboard' => [
+                [['text' => $textbotlang['keyboard']['copyCardNumber'], 'copy_text' => ['text' => $number]]],
+                [
+                    ['text' => $textbotlang['keyboard']['abangatewayCopyRial'], 'copy_text' => ['text' => (string) $rial]],
+                    ['text' => $textbotlang['keyboard']['abangatewayCopyToman'], 'copy_text' => ['text' => (string) $toman]],
+                ],
+                [['text' => $lang['payments'], 'url' => $pay['payment_link']]],
+            ],
+        ]),
+    ];
+}
+
+function createPayiranpay4($price, $order_id, $user_id)
 {
     global $domainhosts;
 
@@ -807,6 +841,7 @@ function createPayiranpay4($price, $order_id)
         CURLOPT_POSTFIELDS => json_encode([
             'amount' => intval($price),
             'order_id' => $order_id,
+            'user_id' => (string) $user_id,
             'callback_url' => "https://$domainhosts/payment/iranpay4.php",
         ], JSON_UNESCAPED_UNICODE),
     ]);
@@ -2641,8 +2676,7 @@ function addCronIfNotExists($cronCommand)
     $cronLines = $existingCronJobs === '' ? [] : preg_split('/\r?\n/', $existingCronJobs);
     $cronLines = array_values(array_filter(array_map('trim', $cronLines), static function ($line) {
         return $line !== ''
-            && strpos($line, '#') !== 0
-            && stripos($line, 'no crontab') === false;
+            && stripos($line, 'no crontab for') !== 0;
     }));
 
     $newLineAdded = false;
@@ -3133,16 +3167,6 @@ function usernameMethodKey($value, $default = 'numericIdRandom')
     $labels = usernameMethodLabels();
     return $labels[$value] ?? $default;
 }
-function generateAuthStr($length = 10)
-{
-    $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    $max = strlen($characters) - 1;
-    $result = '';
-    for ($i = 0; $i < $length; $i++) {
-        $result .= $characters[random_int(0, $max)];
-    }
-    return $result;
-}
 function createqrcode($contents)
 {
     $contents = (string) $contents;
@@ -3206,8 +3230,8 @@ function check_active_btn($keyboard, $text_var)
 {
     $trace_keyboard = json_decode($keyboard, true)['keyboard'];
     $status = false;
-    foreach ($trace_keyboard as $key => $callback_set) {
-        foreach ($callback_set as $keyboard_key => $keyboard) {
+    foreach ($trace_keyboard as $callback_set) {
+        foreach ($callback_set as $keyboard) {
             if ($keyboard['text'] == $text_var) {
                 $status = true;
                 break;

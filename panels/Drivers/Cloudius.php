@@ -143,11 +143,12 @@ class CloudiusPanelDriver extends BasePanelDriver
         $cl_gb = (float) $vars['new_limit'];
         $cl_days = (int) $vars['time_day'];
         $cl_method = extendMethodKey($vars['Method_extend']);
+        $cl_unlimited = ($cl_gb <= 0); // [cloudius-unlimited] plan 0 GB = unlimited: never carry leftover into it
         if ($cl_method == "resetVolumeTime" || $cl_method == "resetTimeAddVolume") {
             // resetTimeAddVolume: new window from today, leftover traffic carried over
             if ($cl_method == "resetTimeAddVolume") {
                 $cl_live = GetUser_cloudius($panel['name_panel'], $username);
-                if (!empty($cl_live['status'])) {
+                if (!empty($cl_live['status']) && !$cl_unlimited) {
                     $cl_gb += max(0, $cl_live['data']['remained_traffic']) / pow(1024, 3);
                 }
             }
@@ -155,7 +156,9 @@ class CloudiusPanelDriver extends BasePanelDriver
         } elseif ($cl_method == "addTimeConvertVolume") {
             $cl_live = GetUser_cloudius($panel['name_panel'], $username);
             if (!empty($cl_live['status'])) {
-                $cl_gb += max(0, $cl_live['data']['remained_traffic']) / pow(1024, 3);
+                if (!$cl_unlimited) {
+                    $cl_gb += max(0, $cl_live['data']['remained_traffic']) / pow(1024, 3);
+                }
                 $cl_days += max(0, (int) $cl_live['data']['remained_days']);
             }
             $cl = renewUser_cloudius($panel['name_panel'], $username, $cl_group, $cl_gb, $cl_days);
