@@ -813,36 +813,136 @@ function agent_ago($ts)
     return $m < 60 ? $m . ' min ago' : ($m < 2880 ? intdiv($m, 60) . ' h ago' : intdiv($m, 1440) . ' days ago');
 }
 
+// [agent-radlog-live] reason of one Cloudius log row (same rules as cronbot/agent_radlog.php); null = accepted
+function agent_radlog_reason($resp)
+{
+    $resp = (string) $resp;
+    if (stripos($resp, 'Accept') !== false && stripos($resp, 'Reject') === false)
+        return null;
+    if (stripos($resp, 'not found') !== false) return 'username_not_found';
+    if (stripos($resp, 'Password') !== false) return 'wrong_password';
+    if (stripos($resp, 'expired') !== false) return 'expired';
+    if (stripos($resp, 'Traffic') !== false) return 'no_traffic';
+    return 'other: ' . mb_substr(preg_replace('/^.*Authentication Failed\.?\s*/i', '', $resp), 0, 24);
+}
+
+// [agent-radlog-live] read the login server's own log right now (it only holds the newest ~30 minutes)
+function agent_live_rejects(array $words)
+{
+    global $pdo;
+    if (!$words || !isset($pdo) || !function_exists('cloudius_api'))
+        return null;
+    try {
+        $panels = $pdo->query("SELECT name_panel, url_panel, username_panel FROM marzban_panel WHERE type = 'cloudius'")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        return null;
+    }
+    if (!$panels)
+        return null;
+    $hadTimeout = array_key_exists('request_exec_timeout', $GLOBALS);
+    $oldTimeout = $GLOBALS['request_exec_timeout'] ?? null;
+    $GLOBALS['request_exec_timeout'] = 5000;
+    $deadline = microtime(true) + 8;
+    $rows = [];
+    $newest = 0;
+    $ok = false;
+    $seen = [];
+    try {
+        foreach ($panels as $p) {
+            $server = strtolower(cloudius_base_url($p['url_panel'])) . '|' . $p['username_panel'];
+            if (isset($seen[$server]) || microtime(true) > $deadline)
+                continue;                              // OpenVPN + L2TP panels on the same Cloudius
+            $seen[$server] = 1;
+            $top = cloudius_api($p['name_panel'], '/Log/Fetch', ['PageNo' => 1, 'RowPerPage' => 1]);
+            if (empty($top['status']))
+                continue;
+            $ok = true;
+            $newest = max($newest, cloudius_jalali_to_ts((string) ($top['data'][0]['DateTime'] ?? '')));
+            foreach ($words as $w) {
+                for ($page = 1; $page <= 3 && microtime(true) < $deadline; $page++) {
+                    $r = cloudius_api($p['name_panel'], '/Log/Fetch', ['PageNo' => $page, 'RowPerPage' => 300, 'Query' => $w]);
+                    $d = (isset($r['data']) && is_array($r['data'])) ? $r['data'] : [];
+                    foreach ($d as $h) {
+                        $id = $server . '#' . (int) ($h['LogID'] ?? 0);
+                        $reason = agent_radlog_reason($h['Response'] ?? '');
+                        $ts = cloudius_jalali_to_ts((string) ($h['DateTime'] ?? ''));
+                        $user = mb_substr(trim((string) ($h['UserName'] ?? '')), 0, 100);
+                        if (isset($rows[$id]) || $reason === null || !$ts || $user === '')
+                            continue;
+                        $rows[$id] = [$user, $reason, $ts, mb_substr((string) ($h['NASIdentifier'] ?? ''), 0, 40)];
+                    }
+                    if (count($d) < 300)
+                        break;
+                }
+            }
+        }
+    } catch (Throwable $e) {
+        // live read is best effort; the saved copy still answers
+    } finally {
+        if ($hadTimeout)
+            $GLOBALS['request_exec_timeout'] = $oldTimeout;
+        else
+            unset($GLOBALS['request_exec_timeout']);
+    }
+    return $ok ? ['newest' => $newest, 'rows' => array_values($rows)] : null;
+}
+
 function agent_login_errors($login, $active = true)
 {
     global $pdo;
     $login = trim((string) $login);
     if ($login === '' || !isset($pdo))
         return [];
-    try {
-        $s = $pdo->query('SELECT MAX(seen) seen, MAX(newest) newest FROM agent_radlog_state')->fetch(PDO::FETCH_ASSOC);
-    } catch (Throwable $e) {
-        return [];                                   // collector never ran (agent off / no Cloudius panel)
-    }
-    if (!$s || (int) $s['seen'] < time() - 600)
-        return ['login_log' => 'unavailable (login log collector is not running); decide from the test result'];
     $lo = strtolower($login);
     // candidate rows: share a prefix of one of the two longest name parts (catches dropped/extra characters)
-    $likes = [];
+    $words = [];
     if (preg_match_all('/[a-z0-9]{4,}/', $lo, $m)) {
         usort($m[0], function ($a, $b) { return strlen($b) - strlen($a); });
         foreach (array_slice($m[0], 0, 2) as $w)
-            $likes[] = '%' . substr($w, 0, max(4, strlen($w) - 2)) . '%';
+            $words[] = substr($w, 0, max(4, strlen($w) - 2));
     }
-    if (!$likes)
-        $likes[] = '%' . $lo . '%';
-    $st = $pdo->prepare("SELECT username, reason, SUM(cnt) c, MIN(first_ts) f, MAX(last_ts) l,
-        SUBSTRING_INDEX(GROUP_CONCAT(nas ORDER BY last_ts DESC), ',', 1) nas
-        FROM agent_radlog WHERE last_ts >= ? AND (" . implode(' OR ', array_fill(0, count($likes), 'LOWER(username) LIKE ?')) . ")
-        GROUP BY username, reason ORDER BY l DESC LIMIT 80");
-    $st->execute(array_merge([time() - 24 * 3600], $likes));   // [agent-radlog-24h]
+    if (!$words)
+        $words[] = $lo;
+    $words = array_values(array_unique($words));
+
+    $live = agent_live_rejects($words);              // [agent-radlog-live] the login server itself, first
+    $s = null;
+    try {
+        $s = $pdo->query('SELECT MAX(seen) seen, MAX(newest) newest FROM agent_radlog_state')->fetch(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        $s = null;                                   // collector never ran (agent off / no Cloudius panel)
+    }
+    $saved = $s && (int) $s['seen'] >= time() - 600;
+    if (!$live && !$saved)
+        return $s ? ['login_log' => 'unavailable (login server log could not be read); decide from the test result'] : [];
+    $savedNewest = $s ? (int) $s['newest'] : 0;
+    $since = time() - 24 * 3600;                      // [agent-radlog-24h]
+    $agg = [];
+    $add = function ($u, $reason, $c, $l, $nas) use (&$agg) {
+        $k = $u . "\0" . $reason;
+        if (!isset($agg[$k]))
+            $agg[$k] = ['username' => $u, 'reason' => $reason, 'c' => 0, 'l' => 0, 'nas' => ''];
+        $agg[$k]['c'] += $c;
+        if ($l >= $agg[$k]['l']) {
+            $agg[$k]['l'] = $l;
+            $agg[$k]['nas'] = $nas;
+        }
+    };
+    if ($s) {
+        $st = $pdo->prepare("SELECT username, reason, SUM(cnt) c, MAX(last_ts) l,
+            SUBSTRING_INDEX(GROUP_CONCAT(nas ORDER BY last_ts DESC), ',', 1) nas
+            FROM agent_radlog WHERE last_ts >= ? AND (" . implode(' OR ', array_fill(0, count($words), 'LOWER(username) LIKE ?')) . ")
+            GROUP BY username, reason ORDER BY l DESC LIMIT 80");
+        $st->execute(array_merge([$since], array_map(fn($w) => '%' . $w . '%', $words)));
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r)
+            $add((string) $r['username'], $r['reason'], (int) $r['c'], (int) $r['l'], (string) $r['nas']);
+    }
+    foreach ($live['rows'] ?? [] as $r)               // only rows the saved copy does not have yet
+        if ($r[2] > $savedNewest && $r[2] >= $since)
+            $add($r[0], $r[1], 1, $r[2], $r[3]);
+    usort($agg, fn($a, $b) => $b['l'] - $a['l']);
     $out = [];
-    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    foreach ($agg as $r) {
         $u = (string) $r['username'];
         $ul = strtolower($u);
         $same = $u === $login;
@@ -864,13 +964,14 @@ function agent_login_errors($login, $active = true)
         if (count($out) >= 8)
             break;
     }
-    return ['login_log' => ['login_username' => $login, 'source' => 'our login server, last 24 hours; only REJECTED logins are recorded (successful ones are not)',
-        'log_covers_until' => agent_ago($s['newest']) . ' (the login server writes this log about 30 minutes late; a reject newer than this is not visible yet)',
+    $covers = max($savedNewest, (int) ($live['newest'] ?? 0));
+    return ['login_log' => ['login_username' => $login,
+        'source' => 'login server log read live just now' . ($saved ? ' + our saved copy' : ' (saved copy not available)') . ', last 24 hours; only REJECTED logins are recorded (successful ones are not)',
+        'log_covers_until' => ($covers ? agent_ago($covers) : 'unknown') . ' (the login server writes this log about 30 minutes late; a reject newer than this is not visible yet)',
         'rejects' => $out ?: 'none',
         'verdict' => $out ? 'جواب را بر اساس verdict جدیدترین ردیف بده (last).' : 'در ۲۴ ساعت اخیر هیچ ورود ناموفقی با این یوزر یا شبیهش به سرور ما نرسیده (به جز ۳۰ دقیقهٔ آخر که هنوز در لاگ نیامده). پس مشکل احتمالاً یوزر/رمز نیست؛ از روی نتیجهٔ تست راهنمایی کن و نگو یوزر یا رمز اشتباه است.',
         'reply_language' => 'Persian only: answer the customer in simple Persian (فارسی), never in English']];
 }
-
 function agent_proto_label($p)
 {
     return ['v2ray' => 'V2Ray', 'wireguard' => 'WireGuard', 'openvpn' => 'OpenVPN', 'l2tp' => 'L2TP'][$p] ?? $p;
