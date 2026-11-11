@@ -2,7 +2,7 @@
 // [agent-radlog] Keep the Cloudius RADIUS login rejects for the AI support agent.
 // Cloudius /Log/Fetch holds only the newest ~3000 rejects (about 20 minutes on a busy server) and
 // logs failures only (written ~30 min late), so this job copies them every minute into agent_radlog, aggregated per
-// (server, typed username, reason, 10-minute bucket), and keeps 3 days. Runs only while the agent
+// (server, typed username, reason, 10-minute bucket), and keeps 24 hours. [agent-radlog-24h] Runs only while the agent
 // is on and a Cloudius panel exists. No passwords or client IPs are stored.
 chdir(__DIR__);
 date_default_timezone_set('Asia/Tehran');
@@ -49,6 +49,13 @@ require_once __DIR__ . '/../cloudius.php';
                 $ok = true;
             if (!$rows)
                 break;
+            if ($page === 1 && $last > 0) {           // [agent-radlog-reset] panel log cleared -> ids restarted below our cursor
+                $top = max(array_map(fn($h) => (int) ($h['LogID'] ?? 0), $rows));
+                if ($top > 0 && $top < $last) {
+                    $last = 0;
+                    $maxId = 0;
+                }
+            }
             $older = false;
             foreach ($rows as $h) {
                 $id = (int) ($h['LogID'] ?? 0);
@@ -95,7 +102,7 @@ require_once __DIR__ . '/../cloudius.php';
         }
         $pruned = (int) $state['pruned'];
         if (time() - $pruned > 3600) {
-            $pdo->prepare('DELETE FROM agent_radlog WHERE last_ts < ?')->execute([time() - 3 * 86400]);
+            $pdo->prepare('DELETE FROM agent_radlog WHERE last_ts < ?')->execute([time() - 86400]);   // [agent-radlog-24h]
             $pruned = time();
         }
         if ($ok)
