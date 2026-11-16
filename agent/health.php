@@ -278,22 +278,41 @@ function agent_health_run_all()
     return $raw;
 }
 
-// retest once whatever failed; an item is bad only if it failed both times (geo mismatches are not retested)
+// [agent-health-retry] retest whatever failed until it passes or AGENT_HEALTH_TRIES attempts are used up; an item
+// is reported only if it failed every attempt (user: test 4-5 times before sending an error). Geo mismatches are
+// not retested (the exit country does not flap).
+const AGENT_HEALTH_TRIES = 5;
+
+function agent_health_pause()
+{
+    $s = $GLOBALS['AGENT_HEALTH_PAUSE'] ?? 10;   // seconds between attempts; tests set 0
+    if ($s > 0)
+        sleep($s);
+}
+
 function agent_health_confirm(array $raw, array $items, callable $probe)
 {
-    $redo = [];
+    $raw2 = $raw;
+    for ($try = 2; $try <= AGENT_HEALTH_TRIES; $try++) {
+        $redo = [];
+        foreach ($items as $k => $i)
+            if ($i[0] && $i[3] !== 'geo')
+                $redo[$i[3] === 'loc' ? 'v2ray' : $k] = true;
+        if (!$redo)
+            return $items;
+        agent_health_pause();
+        foreach (array_keys($redo) as $p)
+            $raw2[$p] = $probe($p);
+        $again = agent_health_eval($raw2) ?? [];
+        foreach ($items as $k => $i) {
+            if (!$i[0] || $i[3] === 'geo' || !isset($again[$k]))
+                continue;
+            $items[$k] = $again[$k];                  // passed: a blip, not a problem; failed: keep the newest result
+        }
+    }
     foreach ($items as $k => $i)
         if ($i[0] && $i[3] !== 'geo')
-            $redo[$i[3] === 'loc' ? 'v2ray' : $k] = true;
-    if (!$redo)
-        return $items;
-    $raw2 = $raw;
-    foreach (array_keys($redo) as $p)
-        $raw2[$p] = $probe($p);
-    $again = agent_health_eval($raw2) ?? [];
-    foreach ($items as $k => $i)
-        if ($i[0] && $i[3] !== 'geo' && isset($again[$k]) && !$again[$k][0])
-            $items[$k] = $again[$k];                  // passed on retest: a blip, not a problem
+            $items[$k][2] .= ' — در ' . AGENT_HEALTH_TRIES . ' تست پشت‌سرهم';
     return $items;
 }
 

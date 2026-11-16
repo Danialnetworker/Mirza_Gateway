@@ -63,7 +63,7 @@ function agent_admin()
         }
         require_once __DIR__ . '/health.php';
         agent_health_spawn('manual', $from_id);
-        sendmessage($from_id, "⏳ تست همهٔ سرویس‌ها با اکانت تست شروع شد (L2TP، OpenVPN، WireGuard و همهٔ لوکیشن‌های V2Ray).\nحدود ۳ دقیقه دیگر گزارش کامل همین‌جا می‌آید.", null, 'HTML');
+        sendmessage($from_id, "⏳ تست همهٔ سرویس‌ها با اکانت تست شروع شد (L2TP، OpenVPN، WireGuard و همهٔ لوکیشن‌های V2Ray).\nهر خرابی تا ۵ بار دوباره تست می‌شود؛ حدود ۱ تا ۵ دقیقه دیگر گزارش کامل همین‌جا می‌آید.", null, 'HTML');
         return true;
     }
     if ($text === '/agent' || $text === AGENT_ADMIN_BTN) {
