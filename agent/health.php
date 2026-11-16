@@ -61,6 +61,27 @@ function agent_health_rtl($t)
     return implode("\n", array_map(fn($l) => trim($l) === '' ? '' : "\u{200F}" . $l, explode("\n", $t)));
 }
 
+// Persian site name for the report ('www.instagram.com' -> 'اینستاگرام')
+function agent_health_site($h)
+{
+    $h = preg_replace('/^www\./', '', strtolower((string) $h));
+    foreach (['google' => 'گوگل', 'youtube' => 'یوتیوب', 'instagram' => 'اینستاگرام', 'telegram' => 'تلگرام',
+        'whatsapp' => 'واتس‌اپ', 'twitter' => 'X', 'x.com' => 'X', 'facebook' => 'فیسبوک'] as $k => $fa)
+        if (strpos($h, $k) !== false)
+            return $fa;
+    return $h;
+}
+
+// sites that did not open on one probe result, blocked-by-exit-country ones marked: [['اینستاگرام', true], ...]
+function agent_health_failed_sites(array $r)
+{
+    $out = [];
+    foreach (($r['sites'] ?? []) as $h => $s)
+        if (empty($s['ok']))
+            $out[] = [agent_health_site($h), !empty($s['blocked_by_exit_country'])];
+    return $out;
+}
+
 // one probe result (a protocol, or one V2Ray location) -> [bad, Persian detail]
 function agent_health_judge(array $r)
 {
@@ -80,7 +101,7 @@ function agent_health_judge(array $r)
     $bad = [];
     foreach (($r['sites'] ?? []) as $h => $s)
         if (empty($s['ok']) && empty($s['blocked_by_exit_country']))
-            $bad[] = preg_replace('/^www\./', '', $h);
+            $bad[] = agent_health_site($h);
     if ((int) ($r['download']['bytes'] ?? 0) < 400000)
         $bad[] = 'دانلود';
     return [true, 'وصل شد ولی باز نشد: ' . implode('، ', $bad ?: ['?']) . ' — خروجی ' . agent_health_country($cc) . ' — ' . $speed];
@@ -104,14 +125,14 @@ function agent_health_eval(array $raw)
             continue;
         if ($p !== 'v2ray' || empty($r['by_location'])) {
             [$bad, $det] = agent_health_judge($r);
-            $items[$p] = [$bad, $label, $det, 'proto'];
+            $items[$p] = [$bad, $label, $det, 'proto', empty($r['up']) ? [] : agent_health_failed_sites($r)];
             continue;
         }
         foreach ($r['by_location'] as $name => $x) {
             $x = is_array($x) ? $x : [];
             [$bad, $det] = agent_health_judge($x);
-            $label = 'لوکیشن ' . trim(preg_replace('/\s+/u', ' ', $name));
-            $items['v2ray:' . $name] = [$bad, $label, $det, 'loc'];
+            $label = 'لوکیشن ' . trim(preg_replace(['/\s*\|\s*Reality\s*$/iu', '/\s+/u'], ['', ' '], $name));   // every location is Reality: less Latin in RTL lines
+            $items['v2ray:' . $name] = [$bad, $label, $det, 'loc', empty($x['up']) ? [] : agent_health_failed_sites($x)];
             $want = agent_health_flag_cc($name);
             $got = array_values(array_unique(array_filter(array_map(fn($e) => strtoupper((string) ($e['cc'] ?? '')), $x['exit'] ?? []), fn($c) => preg_match('/^[A-Z]{2}$/', $c))));
             if ($want === '' || !$got)
@@ -130,9 +151,10 @@ function agent_health_diff(array $old, array $items, $now)
 {
     $state = [];
     $new = $fixed = $still = $added = [];
-    foreach ($items as $k => [$bad, $label, $det, $grp]) {
+    foreach ($items as $k => $it) {
+        [$bad, $label, $det, $grp] = $it;
         $was = $old[$k] ?? null;
-        $state[$k] = ['bad' => $bad, 'label' => $label, 'detail' => $det, 'grp' => $grp,
+        $state[$k] = ['bad' => $bad, 'label' => $label, 'detail' => $det, 'grp' => $grp, 'sites' => $it[4] ?? [],
             'since' => ($was && $was['bad'] === $bad) ? $was['since'] : $now];
         if ($bad && (!$was || !$was['bad']))
             $new[] = $k;
@@ -216,6 +238,17 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
         $t .= '🔴 ' . htmlspecialchars($s['label']) . ': ' . htmlspecialchars($s['detail']) . "\n";
     if (isset($state['v2ray']) && !$locs)
         $t .= ($state['v2ray']['bad'] ? '🔴 ' : '🟢 ') . htmlspecialchars($state['v2ray']['detail']) . "\n";
+    // every site that did not open, also on healthy items (e.g. Instagram on the Russia location: Russia blocks it itself)
+    $siteLines = [];
+    foreach ($state as $s) {
+        if (empty($s['sites']))
+            continue;
+        $names = implode('، ', array_map(fn($x) => $x[0], $s['sites']));
+        $own = !array_filter($s['sites'], fn($x) => !$x[1]);
+        $siteLines[] = ($own ? '🟡 ' : '🔴 ') . htmlspecialchars($s['label']) . ': ' . htmlspecialchars($names) . ' باز نشد'
+            . ($own ? ' (خود این کشور بسته است)' : '');
+    }
+    $t .= "\n<b>سایت‌هایی که باز نشد</b>: " . ($siteLines ? "\n" . implode("\n", $siteLines) . "\n" : "همهٔ سایت‌ها همه‌جا باز شد ✅\n");
     $t .= "\n<b>کشور خروجی لوکیشن‌ها</b>: " . ($geo ? count($geo) . " لوکیشن با اسمش نمی‌خواند\n" : "همه با اسمشان یکی است ✅\n");
     foreach ($geo as $s)
         $t .= '🟠 ' . htmlspecialchars($s['label']) . ': ' . htmlspecialchars($s['detail']) . "\n";
