@@ -14,24 +14,15 @@
  */
 
 return static function (PDO $pdo, Schema $schema): void {
-    if (!$schema->tableExists('PaySetting')) {
+    // [config-093] 0.9.3 moved PaySetting into `config` (scope 'pay'); 017_config_import copies existing rows first.
+    if (!$schema->tableExists('config')) {
         return;
     }
-
-    $defaults = [
-        'statustronado' => 'offtronado',
-        'apitronado' => '0',
-        'ipnkeytronado' => '0',
-        'wallettronado' => '0',
-        'minbalancetronado' => '50000',
-        'maxbalancetronado' => '500000',
-        'chashbacktronado' => '0',
-        'helptronado' => '2',
-    ];
-
-    // INSERT IGNORE rather than delete-then-insert: an admin who configured the
-    // gateway before upgrading keeps what they configured.
-    $stmt = $pdo->prepare('INSERT IGNORE INTO PaySetting (NamePay, ValuePay) VALUES (:name, :value)');
+    $defaults = ['statustronado' => 'offtronado', 'apitronado' => '0', 'ipnkeytronado' => '0', 'ipnkeyprevtronado' => '0',
+        'metakeytronado' => '0', 'wallettronado' => '0', 'minbalancetronado' => '50000', 'maxbalancetronado' => '500000',
+        'chashbacktronado' => '0', 'helptronado' => '2'];
+    // INSERT IGNORE: an admin who configured the gateway before upgrading keeps what they configured.
+    $stmt = $pdo->prepare("INSERT IGNORE INTO config (scope, name, value) VALUES ('pay', :name, :value)");
     foreach ($defaults as $name => $value) {
         $stmt->execute([':name' => $name, ':value' => $value]);
     }

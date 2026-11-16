@@ -297,7 +297,7 @@ function syncReportTopics($chatId, $textbotlang)
         'backupfile' => $textbotlang['Admin']['report']['btnBackup'],
     ];
     foreach ($topicNames as $report => $name) {
-        $topicId = intval(select("topicid", "idreport", "report", $report, "select")['idreport'] ?? 0);
+        $topicId = intval(config_get('topic', $report) ?? 0);
         if ($topicId > 0) {
             $editTopic = telegram('editForumTopic', ['chat_id' => $chatId, 'message_thread_id' => $topicId, 'name' => $name]);
             if ($editTopic['ok'] || str_contains($editTopic['description'] ?? '', 'TOPIC_NOT_MODIFIED')) {
@@ -308,7 +308,7 @@ function syncReportTopics($chatId, $textbotlang)
         if (!$createForumTopic['ok']) {
             return false;
         }
-        update("topicid", "idreport", $createForumTopic['result']['message_thread_id'], "report", $report);
+        config_set('topic', $report, $createForumTopic['result']['message_thread_id']);
     }
     return true;
 }
@@ -583,6 +583,40 @@ function select($table, $field, $whereField = null, $whereValue = null, $type = 
     return $result;
 }
 
+function config_all(string $scope, bool $fresh = false): array
+{
+    global $pdo;
+    static $cache = [];
+    if ($fresh || !isset($cache[$scope])) {
+        try {
+            $stmt = $pdo->prepare("SELECT name, value FROM config WHERE scope = ?");
+            $stmt->execute([$scope]);
+            $cache[$scope] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (PDOException $e) {
+            error_log("Query failed: " . $e->getMessage());
+            return [];
+        }
+    }
+    return $cache[$scope];
+}
+
+function config_get(string $scope, string $name, $default = null)
+{
+    $all = config_all($scope);
+    return array_key_exists($name, $all) ? $all[$name] : $default;
+}
+
+function config_set(string $scope, string $name, $value): void
+{
+    global $pdo;
+    if (is_array($value)) {
+        $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+    }
+    $value = $value === null ? null : (string) $value;
+    $pdo->prepare("INSERT INTO config (scope, name, value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)")->execute([$scope, $name, $value]);
+    config_all($scope, true);
+}
+
 function rowExists($table, $field, $value)
 {
     global $pdo;
@@ -601,12 +635,9 @@ function rowExists($table, $field, $value)
 }
 function getPaySettingValue($name, $default = null)
 {
-    $rows = select("PaySetting", "*", null, null, "fetchAll");
-    if (is_array($rows)) {
-        foreach ($rows as $row) {
-            if (isset($row['NamePay']) && strcasecmp(trim((string) $row['NamePay']), trim((string) $name)) === 0) {
-                return array_key_exists('ValuePay', $row) ? $row['ValuePay'] : $default;
-            }
+    foreach (config_all('pay') as $payName => $payValue) {
+        if (strcasecmp(trim((string) $payName), trim((string) $name)) === 0) {
+            return $payValue;
         }
     }
 
@@ -657,13 +688,13 @@ function updatePaymentMessageId($response, $orderId)
         return false;
     }
 
-    update("Payment_report", "message_id", intval($response['result']['message_id']), "id_order", $orderId);
+    update("payment_report", "message_id", intval($response['result']['message_id']), "id_order", $orderId);
     return true;
 }
 function nowPayments($payment, $price_amount, $order_id, $order_description)
 {
     global $domainhosts;
-    $apinowpayments = select("PaySetting", "*", "NamePay", "marchent_tronseller", "select")['ValuePay'];
+    $apinowpayments = config_get('pay', "marchent_tronseller");
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.nowpayments.io/v1/' . $payment,
@@ -691,7 +722,7 @@ function nowPayments($payment, $price_amount, $order_id, $order_description)
 }
 function StatusPayment($paymentid)
 {
-    $apinowpayments = select("PaySetting", "*", "NamePay", "marchent_tronseller", "select")['ValuePay'];
+    $apinowpayments = config_get('pay', "marchent_tronseller");
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.nowpayments.io/v1/payment/' . $paymentid,
@@ -744,7 +775,7 @@ function invoiceBelongsToUser($invoice, $userId)
 }
 function cubepayFeeValue()
 {
-    $raw = select("PaySetting", "ValuePay", "NamePay", "feeternado", "select")['ValuePay'] ?? '0';
+    $raw = config_get('pay', "feeternado") ?? '0';
 
     return (float) str_replace([',', '،'], '', (string) $raw);
 }
@@ -761,7 +792,7 @@ function cubepayApplyFee($base, $fee)
 }
 function cubepayPayableAmount($price)
 {
-    $status = select("PaySetting", "ValuePay", "NamePay", "feestatusternado", "select")['ValuePay'] ?? 'offfeeternado';
+    $status = config_get('pay', "feestatusternado") ?? 'offfeeternado';
     if ($status !== 'onfeeternado') {
         return intval($price);
     }
@@ -1027,9 +1058,9 @@ function tronadoStoreMeta(string $orderId, array $meta): void
     // HEX flags: upstream report templates paste dec_not_confirmed raw into
     // Telegram HTML messages, so nothing stored here may look like markup.
     $json = json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-    $stmt = $pdo->prepare("UPDATE Payment_report SET dec_not_confirmed = :meta WHERE id_order = :id_order");
+    $stmt = $pdo->prepare("UPDATE payment_report SET dec_not_confirmed = :meta WHERE id_order = :id_order");
     $stmt->execute([':meta' => $json, ':id_order' => $orderId]);
-    clearSelectCache('Payment_report');
+    clearSelectCache('payment_report');
 }
 
 /**
@@ -1063,10 +1094,10 @@ function tronadoMetaKey(): string
     // TRIM here because tronadoSetting() trims before deciding a value is unset:
     // if the two disagree, a row holding ' 0 ' is set to SQL and unset to PHP,
     // and every request would regenerate a key that never takes.
-    $stmt = $pdo->prepare("INSERT INTO PaySetting (NamePay, ValuePay) VALUES ('metakeytronado', :value)
-        ON DUPLICATE KEY UPDATE ValuePay = IF(TRIM(ValuePay) IN ('', '0'), VALUES(ValuePay), ValuePay)");
+    $stmt = $pdo->prepare("INSERT INTO config (scope, name, value) VALUES ('pay', 'metakeytronado', :value)
+        ON DUPLICATE KEY UPDATE value = IF(TRIM(value) IN ('', '0'), VALUES(value), value)");   // [config-093]
     $stmt->execute([':value' => bin2hex(random_bytes(32))]);
-    clearSelectCache('PaySetting');
+    config_all('pay', true);
 
     return tronadoSetting('metakeytronado');
 }
@@ -1137,10 +1168,10 @@ function tronadoMetaIsSealed(array $meta): bool
 function tronadoStoreSecret(string $name, string $value): void
 {
     global $pdo;
-    $stmt = $pdo->prepare("INSERT INTO PaySetting (NamePay, ValuePay) VALUES (:name, :value)
-        ON DUPLICATE KEY UPDATE ValuePay = VALUES(ValuePay)");
+    $stmt = $pdo->prepare("INSERT INTO config (scope, name, value) VALUES ('pay', :name, :value)
+        ON DUPLICATE KEY UPDATE value = VALUES(value)");   // [config-093] no audit line, like before
     $stmt->execute([':value' => $value, ':name' => $name]);
-    clearSelectCache('PaySetting');
+    config_all('pay', true);
 }
 
 /**
@@ -1321,9 +1352,9 @@ function tronadoReportProblem(array $paymentReport, string $reason, array $paylo
     $meta['problem'] = ['reason' => $reason, 'at' => gmdate('c'), 'payload' => $payload];
     tronadoStoreMeta($orderId, $meta);
 
-    $setting = select("setting", "*");
+    $setting = config_all('setting');
     if (strlen((string) ($setting['Channel_Report'] ?? '')) > 0) {
-        $errorreport = select("topicid", "idreport", "report", "errorreport", "select")['idreport'] ?? null;
+        $errorreport = config_get('topic', "errorreport") ?? null;
         telegram('sendmessage', [
             'chat_id' => $setting['Channel_Report'],
             'message_thread_id' => $errorreport,
@@ -1464,7 +1495,7 @@ function tronadoSettleShortOrder(array $paymentReport, array $confirmed, float $
         sendmessage($userId, $text, null, 'HTML');
     }
 
-    $setting = select("setting", "*");
+    $setting = config_all('setting');
     $channel = (string) ($setting['Channel_Report'] ?? '');
     $report = "🟠 <b>پرداخت ناقص ترونادو — کیف پول شارژ شد</b>\n\n"
         . "🆔 کد پیگیری: <code>" . htmlspecialchars($orderId, ENT_QUOTES, 'UTF-8') . "</code>\n"
@@ -1478,7 +1509,7 @@ function tronadoSettleShortOrder(array $paymentReport, array $confirmed, float $
             : "❌ کاربر در ربات پیدا نشد؛ کیف پول شارژ نشد. لطفاً دستی بررسی کنید.")
         . "\n📡 منبع: " . htmlspecialchars($source, ENT_QUOTES, 'UTF-8');
     if ($channel !== '') {
-        $topic = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'] ?? null;
+        $topic = config_get('topic', "paymentreport") ?? null;
         telegram('sendmessage', [
             'chat_id' => $channel,
             'message_thread_id' => $topic,
@@ -1530,7 +1561,7 @@ function tronadoSettleOrder(array $paymentReport, array $confirmed, string $sour
     }
     tronadoStoreMeta($orderId, $meta);
 
-    $setting = select("setting", "*");
+    $setting = config_all('setting');
     $channel = (string) ($setting['Channel_Report'] ?? '');
     if (empty($meta['settled']['sealed'])) {
         // Say it out loud rather than leaving it in a JSON column nobody reads.
@@ -1538,7 +1569,7 @@ function tronadoSettleOrder(array $paymentReport, array $confirmed, string $sour
         // means an order record was rewritten, and that is worth knowing.
         error_log("tronado: order {$orderId} settled on the invoice bar, seal did not verify");
         if ($channel !== '') {
-            $errorreport = select("topicid", "idreport", "report", "errorreport", "select")['idreport'] ?? null;
+            $errorreport = config_get('topic', "errorreport") ?? null;
             telegram('sendmessage', [
                 'chat_id' => $channel,
                 'message_thread_id' => $errorreport,
@@ -1552,7 +1583,7 @@ function tronadoSettleOrder(array $paymentReport, array $confirmed, string $sour
     } catch (Throwable $error) {
         error_log("tronado: DirectPayment failed for {$orderId}: " . $error->getMessage());
         if ($channel !== '') {
-            $errorreport = select("topicid", "idreport", "report", "errorreport", "select")['idreport'] ?? null;
+            $errorreport = config_get('topic', "errorreport") ?? null;
             telegram('sendmessage', [
                 'chat_id' => $channel,
                 'message_thread_id' => $errorreport,
@@ -1580,7 +1611,7 @@ function tronadoSettleOrder(array $paymentReport, array $confirmed, string $sour
     }
 
     if ($channel !== '') {
-        $paymentreports = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'] ?? null;
+        $paymentreports = config_get('topic', "paymentreport") ?? null;
         telegram('sendmessage', [
             'chat_id' => $channel,
             'message_thread_id' => $paymentreports,
@@ -1610,12 +1641,12 @@ function tronadoCloseOrder(array $paymentReport, int $statusId, string $source):
     global $pdo, $textbotlang;
     $orderId = (string) $paymentReport['id_order'];
     $newStatus = $statusId === 40 ? 'reject' : 'expire';
-    $stmt = $pdo->prepare("UPDATE Payment_report SET payment_Status = :status WHERE id_order = :id_order AND payment_Status = 'Unpaid'");
+    $stmt = $pdo->prepare("UPDATE payment_report SET payment_Status = :status WHERE id_order = :id_order AND payment_Status = 'Unpaid'");
     $stmt->execute([':status' => $newStatus, ':id_order' => $orderId]);
     if ($stmt->rowCount() < 1) {
         return;
     }
-    clearSelectCache('Payment_report');
+    clearSelectCache('payment_report');
     $meta = tronadoOrderMeta($paymentReport);
     $meta['closed'] = ['status' => $statusId, 'source' => $source, 'at' => gmdate('c')];
     tronadoStoreMeta($orderId, $meta);
@@ -1628,7 +1659,7 @@ function tronadoCloseOrder(array $paymentReport, int $statusId, string $source):
 function cubepay($order_id, $price, $customer_user_id)
 {
     global $domainhosts;
-    $token_cubepay = select("PaySetting", "*", "NamePay", "apiternado", "select")['ValuePay'];
+    $token_cubepay = config_get('pay', "apiternado");
     $amount_toman = cubepayPayableAmount($price);
     $curl = curl_init();
     curl_setopt_array($curl, array(
@@ -1712,7 +1743,7 @@ function formatBytes($bytes, $precision = 2): string
 }
 function generateUsername($from_id, $Metode, $username, $randomString, $text, $namecustome, $usernamecustom)
 {
-    $setting = select("setting", "*", null, null, "select");
+    $setting = config_all('setting');
     $user = select("user", "*", "id", $from_id, "select");
     if ($user == false) {
         $user = array('number_username' => '');
@@ -1798,12 +1829,46 @@ function addBalance($userId, $amount)
     $stmt->execute([$amount, $userId]);
     clearSelectCache('user');
 }
+function consumeDiscountCode($code, $userId): bool
+{
+    global $pdo;
+    $stmt = $pdo->prepare("UPDATE discountsell SET usedDiscount = CAST(usedDiscount AS UNSIGNED) + 1 WHERE codeDiscount = ? AND CAST(usedDiscount AS UNSIGNED) < CAST(limitDiscount AS UNSIGNED)");
+    $stmt->execute([$code]);
+    clearSelectCache('discountsell');
+    if ($stmt->rowCount() !== 1) {
+        return false;
+    }
+    $pdo->prepare("INSERT INTO giftcodeconsumed (id_user, code) VALUES (?, ?)")->execute([$userId, $code]);
+    return true;
+}
+function releaseDiscountCode($code, $userId): void
+{
+    global $pdo;
+    $pdo->prepare("UPDATE discountsell SET usedDiscount = CAST(usedDiscount AS UNSIGNED) - 1 WHERE codeDiscount = ? AND CAST(usedDiscount AS UNSIGNED) > 0")->execute([$code]);
+    $pdo->prepare("DELETE FROM giftcodeconsumed WHERE id_user = ? AND code = ? LIMIT 1")->execute([$userId, $code]);
+    clearSelectCache('discountsell');
+}
 function cancelPendingGatewayOrders($id_user): void
 {
     global $pdo;
-    $stmt = $pdo->prepare("DELETE FROM invoice WHERE id_user = ? AND Status = 'unpaid' AND NOT EXISTS (SELECT 1 FROM Payment_report pr WHERE pr.id_order = invoice.id_payment AND pr.payment_Status IN ('Unpaid', 'waiting'))");
+    $pendingInvoice = "id_user = ? AND Status = 'unpaid' AND NOT EXISTS (SELECT 1 FROM payment_report pr WHERE pr.id_order = invoice.id_payment AND pr.payment_Status IN ('Unpaid', 'waiting'))";
+    $pendingService = "id_user = ? AND status = 'unpaid' AND NOT EXISTS (SELECT 1 FROM payment_report pr WHERE pr.id_order = service_other.id_payment AND pr.payment_Status IN ('Unpaid', 'waiting'))";
+    $stmt = $pdo->prepare("SELECT discount_code FROM invoice WHERE $pendingInvoice AND discount_code IS NOT NULL AND discount_code != ''");
     $stmt->execute([$id_user]);
-    $stmt = $pdo->prepare("DELETE FROM service_other WHERE id_user = ? AND status = 'unpaid' AND NOT EXISTS (SELECT 1 FROM Payment_report pr WHERE pr.id_order = service_other.id_payment AND pr.payment_Status IN ('Unpaid', 'waiting'))");
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $code) {
+        releaseDiscountCode($code, $id_user);
+    }
+    $stmt = $pdo->prepare("SELECT value FROM service_other WHERE $pendingService");
+    $stmt->execute([$id_user]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $value) {
+        $code = json_decode((string) $value, true)['discount_code'] ?? '';
+        if ($code !== '') {
+            releaseDiscountCode($code, $id_user);
+        }
+    }
+    $stmt = $pdo->prepare("DELETE FROM invoice WHERE $pendingInvoice");
+    $stmt->execute([$id_user]);
+    $stmt = $pdo->prepare("DELETE FROM service_other WHERE $pendingService");
     $stmt->execute([$id_user]);
     clearSelectCache('invoice');
     clearSelectCache('service_other');
@@ -1851,24 +1916,24 @@ function paymentOrderKind(array $paymentReport): string
 function claimPaymentPaid($order_id)
 {
     global $pdo;
-    $stmt = $pdo->prepare("UPDATE Payment_report SET payment_Status = 'paid' WHERE id_order = :id_order AND payment_Status <> 'paid'");
+    $stmt = $pdo->prepare("UPDATE payment_report SET payment_Status = 'paid' WHERE id_order = :id_order AND payment_Status <> 'paid'");
     $stmt->bindValue(':id_order', $order_id);
     $stmt->execute();
-    clearSelectCache('Payment_report');
+    clearSelectCache('payment_report');
     return $stmt->rowCount() >= 1;
 }
 
 function DirectPayment($order_id, $image = 'images.jpg')
 {
     global $pdo, $ManagePanel, $textbotlang, $keyboardextendfnished, $keyboard, $Confirm_pay, $from_id, $message_id;
-    $buyreport = select("topicid", "idreport", "report", "buyreport", "select")['idreport'];
+    $buyreport = config_get('topic', "buyreport");
     $admin_ids = select("admin", "id_admin", null, null, "FETCH_COLUMN");
-    $otherservice = select("topicid", "idreport", "report", "otherservice", "select")['idreport'];
-    $otherreport = select("topicid", "idreport", "report", "otherreport", "select")['idreport'];
-    $errorreport = select("topicid", "idreport", "report", "errorreport", "select")['idreport'];
-    $porsantreport = select("topicid", "idreport", "report", "porsantreport", "select")['idreport'];
-    $setting = select("setting", "*");
-    $Payment_report = select("Payment_report", "*", "id_order", $order_id, "select");
+    $otherservice = config_get('topic', "otherservice");
+    $otherreport = config_get('topic', "otherreport");
+    $errorreport = config_get('topic', "errorreport");
+    $porsantreport = config_get('topic', "porsantreport");
+    $setting = config_all('setting');
+    $Payment_report = select("payment_report", "*", "id_order", $order_id, "select");
     $format_price_cart = number_format($Payment_report['price']);
     $Balance_id = select("user", "*", "id", $Payment_report['id_user'], "select");
     $linkedOrder = paymentOrder($Payment_report['id_order']);
@@ -1898,6 +1963,12 @@ function DirectPayment($order_id, $image = 'images.jpg')
             addBalance($Balance_id['id'], min($paidAmount, $orderPrice));
             if ($orderType != "buy") {
                 update("service_other", "status", "failed", "id", $service_order['id']);
+                if (!empty($serviceParams['discount_code'])) {
+                    releaseDiscountCode($serviceParams['discount_code'], $Balance_id['id']);
+                }
+            } elseif (!empty($get_invoice['discount_code'])) {
+                releaseDiscountCode($get_invoice['discount_code'], $Balance_id['id']);
+                $pdo->prepare("UPDATE invoice SET discount_code = NULL WHERE id_invoice = ?")->execute([$get_invoice['id_invoice']]);
             }
             sendmessage($Balance_id['id'], $textbotlang['users']['Balance']['notEnoughBalance'], null, 'HTML');
             sendmessage($Balance_id['id'], sprintf($textbotlang['users']['Balance']['addedNotice5'], number_format(min($paidAmount, $orderPrice))), $keyboard, 'HTML');
@@ -1950,6 +2021,10 @@ function DirectPayment($order_id, $image = 'images.jpg')
             update("invoice", "Status", $invoiceStatusBefore, "id_invoice", $get_invoice['id_invoice']);
             $dataoutput['msg'] = json_encode($dataoutput['msg'] ?? $dataoutput ?? 'unknown error');
             addBalance($Balance_id['id'], $orderPrice);
+            if (!empty($get_invoice['discount_code'])) {
+                releaseDiscountCode($get_invoice['discount_code'], $Balance_id['id']);
+                $pdo->prepare("UPDATE invoice SET discount_code = NULL WHERE id_invoice = ?")->execute([$get_invoice['id_invoice']]);
+            }
             sendmessage($Balance_id['id'], $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
             sendmessage($Balance_id['id'], sprintf($textbotlang['users']['Balance']['refundCreateFailed'], number_format($orderPrice)), $keyboard, 'HTML');
             $texterros = sprintf($textbotlang['Admin']['reportgroup']['errorConfigCreate'], $dataoutput['msg'], $Balance_id['id'], $Balance_id['username'], $marzban_list_get['name_panel']);
@@ -1996,16 +2071,8 @@ function DirectPayment($order_id, $image = 'images.jpg')
             update("invoice", "user_info", $dataoutput['subscription_url'], "id_invoice", $get_invoice['id_invoice']);
         }
         sendMessageService($marzban_list_get, $dataoutput['configs'], $output_config_link, $dataoutput['username'], $Shoppinginfo, $textcreatuser, $get_invoice['id_invoice'], $get_invoice['id_user'], $image, wireguard: $dataoutput['wireguard'] ?? []);
-        $partsdic = explode("_", $Balance_id['Processing_value_four']);
-        if ($partsdic[0] == "dis") {
-            $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
-            $value = intval($SellDiscountlimit['usedDiscount']) + 1;
-            update("DiscountSell", "usedDiscount", $value, "codeDiscount", $partsdic[1]);
-            $stmt = $pdo->prepare("INSERT INTO Giftcodeconsumed (id_user,code) VALUES (:id_user,:code)");
-            $stmt->bindParam(':id_user', $Balance_id['id']);
-            $stmt->bindParam(':code', $partsdic[1]);
-            $stmt->execute();
-            $text_report = sprintf($textbotlang['Admin']['reportgroup']['discountCodeUsed'], $Balance_id['username'], $Balance_id['id'], $partsdic[1]);
+        if (!empty($get_invoice['discount_code'])) {
+            $text_report = sprintf($textbotlang['Admin']['reportgroup']['discountCodeUsed'], $Balance_id['username'], $Balance_id['id'], $get_invoice['discount_code']);
             if (strlen($setting['Channel_Report']) > 0) {
                 telegram('sendmessage', [
                     'chat_id' => $setting['Channel_Report'],
@@ -2024,7 +2091,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
         if ($affiliatescommission['status_commission'] == "oncommission" && ($Balance_id['affiliates'] != null && intval($Balance_id['affiliates']) != 0)) {
             if ($marzbanporsant_one_buy['porsant_one_buy'] == "on_buy_porsant") {
                 if ($countinvoice <= 1) {
-                    $result = ($Payment_report['price'] * $setting['affiliatespercentage']) / 100;
+                    $result = ($orderPrice * $setting['affiliatespercentage']) / 100;
                     $user_Balance = select("user", "*", "id", $Balance_id['affiliates'], "select");
                     if (intval($setting['scorestatus']) == 1 and !in_array($Balance_id['affiliates'], $admin_ids)) {
                         sendmessage($Balance_id['affiliates'], $textbotlang['users']['affiliates']['pointsEarned2Alt'], null, 'html');
@@ -2048,7 +2115,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
                 }
             } else {
 
-                $result = ($Payment_report['price'] * $setting['affiliatespercentage']) / 100;
+                $result = ($orderPrice * $setting['affiliatespercentage']) / 100;
                 $user_Balance = select("user", "*", "id", $Balance_id['affiliates'], "select");
                 if (intval($setting['scorestatus']) == 1 and !in_array($Balance_id['affiliates'], $admin_ids)) {
                     sendmessage($Balance_id['affiliates'], $textbotlang['users']['affiliates']['pointsEarned2Alt'], null, 'html');
@@ -2076,7 +2143,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
             update("user", "number_username", $value, "id", $Balance_id['id']);
             if (in_array(usernameMethodKey($marzban_list_get['MethodUsername']), ['customTextSequential', 'agentCustomTextSequential'], true)) {
                 $value = intval($setting['numbercount']) + 1;
-                update("setting", "numbercount", $value);
+                config_set('setting', "numbercount", $value);
             }
         }
         $balanceformatsell = select("user", "Balance", "id", $get_invoice['id_user'], "select")['Balance'];
@@ -2141,6 +2208,9 @@ function DirectPayment($order_id, $image = 'images.jpg')
             update("service_other", "output", json_encode($extend), "id", $service_order['id']);
             update("service_other", "status", "failed", "id", $service_order['id']);
             addBalance($Balance_id['id'], $orderPrice);
+            if (!empty($serviceParams['discount_code'])) {
+                releaseDiscountCode($serviceParams['discount_code'], $Balance_id['id']);
+            }
             sendmessage($Balance_id['id'], $textbotlang['users']['sell']['errorConfig'], $keyboard, 'HTML');
             sendmessage($Balance_id['id'], sprintf($textbotlang['users']['Balance']['refundRenewFailed'], number_format($orderPrice)), $keyboard, 'HTML');
             $extend['msg'] = json_encode($extend['msg']);
@@ -2159,16 +2229,8 @@ function DirectPayment($order_id, $image = 'images.jpg')
 
         update("service_other", "output", json_encode($extend), "id", $service_order['id']);
         update("service_other", "status", "paid", "id", $service_order['id']);
-        $partsdic = explode("_", $Balance_id['Processing_value_four']);
-        if ($partsdic[0] == "dis") {
-            $SellDiscountlimit = select("DiscountSell", "*", "codeDiscount", $partsdic[1], "select");
-            $value = intval($SellDiscountlimit['usedDiscount']) + 1;
-            update("DiscountSell", "usedDiscount", $value, "codeDiscount", $partsdic[1]);
-            $stmt = $pdo->prepare("INSERT INTO Giftcodeconsumed (id_user,code) VALUES (:id_user,:code)");
-            $stmt->bindParam(':id_user', $Balance_id['id']);
-            $stmt->bindParam(':code', $partsdic[1]);
-            $stmt->execute();
-            $text_report = sprintf($textbotlang['Admin']['reportgroup']['discountCodeUsedFn'], $Balance_id['username'], $Balance_id['id'], $partsdic[1]);
+        if (!empty($serviceParams['discount_code'])) {
+            $text_report = sprintf($textbotlang['Admin']['reportgroup']['discountCodeUsedFn'], $Balance_id['username'], $Balance_id['id'], $serviceParams['discount_code']);
             if (strlen($setting['Channel_Report']) > 0) {
                 telegram('sendmessage', [
                     'chat_id' => $setting['Channel_Report'],
@@ -2188,12 +2250,12 @@ function DirectPayment($order_id, $image = 'images.jpg')
             ]
         ]);
         if ($Balance_id['agent'] == "f") {
-            $valurcashbackextend = select("shopSetting", "*", "Namevalue", "chashbackextend", "select")['value'];
+            $valurcashbackextend = config_get('shop', "chashbackextend");
         } else {
-            $valurcashbackextend = json_decode(select("shopSetting", "*", "Namevalue", "chashbackextend_agent", "select")['value'], true)[$Balance_id['agent']];
+            $valurcashbackextend = json_decode(config_get('shop', "chashbackextend_agent"), true)[$Balance_id['agent']];
         }
         if (intval($valurcashbackextend) != 0) {
-            $result = ($prodcut['price_product'] * $valurcashbackextend) / 100;
+            $result = ($orderPrice * $valurcashbackextend) / 100;
             addBalance($Balance_id['id'], $result);
             sendmessage($Balance_id['id'], sprintf($textbotlang['users']['extend']['giftChargedFn'], $result), null, 'HTML');
         }
@@ -2338,7 +2400,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
         }
     } else {
         addBalance($Payment_report['id_user'], intval($Payment_report['price']));
-        update("Payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
+        update("payment_report", "payment_Status", "paid", "id_order", $Payment_report['id_order']);
         $Payment_report['price'] = number_format($Payment_report['price'], 0);
         $format_price_cart = $Payment_report['price'];
         if ($Payment_report['Payment_Method'] == "cart to cart" or $Payment_report['Payment_Method'] == "arze digital offline") {
@@ -2352,7 +2414,7 @@ function DirectPayment($order_id, $image = 'images.jpg')
 }
 function plisio($order_id, $price, $from_id)
 {
-    $apinowpayments = select("PaySetting", "ValuePay", "NamePay", "apinowpayment", "select")['ValuePay'];
+    $apinowpayments = config_get('pay', "apinowpayment");
     $api_key = $apinowpayments;
 
     $url = 'https://api.plisio.net/api/v1/invoices/new';
@@ -2600,15 +2662,15 @@ function ensureWebhookSecret()
 {
     global $domainhosts;
 
-    $stored = (string) (select("setting", "*")['webhook_secret'] ?? '');
+    $stored = (string) (config_all('setting')['webhook_secret'] ?? '');
     if ($stored !== '') {
         return ['secret' => $stored, 'created' => false];
     }
 
     $secret = bin2hex(random_bytes(24));
-    update("setting", "webhook_secret", $secret, null, null);
+    config_set('setting', "webhook_secret", $secret);
 
-    $stored = (string) (select("setting", "*", null, null, "select", ['cache' => false])['webhook_secret'] ?? '');
+    $stored = (string) (config_all('setting', true)['webhook_secret'] ?? '');
     if ($stored !== '') {
         $secret = $stored;
     }
@@ -2756,8 +2818,8 @@ function activecron()
 }
 function createInvoice($amount)
 {
-    $PaySetting = select("PaySetting", "*", "NamePay", "apiiranpay", "select")['ValuePay'];
-    $walletaddress = select("PaySetting", "*", "NamePay", "walletaddress", "select")['ValuePay'];
+    $PaySetting = config_get('pay', "apiiranpay");
+    $walletaddress = config_get('pay', "walletaddress");
 
     $curl = curl_init();
 
@@ -2781,7 +2843,7 @@ function createInvoice($amount)
 }
 function verifpay($id)
 {
-    $PaySetting = select("PaySetting", "*", "NamePay", "apiiranpay", "select")['ValuePay'];
+    $PaySetting = config_get('pay', "apiiranpay");
     $curl = curl_init();
 
     curl_setopt_array($curl, array(
@@ -2806,7 +2868,7 @@ function verifpay($id)
 function createInvoiceiranpay1($amount, $id_invoice)
 {
     global $domainhosts;
-    $PaySetting = select("PaySetting", "*", "NamePay", "marchent_floypay", "select")['ValuePay'];
+    $PaySetting = config_get('pay', "marchent_floypay");
     $curl = curl_init();
     $amount = intval($amount);
     $data = [
@@ -3054,7 +3116,7 @@ function bottext_apply_overrides(array &$base, $lang)
     if (is_file($overrideFile) && is_array($overrideTexts = include $overrideFile))
         $base = array_replace_recursive($base, $overrideTexts);
     customEmojiLabels([]);
-    $row = select("setting", "*", null, null, "select");
+    $row = config_all('setting');
     $raw = is_array($row) ? ($row['text_edit'] ?? null) : null;
     if (!is_string($raw) || $raw === '')
         return;
@@ -3431,7 +3493,7 @@ function isValidInvitationCode($setting, $fromId, $verfy_status)
 function createPayZarinpal($price, $order_id)
 {
     global $domainhosts;
-    $marchent_zarinpal = select("PaySetting", "ValuePay", "NamePay", "merchant_zarinpal", "select")['ValuePay'];
+    $marchent_zarinpal = config_get('pay', "merchant_zarinpal");
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://payment.zarinpal.com/pg/v4/payment/request.json',
@@ -3507,7 +3569,7 @@ function createPayVariza($price, $order_id)
 function createPayaqayepardakht($price, $order_id)
 {
     global $domainhosts;
-    $merchant_aqayepardakht = select("PaySetting", "ValuePay", "NamePay", "merchant_id_aqayepardakht", "select")['ValuePay'];
+    $merchant_aqayepardakht = config_get('pay', "merchant_id_aqayepardakht");
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://panel.aqayepardakht.ir/api/v2/create',

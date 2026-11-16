@@ -85,7 +85,7 @@ if ($order_id === '' || $request_id === '') {
     return;
 }
 
-$Payment_report = select("Payment_report", "*", "id_order", $order_id, "select");
+$Payment_report = select("payment_report", "*", "id_order", $order_id, "select");
 if (!$Payment_report) {
     http_response_code(404);
     frenzyex_reply(false, 'order not found', ['order_id' => $order_id]);
@@ -125,7 +125,7 @@ if (!frenzyex_claim_paid($order_id)) {
 
 frenzyex_reply(true, null, ['order_id' => $order_id, 'request_id' => $request_id, 'status' => $status]);
 
-$setting = select("setting", "*", null, null, "select");
+$setting = config_all('setting');
 
 try {
     DirectPayment($order_id, "../images.jpg");
@@ -147,12 +147,12 @@ if ($pricecashback > 0) {
 }
 
 // Keep the settled payload for the admin panel's payment detail view.
-$statement = $pdo->prepare("UPDATE Payment_report SET dec_not_confirmed = :dec_not_confirmed WHERE id_order = :id_order");
+$statement = $pdo->prepare("UPDATE payment_report SET dec_not_confirmed = :dec_not_confirmed WHERE id_order = :id_order");
 $statement->bindValue(':dec_not_confirmed', json_encode($payload, JSON_UNESCAPED_UNICODE));
 $statement->bindValue(':id_order', $order_id);
 $statement->execute();
 
-$paymentreports = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'];
+$paymentreports = config_get('topic', "paymentreport");
 $report_username = htmlspecialchars((string) ($Balance_id['username'] ?? '-'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $report_user_id = htmlspecialchars((string) ($Balance_id['id'] ?? $Payment_report['id_user']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $report_order_id = htmlspecialchars($order_id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

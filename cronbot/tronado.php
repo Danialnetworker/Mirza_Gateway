@@ -38,11 +38,11 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
     return;
 }
 
-$list = $pdo->prepare("SELECT * FROM Payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'Tronado' ORDER BY id ASC LIMIT 100");
+$list = $pdo->prepare("SELECT * FROM payment_report WHERE payment_Status = 'Unpaid' AND Payment_Method = 'Tronado' ORDER BY id ASC LIMIT 100");
 $list->execute();
 $rows = $list->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-$statusCheck = $pdo->prepare("SELECT payment_Status FROM Payment_report WHERE id_order = ? LIMIT 1");
+$statusCheck = $pdo->prepare("SELECT payment_Status FROM payment_report WHERE id_order = ? LIMIT 1");
 
 foreach ($rows as $paymentReport) {
     // Re-read right before acting: an IPN may have settled it while we slept.

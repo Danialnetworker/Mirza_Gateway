@@ -147,7 +147,7 @@ function backupDumpDatabaseWithPdo(PDO $pdo, $targetFile)
     return is_file($targetFile) && filesize($targetFile) > 0;
 }
 
-$reportbackup = select("topicid", "idreport", "report", "backupfile", "select")['idreport'];
+$reportbackup = config_get('topic', "backupfile");
 $destination = getcwd();
 // Backup artefacts must never be written inside the web root. getcwd() is
 // cronbot/ (chdir above for the PHP CLI cron; the web server's cwd on older
@@ -174,7 +174,7 @@ if (@mkdir($backupPrivateDir, 0700, true) || is_dir($backupPrivateDir)) {
         @rmdir($backupPrivateDir);
     });
 }
-$setting = select("setting", "*");
+$setting = config_all('setting');
 $canSendReport = !isTelegramChatIdEmpty($setting['Channel_Report'] ?? '');
 if (!$canSendReport) {
     return;

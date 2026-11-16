@@ -108,7 +108,7 @@ if ($paymentId === '') {
 }
 $statusId = (int) ($payload['OrderStatusID'] ?? 0);
 
-$paymentReport = select("Payment_report", "*", "id_order", $paymentId, "select");
+$paymentReport = select("payment_report", "*", "id_order", $paymentId, "select");
 if (!$paymentReport || ($paymentReport['Payment_Method'] ?? '') !== 'Tronado') {
     error_log("tronado: IPN for unknown order {$paymentId}");
     tronado_respond(404, ['ok' => false, 'error' => 'unknown order']);

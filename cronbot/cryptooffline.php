@@ -10,7 +10,7 @@ require_once __DIR__ . '/../function.php';
 require_once __DIR__ . '/../crypto_offline_lib.php';
 require __DIR__ . '/../vendor/autoload.php';
 $ManagePanel = new ManagePanel();
-$setting = select("setting", "*");
+$setting = config_all('setting');
 $textbotlang = languagechange();
 
 // run.php includes jobs in its own scope: never exit, only return.

@@ -81,13 +81,13 @@ function dispute_h($v): string
 /** Post to the report channel, payment topic. Falls back to error_log. */
 function dispute_report(string $text): void
 {
-    $setting = select("setting", "*");
+    $setting = config_all('setting');
     $channel = (string) ($setting['Channel_Report'] ?? '');
     if ($channel === '') {
         error_log('tronado dispute (no report channel): ' . strip_tags($text));
         return;
     }
-    $topic = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'] ?? null;
+    $topic = config_get('topic', "paymentreport") ?? null;
     telegram('sendmessage', [
         'chat_id' => $channel,
         'message_thread_id' => $topic,
@@ -134,8 +134,8 @@ function dispute_kind_title(string $kind): string
 function tronado_dispute_apply(array $p, string $paymentId, string $outcome): array
 {
     global $pdo, $ManagePanel;
-    clearSelectCache('Payment_report');
-    $pr = select("Payment_report", "*", "id_order", $paymentId, "select");
+    clearSelectCache('payment_report');
+    $pr = select("payment_report", "*", "id_order", $paymentId, "select");
     if (!$pr || ($pr['Payment_Method'] ?? '') !== 'Tronado') {
         return ['action' => 'unknown_order', 'lines' => ['⚠️ این سفارش در ربات پیدا نشد؛ اقدامی انجام نشد.']];
     }

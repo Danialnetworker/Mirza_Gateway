@@ -17,8 +17,7 @@ if (!function_exists('frenzyex_setting')) {
             return trim((string) getPaySettingValue($name, $default));
         }
 
-        $row = select("PaySetting", "ValuePay", "NamePay", $name, "select");
-        return trim((string) ($row['ValuePay'] ?? $default));
+        return trim((string) config_get('pay', $name, $default));   // [config-093]
     }
 }
 
@@ -154,13 +153,13 @@ if (!function_exists('frenzyex_normalize_status_storage')) {
         if ($raw !== $normalized && isset($pdo) && $pdo instanceof PDO) {
             try {
                 $stmt = $pdo->prepare(
-                    "UPDATE PaySetting SET ValuePay = :value WHERE NamePay = 'statusfrenzyex'"
+                    "UPDATE config SET value = :value WHERE scope = 'pay' AND name = 'statusfrenzyex'"
                 );
                 $stmt->execute([':value' => $normalized]);
 
                 // select()/getPaySettingValue() may have cached the pre-repair row.
                 if (function_exists('clearSelectCache')) {
-                    clearSelectCache('PaySetting');
+                    config_all('pay', true);
                 }
             } catch (Throwable $e) {
                 error_log('FrenzyEx: could not normalize statusfrenzyex — ' . $e->getMessage());
@@ -217,7 +216,7 @@ if (!function_exists('frenzyex_claim_paid')) {
 
         global $pdo;
         $stmt = $pdo->prepare(
-            "UPDATE Payment_report SET payment_Status = 'paid'
+            "UPDATE payment_report SET payment_Status = 'paid'
              WHERE id_order = :id_order AND payment_Status <> 'paid'"
         );
         $stmt->bindValue(':id_order', $order_id);
@@ -226,7 +225,7 @@ if (!function_exists('frenzyex_claim_paid')) {
         // Mirza caches select() results; without this DirectPayment() can read
         // the pre-claim row back and act on a stale status.
         if (function_exists('clearSelectCache')) {
-            clearSelectCache('Payment_report');
+            clearSelectCache('payment_report');
         }
 
         return $stmt->rowCount() >= 1;

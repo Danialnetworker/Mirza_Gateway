@@ -36,7 +36,7 @@ function cofNetworks(): array
 function cofGet(string $name, string $default = '0'): string
 {
     global $pdo;
-    $st = $pdo->prepare("SELECT ValuePay FROM PaySetting WHERE NamePay = ?");
+    $st = $pdo->prepare("SELECT value FROM config WHERE scope = 'pay' AND name = ?");   // [config-093] fresh read
     $st->execute([$name]);
     $v = $st->fetchColumn();
     return $v === false || $v === null ? $default : (string) $v;
@@ -45,16 +45,7 @@ function cofGet(string $name, string $default = '0'): string
 function cofSet(string $name, string $value): void
 {
     global $pdo;
-    $st = $pdo->prepare("SELECT COUNT(*) FROM PaySetting WHERE NamePay = ?");
-    $st->execute([$name]);
-    if ((int) $st->fetchColumn() > 0) {
-        $pdo->prepare("UPDATE PaySetting SET ValuePay = ? WHERE NamePay = ?")->execute([$value, $name]);
-    } else {
-        $pdo->prepare("INSERT INTO PaySetting (NamePay, ValuePay) VALUES (?, ?)")->execute([$name, $value]);
-    }
-    if (function_exists('clearSelectCache')) {
-        clearSelectCache('PaySetting');
-    }
+    config_set('pay', $name, $value);   // [config-093]
 }
 
 function cofDigits(string $s): string
@@ -423,17 +414,17 @@ function cofSaveMeta(string $order, array $meta): void
 {
     global $pdo;
     $json = json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-    $st = $pdo->prepare("UPDATE Payment_report SET dec_not_confirmed = ? WHERE id_order = ?");
+    $st = $pdo->prepare("UPDATE payment_report SET dec_not_confirmed = ? WHERE id_order = ?");
     $st->execute([$json, $order]);
     if (function_exists('clearSelectCache')) {
-        clearSelectCache('Payment_report');
+        clearSelectCache('payment_report');
     }
 }
 
 function cofPending(): array
 {
     global $pdo;
-    $st = $pdo->prepare("SELECT * FROM Payment_report WHERE Payment_Method = ? AND payment_Status = 'Unpaid'");
+    $st = $pdo->prepare("SELECT * FROM payment_report WHERE Payment_Method = ? AND payment_Status = 'Unpaid'");
     $st->execute([COF_METHOD]);
     $out = [];
     while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
@@ -481,10 +472,10 @@ function cofCreateInvoice(string $userId, string $net, int $price, string $invoi
         $meta = ['cof' => 1, 'net' => $net, 'addr' => $wallet, 'usdt' => $amount, 'rate' => $usdRate, 'discount' => $discount,
             'pay_toman' => $pay, 'created' => time(), 'tries' => 0];
         $json = json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-        $st = $pdo->prepare("INSERT INTO Payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,dec_not_confirmed) VALUES (?,?,?,?,?,?,?,?)");
+        $st = $pdo->prepare("INSERT INTO payment_report (id_user,id_order,time,price,payment_Status,Payment_Method,id_invoice,dec_not_confirmed) VALUES (?,?,?,?,?,?,?,?)");
         $st->execute([$userId, $order, date('Y/m/d H:i:s'), $price, 'Unpaid', COF_METHOD, $invoice, $json]);
         if (function_exists('clearSelectCache')) {
-            clearSelectCache('Payment_report');
+            clearSelectCache('payment_report');
         }
     } finally {
         $pdo->query("SELECT RELEASE_LOCK('mirza_cof_amount')");
@@ -538,11 +529,11 @@ function cofReasonText(string $reason, array $ctx = []): string
 
 function cofReportGroup(string $text): void
 {
-    $setting = select("setting", "*");
+    $setting = config_all('setting');
     if (!is_array($setting) || isTelegramChatIdEmpty($setting['Channel_Report'] ?? '')) {
         return;
     }
-    $topic = select("topicid", "idreport", "report", "paymentreport", "select")['idreport'] ?? null;
+    $topic = config_get('topic', "paymentreport") ?? null;
     $p = ['chat_id' => $setting['Channel_Report'], 'text' => $text, 'parse_mode' => 'HTML', 'disable_web_page_preview' => true];
     if (!empty($topic)) {
         $p['message_thread_id'] = $topic;
@@ -572,10 +563,10 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
     if ($st->rowCount() !== 1) {
         return false;
     }
-    $paid = $pdo->prepare("UPDATE Payment_report SET payment_Status = 'paid' WHERE id_order = ? AND payment_Status = 'Unpaid'");
+    $paid = $pdo->prepare("UPDATE payment_report SET payment_Status = 'paid' WHERE id_order = ? AND payment_Status = 'Unpaid'");
     $paid->execute([$row['id_order']]);
     if (function_exists('clearSelectCache')) {
-        clearSelectCache('Payment_report');
+        clearSelectCache('payment_report');
     }
     if ($paid->rowCount() !== 1) {
         $pdo->prepare("DELETE FROM crypto_offline_tx WHERE txid = ? AND id_order = ?")->execute([$txid, $row['id_order']]);
@@ -593,7 +584,7 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
         $meta['orig_price'] = (int) $row['price'];
         $meta['orig_invoice'] = $row['id_invoice'];
         $meta['orig_kind'] = paymentOrderKind($row); // [mirza-0.8-link]
-        $upd = $pdo->prepare("UPDATE Payment_report SET price = ?, id_invoice = 'getbalance|' WHERE id_order = ?");
+        $upd = $pdo->prepare("UPDATE payment_report SET price = ?, id_invoice = 'getbalance|' WHERE id_order = ?");
         $upd->execute([$credit, $row['id_order']]);
         // [mirza-0.8-link] unlink the order: DirectPayment then credits the wallet only
         $pdo->prepare("UPDATE invoice SET id_payment = NULL WHERE id_payment = ?")->execute([$row['id_order']]);
@@ -603,7 +594,7 @@ function cofSettle(array $row, array $meta, string $txid, string $amount, string
             clearSelectCache('service_other');
         }
         if (function_exists('clearSelectCache')) {
-            clearSelectCache('Payment_report');
+            clearSelectCache('payment_report');
         }
     }
     cofSaveMeta($row['id_order'], $meta);
@@ -645,10 +636,10 @@ function cofReject(array $row, array $meta, string $reason, array $ctx = [], boo
     $text = "❌ تراکنش شما تأیید نشد\n\n🛒 کد پیگیری: <code>{$row['id_order']}</code>\nعلت: " . cofReasonText($reason, $ctx) . "\n\n";
     $keyboard = null;
     if ($final) {
-        $st = $pdo->prepare("UPDATE Payment_report SET payment_Status = 'reject' WHERE id_order = ? AND payment_Status = 'Unpaid'");
+        $st = $pdo->prepare("UPDATE payment_report SET payment_Status = 'reject' WHERE id_order = ? AND payment_Status = 'Unpaid'");
         $st->execute([$row['id_order']]);
         if (function_exists('clearSelectCache')) {
-            clearSelectCache('Payment_report');
+            clearSelectCache('payment_report');
         }
         if (!empty($row['message_id'])) {
             deletemessage($row['id_user'], $row['message_id']);
@@ -819,7 +810,7 @@ function cofCron(): array
             continue;
         }
         if (time() > (int) $m['created'] + COF_INVOICE_TTL + COF_GRACE) {
-            $st = $pdo->prepare("UPDATE Payment_report SET payment_Status = 'expire' WHERE id_order = ? AND payment_Status = 'Unpaid'");
+            $st = $pdo->prepare("UPDATE payment_report SET payment_Status = 'expire' WHERE id_order = ? AND payment_Status = 'Unpaid'");
             $st->execute([$row['id_order']]);
             if ($st->rowCount() === 1) {
                 if (!empty($row['message_id'])) {
@@ -831,7 +822,7 @@ function cofCron(): array
         }
     }
     if (function_exists('clearSelectCache')) {
-        clearSelectCache('Payment_report');
+        clearSelectCache('payment_report');
     }
     return $stats;
 }
