@@ -25,6 +25,7 @@ function mirza_cron_jobs(): array
         ['job' => 'backupbot', 'schedule' => '0 */5 * * *', 'title' => 'پشتیبان‌گیری ربات‌ساز'],
         ['job' => 'lottery', 'schedule' => '*/1 * * * *', 'title' => 'قرعه‌کشی و امتیازات'],
         ['job' => 'agent_radlog', 'schedule' => '*/1 * * * *', 'title' => 'ثبت خطاهای ورود کلودیوس برای پشتیبان هوشمند'], // [agent-radlog]
+        ['job' => 'agent_health', 'schedule' => '10 * * * *', 'title' => 'پایش ساعتی سرویس‌ها با اکانت تست (پشتیبان هوشمند)'], // [agent-health]
     ];
 }
 

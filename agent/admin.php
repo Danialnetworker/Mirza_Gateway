@@ -34,7 +34,7 @@ function agent_admin_view()
         [['text' => '🔑 کلید API', 'callback_data' => 'agentadm_set_key'], ['text' => '🧪 تست کلید', 'callback_data' => 'agentadm_test']],
         [['text' => '💵 سقف روزانه', 'callback_data' => 'agentadm_set_daily'], ['text' => '💵 سقف ماهانه', 'callback_data' => 'agentadm_set_monthly']],
         [['text' => '🛠 آیدی پشتیبان فنی', 'callback_data' => 'agentadm_set_tech'], ['text' => '💰 آیدی پشتیبان مالی', 'callback_data' => 'agentadm_set_finance']],
-        [['text' => '👤 آیدی ادمین', 'callback_data' => 'agentadm_set_admin']],
+        [['text' => '👤 آیدی ادمین', 'callback_data' => 'agentadm_set_admin'], ['text' => '🩺 چک مجدد سرویس‌ها', 'callback_data' => 'agentadm_health']],   // [agent-health]
     ]];
     return [$t, json_encode($kb)];
 }
@@ -54,6 +54,18 @@ function agent_admin()
         'admin' => "👤 آیدی عددی ادمین را بفرست؛ اختلال‌های تأییدشده (سرویس یا پنل واقعاً قطع است) برای او می‌رود (و هر وقت آیدی فنی/مالی خالی باشد).\nبرای حذف (ارسال به همه ادمین‌ها)، 0 بفرست.",
         'finance' => "💰 آیدی عددی پشتیبان مالی را بفرست؛ پیام‌های دپارتمان مالی برای او می‌رود (می‌تواند همان آیدی فنی باشد).\nبرای حذف، 0 بفرست.",
     ];
+    if ($text === '/check' || $datain === 'agentadm_health') {   // [agent-health] test every service now, report here
+        if ($datain === 'agentadm_health' && $callback_query_id)
+            telegram('answerCallbackQuery', ['callback_query_id' => $callback_query_id]);
+        if (!agent_probe_configured()) {
+            sendmessage($from_id, '❌ سرور تست ایران تنظیم نشده؛ چک سرویس‌ها ممکن نیست.', null, 'HTML');
+            return true;
+        }
+        require_once __DIR__ . '/health.php';
+        agent_health_spawn('manual', $from_id);
+        sendmessage($from_id, "⏳ تست همهٔ سرویس‌ها با اکانت تست شروع شد (L2TP، OpenVPN، WireGuard و همهٔ لوکیشن‌های V2Ray).\nحدود ۳ دقیقه دیگر گزارش کامل همین‌جا می‌آید.", null, 'HTML');
+        return true;
+    }
     if ($text === '/agent' || $text === AGENT_ADMIN_BTN) {
         [$t, $kb] = agent_admin_view();
         sendmessage($from_id, $t, $kb, 'HTML');
