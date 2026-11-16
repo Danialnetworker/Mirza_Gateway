@@ -36,6 +36,31 @@ function agent_health_flag($cc)
     return mb_chr(0x1F1E6 + ord($cc[0]) - 65, 'UTF-8') . mb_chr(0x1F1E6 + ord($cc[1]) - 65, 'UTF-8');
 }
 
+// Persian country name + flag ('FR' -> 'فرانسه 🇫🇷'); Latin codes inside Persian lines scramble the bidi order
+function agent_health_country($cc)
+{
+    static $fa = ['AE' => 'امارات', 'AM' => 'ارمنستان', 'AT' => 'اتریش', 'AU' => 'استرالیا', 'AZ' => 'آذربایجان', 'BE' => 'بلژیک',
+        'BG' => 'بلغارستان', 'BH' => 'بحرین', 'BR' => 'برزیل', 'CA' => 'کانادا', 'CH' => 'سوئیس', 'CN' => 'چین', 'CY' => 'قبرس',
+        'CZ' => 'چک', 'DE' => 'آلمان', 'DK' => 'دانمارک', 'EE' => 'استونی', 'ES' => 'اسپانیا', 'FI' => 'فنلاند', 'FR' => 'فرانسه',
+        'GB' => 'انگلستان', 'GE' => 'گرجستان', 'GR' => 'یونان', 'HK' => 'هنگ‌کنگ', 'HU' => 'مجارستان', 'IE' => 'ایرلند',
+        'IL' => 'اسرائیل', 'IN' => 'هند', 'IQ' => 'عراق', 'IR' => 'ایران', 'IS' => 'ایسلند', 'IT' => 'ایتالیا', 'JP' => 'ژاپن',
+        'KR' => 'کره جنوبی', 'KZ' => 'قزاقستان', 'LT' => 'لیتوانی', 'LU' => 'لوکزامبورگ', 'LV' => 'لتونی', 'MD' => 'مولداوی',
+        'NL' => 'هلند', 'NO' => 'نروژ', 'OM' => 'عمان', 'PL' => 'لهستان', 'PT' => 'پرتغال', 'QA' => 'قطر', 'RO' => 'رومانی',
+        'RS' => 'صربستان', 'RU' => 'روسیه', 'SA' => 'عربستان', 'SE' => 'سوئد', 'SG' => 'سنگاپور', 'TR' => 'ترکیه', 'UA' => 'اوکراین',
+        'US' => 'آمریکا', 'ZA' => 'آفریقای جنوبی'];
+    $cc = strtoupper((string) $cc);
+    return trim(($fa[$cc] ?? $cc) . ' ' . agent_health_flag($cc));
+}
+
+// Telegram picks each line's direction from its first letter: a line starting with «L2TP» or «V2Ray» is drawn
+// left-to-right and the Persian in it is scrambled. Start every line with RLM and use Persian digits.
+function agent_health_rtl($t)
+{
+    $t = preg_replace_callback('/(?<![A-Za-z0-9])[0-9][0-9.\/:]*(?![A-Za-z])/', fn($m) => strtr($m[0], ['0' => '۰', '1' => '۱', '2' => '۲',
+        '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹']), $t);   // not inside L2TP / V2Ray
+    return implode("\n", array_map(fn($l) => trim($l) === '' ? '' : "\u{200F}" . $l, explode("\n", $t)));
+}
+
 // one probe result (a protocol, or one V2Ray location) -> [bad, Persian detail]
 function agent_health_judge(array $r)
 {
@@ -47,18 +72,18 @@ function agent_health_judge(array $r)
         return [true, 'وصل نشد'];
     $cc = (string) ($r['country'] ?? '');
     $kbps = (int) ($r['download']['kbps'] ?? 0);
-    $speed = $kbps > 0 ? round($kbps / 1000, 1) . ' Mbps' : 'بدون دانلود';
+    $speed = $kbps > 0 ? 'سرعت ' . round($kbps / 1000, 1) . ' مگابیت' : 'بدون دانلود';
     if (!empty($r['iran_exit']))
-        return [true, 'وصل شد ولی خروجی ایران است' . ($cc ? " ($cc)" : '')];
+        return [true, 'وصل شد ولی خروجی ایران است'];
     if (!empty($r['ok']))
-        return [false, 'سالم، خروجی ' . agent_health_flag($cc) . " {$cc}، {$speed}"];
+        return [false, 'سالم — خروجی ' . agent_health_country($cc) . ' — ' . $speed];
     $bad = [];
     foreach (($r['sites'] ?? []) as $h => $s)
         if (empty($s['ok']) && empty($s['blocked_by_exit_country']))
             $bad[] = preg_replace('/^www\./', '', $h);
     if ((int) ($r['download']['bytes'] ?? 0) < 400000)
         $bad[] = 'دانلود';
-    return [true, 'وصل شد ولی باز نشد: ' . implode('، ', $bad ?: ['?']) . " (خروجی {$cc}، {$speed})"];
+    return [true, 'وصل شد ولی باز نشد: ' . implode('، ', $bad ?: ['?']) . ' — خروجی ' . agent_health_country($cc) . ' — ' . $speed];
 }
 
 // raw probe outputs per protocol -> items [key => [bad, label, detail, group]]; null = probe server unreachable
@@ -85,14 +110,15 @@ function agent_health_eval(array $raw)
         foreach ($r['by_location'] as $name => $x) {
             $x = is_array($x) ? $x : [];
             [$bad, $det] = agent_health_judge($x);
-            $items['v2ray:' . $name] = [$bad, 'V2Ray ' . trim($name), $det, 'loc'];
+            $label = 'لوکیشن ' . trim(preg_replace('/\s+/u', ' ', $name));
+            $items['v2ray:' . $name] = [$bad, $label, $det, 'loc'];
             $want = agent_health_flag_cc($name);
             $got = array_values(array_unique(array_filter(array_map(fn($e) => strtoupper((string) ($e['cc'] ?? '')), $x['exit'] ?? []), fn($c) => preg_match('/^[A-Z]{2}$/', $c))));
             if ($want === '' || !$got)
                 continue;                              // no flag in the name or exit unknown: nothing to compare
             $mis = !in_array($want, $got, true);
-            $items['geo:' . $name] = [$mis, 'V2Ray ' . trim($name), $mis
-                ? "اسم لوکیشن $want است ولی IP خروجی " . agent_health_flag($got[0]) . ' ' . $got[0] . ' است'
+            $items['geo:' . $name] = [$mis, $label, $mis
+                ? 'خروجی واقعی‌اش ' . agent_health_country($got[0]) . ' است'
                 : 'کشور خروجی با اسم یکی است', 'geo'];
         }
     }
@@ -152,7 +178,7 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
     $t = '🩺 <b>' . ($kind === 'alert' ? 'تغییر وضعیت سرویس‌ها' : 'گزارش کامل سرویس‌ها') . "</b>\n"
         . "<i>تست واقعی از سرور ایران با اکانت تست — $when</i>\n";
     if ($probeDown)
-        return $t . "\n⚠️ سرور تست ایران در دسترس نبود؛ هیچ سرویسی تست نشد. (این خرابی سرویس مشتری‌ها نیست.)";
+        return agent_health_rtl($t . "\n⚠️ سرور تست ایران در دسترس نبود؛ هیچ سرویسی تست نشد. (این خرابی سرویس مشتری‌ها نیست.)");
     if ($new && $kind === 'alert') {   // the full report lists every problem in its own section below
         $t .= "\n🔴 <b>مشکل جدید</b>\n";
         foreach ($new as $k)
@@ -172,7 +198,7 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
             $t .= agent_health_line($state[$k], $now, true) . "\n";
     }
     if ($kind === 'alert')
-        return rtrim($t);
+        return agent_health_rtl(rtrim($t));
 
     // full report
     $t .= "\n<b>پروتکل‌ها</b>\n";
@@ -185,7 +211,7 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
     $locs = array_filter($state, fn($s) => $s['grp'] === 'loc');
     $badLocs = array_filter($locs, fn($s) => $s['bad']);
     $geo = array_filter($state, fn($s) => $s['grp'] === 'geo' && $s['bad']);
-    $t .= "\n<b>V2Ray</b>: " . (count($locs) - count($badLocs)) . ' از ' . count($locs) . " لوکیشن سالم\n";
+    $t .= "\n<b>لوکیشن‌های V2Ray</b>: " . (count($locs) - count($badLocs)) . ' از ' . count($locs) . " سالم\n";
     foreach ($badLocs as $s)
         $t .= '🔴 ' . htmlspecialchars($s['label']) . ': ' . htmlspecialchars($s['detail']) . "\n";
     if (isset($state['v2ray']) && !$locs)
@@ -195,7 +221,7 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
         $t .= '🟠 ' . htmlspecialchars($s['label']) . ': ' . htmlspecialchars($s['detail']) . "\n";
     $all = array_filter($state, fn($s) => $s['bad']);
     $t .= "\n" . ($all ? '❗️ ' . count($all) . ' مشکل' : '✅ همه‌چیز سالم است') . ($took ? " — تست $took ثانیه طول کشید" : '');
-    return $t;
+    return agent_health_rtl($t);
 }
 
 // run the forced-command probe for one protocol with the TEST account; never cached
