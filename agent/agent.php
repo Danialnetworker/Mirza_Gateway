@@ -181,6 +181,8 @@ function agent_start($uid, $text, array $ctx)
         return false;
     }
     $ctx['active_services'] = agent_active_services($uid);
+    require_once __DIR__ . '/history.php';          // [agent-history] the admin can read older conversations
+    agent_history_archive($uid);
     agent_json_update(agent_conv_path($uid), function (&$c) use ($text, $ctx) {
         $c = ['ctx' => $ctx, 'started' => time(), 'updated' => time(), 'messages' => [], 'inbox' => [$text],
             'user_msgs' => [$text], 'done' => false, 'probes' => [], 'outage_sent' => false];

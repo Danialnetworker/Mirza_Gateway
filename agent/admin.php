@@ -35,6 +35,7 @@ function agent_admin_view()
         [['text' => '💵 سقف روزانه', 'callback_data' => 'agentadm_set_daily'], ['text' => '💵 سقف ماهانه', 'callback_data' => 'agentadm_set_monthly']],
         [['text' => '🛠 آیدی پشتیبان فنی', 'callback_data' => 'agentadm_set_tech'], ['text' => '💰 آیدی پشتیبان مالی', 'callback_data' => 'agentadm_set_finance']],
         [['text' => '👤 آیدی ادمین', 'callback_data' => 'agentadm_set_admin'], ['text' => '🩺 چک مجدد سرویس‌ها', 'callback_data' => 'agentadm_health']],   // [agent-health]
+        [['text' => '💬 گفتگوهای مشتری‌ها', 'callback_data' => 'agentadm_h_l_0']],   // [agent-history]
     ]];
     return [$t, json_encode($kb)];
 }
@@ -66,6 +67,10 @@ function agent_admin()
         sendmessage($from_id, "⏳ تست همهٔ سرویس‌ها با اکانت تست شروع شد (L2TP، OpenVPN، WireGuard و همهٔ لوکیشن‌های V2Ray).\nهر خرابی تا ۵ بار دوباره تست می‌شود؛ حدود ۱ تا ۵ دقیقه دیگر گزارش کامل همین‌جا می‌آید.", null, 'HTML');
         return true;
     }
+    if (is_string($text) && preg_match('/^\/chats(\s|$)/', $text)) {   // [agent-history]
+        require_once __DIR__ . '/history.php';
+        return agent_history_command($text);
+    }
     if ($text === '/agent' || $text === AGENT_ADMIN_BTN) {
         [$t, $kb] = agent_admin_view();
         sendmessage($from_id, $t, $kb, 'HTML');
@@ -75,6 +80,10 @@ function agent_admin()
         if ($callback_query_id)
             telegram('answerCallbackQuery', ['callback_query_id' => $callback_query_id]);
         $a = substr($datain, 9);
+        if (strpos($a, 'h_') === 0) {              // [agent-history]
+            require_once __DIR__ . '/history.php';
+            return agent_history_handle($a);
+        }
         if ($a === 'toggle') {
             agent_cfg_save(['enabled' => empty(agent_cfg()['enabled'])]);
             if (!empty(agent_cfg()['enabled']))
