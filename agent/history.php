@@ -27,8 +27,10 @@ function agent_history_meta($uid, array $c)
         : (['finance' => 'پشتیبانی مالی', 'tech' => 'پشتیبانی فنی'][agent_dep_kind($c['ctx']['dep_id'] ?? 0)] ?? 'تیکت');
     if (!empty($c['outage_sent']))
         $out = ['🚨', 'قطعی به ادمین گزارش شد'];
+    elseif (!empty($c['resolved']))   // [agent-resolve]
+        $out = ['✅', 'مشکل حل شد؛ مشتری گفت راضی است'];
     elseif (!empty($c['done']))
-        $out = ['↪️', 'ارجاع به ' . (['finance' => 'پشتیبانی مالی', 'tech' => 'پشتیبانی فنی'][$c['handoff_dep'] ?? ''] ?? 'همکار')];
+        $out = ['↪️', 'ارجاع به ' . (['finance' => 'پشتیبانی مالی', 'tech' => 'پشتیبانی فنی'][$c['handoff_dep'] ?? ''] ?? 'همکار') . (($c['feedback'] ?? '') === 'no' ? ' (مشتری راضی نبود)' : '')];
     elseif (agent_conv_live($c))
         $out = ['🟢', 'در جریان'];
     else
@@ -157,7 +159,8 @@ function agent_history_turns($uid, array $c)
     $turns = ["💬 <b>گفتگو با پشتیبان هوشمند</b>\n👤 مشتری: <a href=\"tg://user?id=$uid\">$uid</a>" . ($m['username'] !== '' ? ' @' . $e($m['username']) : '')
         . "\n🕒 " . (function_exists('jdate') ? jdate('Y/m/d H:i', $m['started'], '', 'Asia/Tehran', 'en') : date('Y/m/d H:i', $m['started'])) . ' — ' . $m['kind']
         . (trim((string) ($c['service_info'] ?? '')) !== '' ? "\n📦 " . $e($c['service_info']) : '')
-        . "\n📌 نتیجه: {$m['icon']} {$m['outcome']}"];
+        . "\n📌 نتیجه: {$m['icon']} {$m['outcome']}"
+        . (isset($c['cost_usd']) ? "\n💵 هزینهٔ این گفتگو: $" . number_format((float) $c['cost_usd'], 4) . ' — ' . (int) ($c['api_calls'] ?? 0) . ' درخواست — ' . $e($c['model'] ?? '') : '')];
     $results = [];
     foreach ($c['messages'] ?? [] as $msg)
         foreach (is_array($msg['content'] ?? null) ? $msg['content'] : [] as $b)
@@ -196,6 +199,12 @@ function agent_history_turns($uid, array $c)
                 $turns[] = '📊 <i>ریز مصرف را خواند: ' . $e($in['username'] ?? '') . '</i>';
             } elseif ($b['name'] === 'my_payments') {
                 $turns[] = '💳 <i>پرداخت‌ها و خریدهای مشتری را خواند</i>';
+            } elseif ($b['name'] === 'service_details') {
+                $turns[] = '🗂 <i>رکورد سرویس را از پنل خواند: ' . $e($in['username'] ?? '') . '</i>';
+            } elseif ($b['name'] === 'network_status') {
+                $turns[] = '🩺 <i>وضعیت پنل‌ها و لوکیشن‌ها را خواند</i>';
+            } elseif ($b['name'] === 'record_feedback') {
+                $turns[] = (!empty($in['satisfied']) ? '👍 <i>مشتری راضی بود' : '👎 <i>مشتری راضی نبود') . (trim((string) ($in['note'] ?? '')) !== '' ? ': ' . $e($in['note']) : '') . '</i>';
             } elseif ($b['name'] === 'report_outage') {
                 $turns[] = '🚨 <i>گزارش قطعی به ادمین: ' . $e($in['summary'] ?? '') . '</i>';
             }

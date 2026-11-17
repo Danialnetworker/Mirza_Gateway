@@ -8,6 +8,8 @@ if (defined('MIRZA_AGENT_LOADED'))
 define('MIRZA_AGENT_LOADED', 1);
 define('AGENT_DIR', dirname(__DIR__) . '/storage/agent');
 require_once __DIR__ . '/readonly.php';   // [agent-readonly]
+require_once __DIR__ . '/panelread.php';  // [agent-panelread]
+require_once __DIR__ . '/resolve.php';    // [agent-resolve]
 
 function agent_dir($sub = '')
 {
@@ -34,7 +36,7 @@ function agent_defaults()
         'price' => ['in' => 0.10, 'cache_w' => 0.125, 'cache_r' => 0.01, 'out' => 0.50], // USD per 1M tokens
         'probe' => ['host' => '', 'port' => 22, 'user' => 'root'],
         'idle_min' => 30,
-        'max_user_msgs' => 8,
+        'max_user_msgs' => 0,          // [agent-resolve] 0 = no cap on customer messages
         'php_bin' => '',
     ];
 }
@@ -114,7 +116,7 @@ function agent_over_budget()
 
 function agent_add_usage(array $usage)
 {
-    $p = agent_cfg()['price'];
+    $p = agent_rs_price();
     $cost = (($usage['input_tokens'] ?? 0) * $p['in'] + ($usage['cache_creation_input_tokens'] ?? 0) * $p['cache_w']
         + ($usage['cache_read_input_tokens'] ?? 0) * $p['cache_r'] + ($usage['output_tokens'] ?? 0) * $p['out']) / 1e6;
     agent_json_update(agent_dir() . '/usage.json', function (&$u) use ($cost) {
@@ -133,6 +135,7 @@ function agent_add_usage(array $usage)
         $u['month_usd'] += $cost;
         $u['calls'] = ($u['calls'] ?? 0) + 1;
     });
+    agent_rs_count($usage, $cost);
     return $cost;
 }
 
@@ -409,6 +412,7 @@ function agent_rules()
     $r .= agent_help_rules();
     $r .= agent_guide_rules();
     $r .= agent_ro_rules();
+    $r .= agent_rs_rules();
     return $r;
 }
 
@@ -643,7 +647,7 @@ function agent_tools()
                 'location' => ['type' => 'string', 'description' => 'v2ray only: part of the location name to test'],
             ], 'required' => ['protocol']]];
     }
-    $t = array_merge($t, agent_ro_tools());
+    $t = agent_rs_tools_fix(array_merge($t, agent_ro_tools(), agent_pr_tools()));
     $t[count($t) - 1]['cache_control'] = ['type' => 'ephemeral'];
     return $t;
 }
@@ -1348,7 +1352,7 @@ function agent_turn($uid, $text)
         return;
     if (agent_over_budget())
         return agent_finish($uid, 'سقف بودجهٔ پشتیبان هوشمند پر شده');
-    if (count($c['user_msgs'] ?? []) > agent_cfg()['max_user_msgs'])
+    if (agent_cfg()['max_user_msgs'] > 0 && count($c['user_msgs'] ?? []) > agent_cfg()['max_user_msgs'])
         return agent_finish($uid, 'گفتگو طولانی شد');
     telegram('sendChatAction', ['chat_id' => $uid, 'action' => 'typing']);
     if (empty($c['messages'])) {
@@ -1369,9 +1373,9 @@ function agent_turn($uid, $text)
     $system = [['type' => 'text', 'text' => agent_prompt(), 'cache_control' => ['type' => 'ephemeral']]];
     $handed = null;
     $outage = false;
-    for ($step = 0; $step < 7; $step++) {
-        $r = agent_api(['model' => agent_cfg()['model'], 'max_tokens' => 1100, 'thinking' => ['type' => 'disabled'],
-            'system' => $system, 'tools' => agent_tools(), 'messages' => $c['messages']]);
+    for ($step = 0; $step < 12; $step++) {
+        $r = agent_api(['model' => agent_cfg()['model'], 'max_tokens' => 1100, 'thinking' => agent_rs_thinking(),
+            'system' => $system, 'tools' => agent_tools(), 'messages' => agent_rs_cache_msgs($c['messages'])]);
         if (!$r) {
             agent_save($uid, $c);
             return agent_finish($uid, 'پشتیبان هوشمند در دسترس نبود');
@@ -1389,8 +1393,12 @@ function agent_turn($uid, $text)
             if ($b['type'] !== 'tool_use')
                 continue;
             $in = $b['input'] ?? [];
-            if ($b['name'] === 'handoff') {
-                $handed = (string) ($in['reason'] ?? 'ارجاع');
+            if ($b['name'] === 'handoff' && ($no = agent_rs_handoff_check($c, $in)) !== null) {
+                $res = $no;
+            } elseif ($b['name'] === 'record_feedback') {
+                $res = agent_rs_feedback($uid, $c, $in);
+            } elseif ($b['name'] === 'handoff') {
+                $handed = (string) ($in['reason'] ?? 'ارجاع') . (trim((string) ($in['checked'] ?? '')) !== '' ? ' | بررسی‌شده: ' . trim((string) $in['checked']) : '');
                 if (in_array($in['department'] ?? '', ['finance', 'tech'], true))
                     $c['handoff_dep'] = $in['department'];
                 $res = 'handed off; now tell the customer in one short sentence that a colleague will answer here';
@@ -1408,7 +1416,7 @@ function agent_turn($uid, $text)
                 $res = agent_check_connection($uid, $in);   // [agent-acctprobe]
                 $c['probes'][] = $res;
                 $res = json_encode($res, JSON_UNESCAPED_UNICODE);
-            } elseif (($ro = agent_ro_call($uid, $b['name'], $in)) !== null) {
+            } elseif (($ro = agent_ro_call($uid, $b['name'], $in) ?? agent_pr_call($uid, $b['name'], $in)) !== null) {
                 $res = json_encode($ro, JSON_UNESCAPED_UNICODE);
             } else {
                 $res = 'unknown tool';
@@ -1425,6 +1433,12 @@ function agent_turn($uid, $text)
         break;
     }
     $c['updated'] = time();
+    if ($handed === null && !empty($c['resolved'])) {   // the customer said the problem is solved
+        $c['done'] = true;
+        agent_save($uid, $c);
+        step('home', $uid);
+        return;
+    }
     if ($handed !== null) {
         $c['done'] = true;
         agent_save($uid, $c);
@@ -1437,6 +1451,7 @@ function agent_turn($uid, $text)
 
 function agent_save($uid, array $c)
 {
+    $c = agent_rs_stamp($c);
     $c['messages'] = agent_strip_images($c['messages'] ?? []);   // [agent-photo]
     agent_json_update(agent_conv_path($uid), function (&$x) use ($c) {
         $inbox = is_array($x) ? ($x['inbox'] ?? []) : [];
