@@ -190,6 +190,12 @@ function agent_history_turns($uid, array $c)
                 $turns[] = '📘 <i>راهنمای تصویری فرستاد: ' . $e($in['guide'] ?? '') . '</i>';
             } elseif ($b['name'] === 'handoff') {
                 $turns[] = '↪️ <i>ارجاع به ' . (['finance' => 'پشتیبانی مالی', 'tech' => 'پشتیبانی فنی'][$in['department'] ?? ''] ?? 'همکار') . ': ' . $e($in['reason'] ?? '') . '</i>';
+            } elseif ($b['name'] === 'my_services') {   // [agent-readonly]
+                $turns[] = '🔎 <i>فهرست و وضعیت سرویس‌های مشتری را خواند</i>';
+            } elseif ($b['name'] === 'usage_report') {
+                $turns[] = '📊 <i>ریز مصرف را خواند: ' . $e($in['username'] ?? '') . '</i>';
+            } elseif ($b['name'] === 'my_payments') {
+                $turns[] = '💳 <i>پرداخت‌ها و خریدهای مشتری را خواند</i>';
             } elseif ($b['name'] === 'report_outage') {
                 $turns[] = '🚨 <i>گزارش قطعی به ادمین: ' . $e($in['summary'] ?? '') . '</i>';
             }

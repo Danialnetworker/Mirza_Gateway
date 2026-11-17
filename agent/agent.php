@@ -7,6 +7,7 @@ if (defined('MIRZA_AGENT_LOADED'))
     return;
 define('MIRZA_AGENT_LOADED', 1);
 define('AGENT_DIR', dirname(__DIR__) . '/storage/agent');
+require_once __DIR__ . '/readonly.php';   // [agent-readonly]
 
 function agent_dir($sub = '')
 {
@@ -335,6 +336,7 @@ function agent_kick($uid)
 // ------------------------------------------------------------------ Claude API
 function agent_api(array $body)
 {
+    $body = agent_ro_fix_inputs($body);   // [agent-readonly]
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
@@ -406,6 +408,7 @@ function agent_rules()
     $r .= agent_photo_rules();    // [agent-photo]
     $r .= agent_help_rules();
     $r .= agent_guide_rules();
+    $r .= agent_ro_rules();
     return $r;
 }
 
@@ -640,6 +643,7 @@ function agent_tools()
                 'location' => ['type' => 'string', 'description' => 'v2ray only: part of the location name to test'],
             ], 'required' => ['protocol']]];
     }
+    $t = array_merge($t, agent_ro_tools());
     $t[count($t) - 1]['cache_control'] = ['type' => 'ephemeral'];
     return $t;
 }
@@ -1365,8 +1369,8 @@ function agent_turn($uid, $text)
     $system = [['type' => 'text', 'text' => agent_prompt(), 'cache_control' => ['type' => 'ephemeral']]];
     $handed = null;
     $outage = false;
-    for ($step = 0; $step < 5; $step++) {
-        $r = agent_api(['model' => agent_cfg()['model'], 'max_tokens' => 500, 'thinking' => ['type' => 'disabled'],
+    for ($step = 0; $step < 7; $step++) {
+        $r = agent_api(['model' => agent_cfg()['model'], 'max_tokens' => 1100, 'thinking' => ['type' => 'disabled'],
             'system' => $system, 'tools' => agent_tools(), 'messages' => $c['messages']]);
         if (!$r) {
             agent_save($uid, $c);
@@ -1404,6 +1408,8 @@ function agent_turn($uid, $text)
                 $res = agent_check_connection($uid, $in);   // [agent-acctprobe]
                 $c['probes'][] = $res;
                 $res = json_encode($res, JSON_UNESCAPED_UNICODE);
+            } elseif (($ro = agent_ro_call($uid, $b['name'], $in)) !== null) {
+                $res = json_encode($ro, JSON_UNESCAPED_UNICODE);
             } else {
                 $res = 'unknown tool';
             }
