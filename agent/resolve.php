@@ -25,6 +25,20 @@ function agent_rs_thinking()
 // tool results. Marks the last block of the last message of the copy that is sent (the stored one is untouched).
 function agent_rs_cache_msgs(array $msgs)
 {
+    // Sonnet/Opus thinking blocks are signed against the exact conversation before them. Earlier turns are changed
+    // when saved (customer photos become a text marker), so their thinking blocks would be rejected (HTTP 400
+    // "Invalid signature ... bound to a different conversation"). Only the turn in progress needs them: drop the rest.
+    $cur = 0;
+    foreach ($msgs as $k => $m)
+        if (($m['role'] ?? '') === 'user' && !agent_rs_only_results($m))
+            $cur = $k;
+    foreach ($msgs as $k => &$m) {
+        if ($k >= $cur || ($m['role'] ?? '') !== 'assistant' || !is_array($m['content'] ?? null))
+            continue;
+        $keep = array_values(array_filter($m['content'], fn($b) => !in_array($b['type'] ?? '', ['thinking', 'redacted_thinking'], true)));
+        $m['content'] = $keep ?: [['type' => 'text', 'text' => '…']];
+    }
+    unset($m);
     $i = count($msgs) - 1;
     if ($i < 0)
         return $msgs;
@@ -34,6 +48,16 @@ function agent_rs_cache_msgs(array $msgs)
     if ($j >= 0 && in_array($msgs[$i]['content'][$j]['type'] ?? '', ['text', 'tool_result', 'image'], true))
         $msgs[$i]['content'][$j]['cache_control'] = ['type' => 'ephemeral'];
     return $msgs;
+}
+
+function agent_rs_only_results(array $m)
+{
+    if (!is_array($m['content'] ?? null) || !$m['content'])
+        return false;
+    foreach ($m['content'] as $b)
+        if (($b['type'] ?? '') !== 'tool_result')
+            return false;
+    return true;
 }
 
 function agent_rs_price()
