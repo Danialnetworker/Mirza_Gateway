@@ -5,7 +5,7 @@ ini_set('error_log', 'error_log');
 
 function get_clinets($username, $panel)
 {
-    $url = $panel['url_panel'] . "/panel/api/clients/get/$username";
+    $url = $panel['url_panel'] . "/panel/api/clients/get/" . rawurlencode($username);
     $headers = array(
         'Accept: application/json',
         'Content-Type: application/json',
@@ -16,7 +16,7 @@ function get_clinets($username, $panel)
     $response = $req->get();
     return $response;
 }
-function addClient($panel, $usernameac, $Expire, $subId, $Total, $inboundid, $name_product, $note = "")
+function addClient($panel, $usernameac, $Expire, $subId, $Total, $inboundid, $name_product, $note = "", $limitIp = 0)
 {
     if ($name_product == "usertest") {
         if ($panel['on_hold_test'] == "1") {
@@ -50,6 +50,9 @@ function addClient($panel, $usernameac, $Expire, $subId, $Total, $inboundid, $na
         "enable" => true,
         "subId" => $subId
     ];
+    if (intval($limitIp) > 0) {
+        $data["limitIp"] = intval($limitIp);
+    }
     $config = array(
         "inboundIds" => json_decode($inboundid, true),
         'client' => $data
@@ -96,7 +99,7 @@ function ResetUserDataUsagex_uisin($usernamepanel, $panel)
 }
 function removeClient($panel, $username)
 {
-    $url = $panel['url_panel'] . "/panel/api/clients/del/" . $username;
+    $url = $panel['url_panel'] . "/panel/api/clients/del/" . rawurlencode($username);
     $headers = array(
         'Accept: application/json',
         'Content-Type: application/json',
@@ -122,7 +125,7 @@ function status_server_xui($panel)
 }
 function attach_service($panel, $username, $configpanel)
 {
-    $url = $panel['url_panel'] . "/panel/api/clients/$username/attach";
+    $url = $panel['url_panel'] . "/panel/api/clients/" . rawurlencode($username) . "/attach";
     $headers = array(
         'Accept: application/json',
         'Content-Type: application/json',
@@ -136,7 +139,7 @@ function attach_service($panel, $username, $configpanel)
 
 function used_data_3xui($panel, $username)
 {
-    $url = $panel['url_panel'] . "/panel/api/clients/traffic/$username";
+    $url = $panel['url_panel'] . "/panel/api/clients/traffic/" . rawurlencode($username);
     $headers = array(
         'Accept: application/json',
         'Content-Type: application/json',

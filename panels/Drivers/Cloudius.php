@@ -143,6 +143,10 @@ class CloudiusPanelDriver extends BasePanelDriver
         $cl_gb = (float) $vars['new_limit'];
         $cl_days = (int) $vars['time_day'];
         $cl_method = extendMethodKey($vars['Method_extend']);
+        $du_sr = is_array($vars['data_user'] ?? null) ? $vars['data_user'] : [];
+        if ($cl_method == 'smartRenew') {   // [smart-renew] same rule as panels.php (0.9.4)
+            $cl_method = ((int) ($du_sr['expire'] ?? 0) > 0 && (int) $du_sr['expire'] < time()) ? 'resetVolumeTime' : 'addTimeConvertVolume';
+        }
         $cl_unlimited = ($cl_gb <= 0); // [cloudius-unlimited] plan 0 GB = unlimited: never carry leftover into it
         if ($cl_method == "resetVolumeTime" || $cl_method == "resetTimeAddVolume") {
             // resetTimeAddVolume: new window from today, leftover traffic carried over

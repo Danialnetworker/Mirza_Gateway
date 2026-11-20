@@ -1214,6 +1214,7 @@ $Methodextend = json_encode([
         [['text' => $textbotlang['keyboard']['resetTimeAddVolume']]],
         [['text' => $textbotlang['keyboard']['resetVolumeAddTime']]],
         [['text' => $textbotlang['keyboard']['addTimeConvertVolume']]],
+        [['text' => $textbotlang['keyboard']['smartRenew']]],
         [['text' => $textbotlang['Admin']['backAdminBtn']], ['text' => $textbotlang['Admin']['backMenuBtn']]]
     ],
     'resize_keyboard' => true
@@ -1460,7 +1461,7 @@ function KeyboardProduct($location, $query, $pricediscount, $datakeyboard, $stat
     ];
     return json_encode($product);
 }
-function KeyboardCategory($location, $agent, $backuser = "backuser")
+function KeyboardCategory($location, $agent, $backuser = "backuser", $callbackPrefix = "categorynames_")
 {
     global $pdo, $textbotlang;
     $stmts = $pdo->prepare("SELECT category, COUNT(*) AS c FROM product WHERE (Location = :location OR Location = '/all') AND agent = :agent GROUP BY category");
@@ -1478,7 +1479,7 @@ function KeyboardCategory($location, $agent, $backuser = "backuser")
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         if (empty($categoryCounts[mb_strtolower(trim((string) $row['remark']), 'UTF-8')]))
             continue;
-        $list_category['inline_keyboard'][] = [['text' => $row['remark'], 'callback_data' => "categorynames_" . $row['id']]];
+        $list_category['inline_keyboard'][] = [['text' => $row['remark'], 'callback_data' => $callbackPrefix . $row['id']]];
     }
     $list_category['inline_keyboard'][] = [
         ['text' => $textbotlang['keyboard']['backToPreviousMenu'], "callback_data" => $backuser],

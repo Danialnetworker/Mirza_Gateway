@@ -1568,6 +1568,28 @@ Number of products sold: %s
                 ],
                 'addorder' => [
                         'stepFive' => '📌 The service was successfully added to the user\'s account.',
+                        'orderConfirm' => '📜 Service invoice
+
+👤 User: %s
+🏷 Service name: %s
+📍 Panel: %s
+🛍 Product: %s
+⏱ Duration: %s days
+🔋 Volume: %s GB
+💸 Price (with the user\'s discount): %s Toman
+💰 User balance: %s Toman',
+                        'orderPayBtn' => '✅ Create and charge the user\'s wallet',
+                        'orderFreeBtn' => '🆓 Create for free (no charge)',
+                        'orderModePaid' => 'paid',
+                        'orderModeFree' => 'free',
+                        'orderReport' => '📣 Service created by admin (%s)
+
+👤 User: <code>%s</code> %s
+🏷 Service name: <code>%s</code>
+📍 Panel: %s
+🛍 Product: %s
+💸 Amount: %s Toman
+🧑‍💼 Admin: <code>%s</code>',
                         'stepFour' => '📌 Send the product name.',
                         'stepThree' => '📌 Select the config location.',
                         'stepTwo' => '📌 Send the user\'s config username.',
@@ -1663,6 +1685,14 @@ Status: approved (%s)',
                         'activatedUrl' => 'https://api.telegram.org/bot%s/sendmessage?chat_id=%s&text=✅ Dear user, your bot was installed successfully.',
                 ],
                 'algorithmExtend' => [
+                        'methodsHelp' => '📌 Choose a renewal method:
+
+🔹 Reset volume and time: usage goes to zero and the product\'s volume and time start from today; whatever was left is dropped.
+🔹 Add volume and time: the product\'s volume and days are added to the current volume and expiry; usage is not reset.
+🔹 Reset time, add volume: time restarts from today and the product\'s volume is added to the current volume; usage is not reset.
+🔹 Reset volume, add time: usage goes to zero and the volume equals the product\'s volume; the product\'s days are added to the current expiry.
+🔹 Carry remaining to next month: usage goes to zero, the remaining volume is added to the product\'s volume and the days are added to the current expiry.
+🔹 Smart renew: before expiry it works like "Carry remaining to next month"; after expiry it works like "Reset volume and time".',
                         'saveData' => '✅ The service renewal method was successfully updated',
                         'invalidMethod' => '❌ The renewal method is invalid; select the correct renewal method from the list below',
                 ],
@@ -1797,7 +1827,7 @@ trojan://xyz',
                         'changedData' => '✅ The changes were successfully saved',
                         'setDayRemove' => '📌 Send the number of days after which accounts whose time has expired should be deleted
 Current time: ',
-                        'setVolumeRemove' => '📌 Send the number of days after which accounts whose volume has run out should be deleted. The account time is calculated based on the user\'s last connection. This feature is for the Marzban panel
+                        'setVolumeRemove' => '📌 Send the number of days after which accounts whose volume has run out should be deleted. The account time is calculated based on the user\'s last connection. This feature is for Marzban and 3x-ui panels
 Current time: ',
                         'cannotDeleteUnlimited' => '❌ The service cannot be deleted because its volume and time are unlimited. ',
                         'askOnHoldDays' => 'In this section you must set, if the user has not connected to their config after a certain number of days and is in on_hold status, to send the user a message',
@@ -3782,8 +3812,9 @@ We hope you had a good experience with the ease and speed of your service. If yo
                 'addEducation' => '📚 Add tutorial',
                 'addOrder' => '🛒 Add order',
                 'addProduct' => '🛍 Add product',
-                'addTimeConvertVolume' => 'Adding time and converting total volume to remaining volume',
-                'addTimeVolumeNextMonth' => 'Adding time and volume to the next month',
+                'addTimeConvertVolume' => 'Carry remaining to next month',
+                'smartRenew' => 'Smart renew (before expiry: carry over the rest; after expiry: start fresh)',
+                'addTimeVolumeNextMonth' => 'Add volume and time',
                 'adminDeletedService' => '🔗 An admin deleted a service from the bot\'s database.
 
 - Admin numeric ID :‌{from_id}
@@ -4123,8 +4154,8 @@ Current wallet: %s',
                 'requestNotFound' => 'The requested request was not found.',
                 'requestRejected' => '✅Request rejected.',
                 'resetAllUsersLimit' => '🔄 Reset all users\' limits',
-                'resetTimeAddVolume' => 'Reset time and add previous volume',
-                'resetVolumeAddTime' => 'Reset volume and add time',
+                'resetTimeAddVolume' => 'Reset time, add volume',
+                'resetVolumeAddTime' => 'Reset volume, add time',
                 'resetVolumeTime' => 'Reset volume and time',
                 'searchOrder' => '🛍 Search order',
                 'searchUserBtn' => '🔍 Search user',
@@ -4558,6 +4589,7 @@ Current wallet: %s',
                 'productThirtyValue' => '۳۰',
                 'productTomanUnit' => 'Cancel',
                 'productUnlimitedLabel' => 'Description',
+                'productLimitIp' => 'Simultaneous IP limit (0 = unlimited; x-ui services)',
                 'productVolumeGbSuffix' => 'Volume (GB)',
                 'productZeroValue' => '۰',
                 'productsHeading' => 'Registered product',

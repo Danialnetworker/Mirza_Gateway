@@ -114,6 +114,10 @@ class DrproxyPanelDriver extends BasePanelDriver
             return drproxy_call($panel, 'POST', '/users/' . $user . '/' . $action, $b);
         };
         $m = extendMethodKey($vars['Method_extend']);
+        $du_sr = is_array($vars['data_user'] ?? null) ? $vars['data_user'] : [];
+        if ($m == 'smartRenew') {   // [smart-renew] same rule as panels.php (0.9.4)
+            $m = ((int) ($du_sr['expire'] ?? 0) > 0 && (int) $du_sr['expire'] < time()) ? 'resetVolumeTime' : 'addTimeConvertVolume';
+        }
         if ($m == 'resetVolumeTime') {                       // new volume + new time, usage 0
             $r = $call('renew', array('data_limit_gb' => (int) ceil($gb), 'days' => $days));
         } elseif ($m == 'resetTimeAddVolume') {              // new window from today, leftover volume kept
