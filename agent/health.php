@@ -123,6 +123,10 @@ function agent_health_eval(array $raw)
         $r = $d[$p] ?? null;
         if (!is_array($r))
             continue;
+        if (!empty($r['probe_fault'])) {               // [probe-selfheal] the test server was stuck: not a result
+            $GLOBALS['agent_health_faults'][$p] = [$label, (string) ($r['err'] ?? ''), (string) ($r['auto_reboot'] ?? '')];
+            continue;                                  // keep this protocol's previous state
+        }
         if ($p !== 'v2ray' || empty($r['by_location'])) {
             [$bad, $det] = agent_health_judge($r);
             $items[$p] = [$bad, $label, $det, 'proto', empty($r['up']) ? [] : agent_health_failed_sites($r)];
@@ -201,6 +205,7 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
         . "<i>تست واقعی از سرور ایران با اکانت تست — $when</i>\n";
     if ($probeDown)
         return agent_health_rtl($t . "\n⚠️ سرور تست ایران در دسترس نبود؛ هیچ سرویسی تست نشد. (این خرابی سرویس مشتری‌ها نیست.)");
+    $t .= agent_health_fault_text();                   // [probe-selfheal]
     if ($new && $kind === 'alert') {   // the full report lists every problem in its own section below
         $t .= "\n🔴 <b>مشکل جدید</b>\n";
         foreach ($new as $k)
@@ -228,6 +233,10 @@ function agent_health_message($kind, array $state, array $new, array $fixed, arr
         if ($p === 'v2ray')
             continue;
         $s = $state[$p] ?? null;
+        if (isset($GLOBALS['agent_health_faults'][$p])) {   // [probe-selfheal]
+            $t .= "🛠 $label: تست نشد (سرور تست گیر کرده بود)\n";
+            continue;
+        }
         $t .= ($s ? ($s['bad'] ? '🔴 ' : '🟢 ') . "$label: " . htmlspecialchars($s['detail']) : "⚪️ $label: تست نشد") . "\n";
     }
     $locs = array_filter($state, fn($s) => $s['grp'] === 'loc');
@@ -316,8 +325,25 @@ function agent_health_confirm(array $raw, array $items, callable $probe)
     return $items;
 }
 
+// [probe-selfheal] text for the protocols whose test could not run because the test server itself was stuck
+function agent_health_fault_text()
+{
+    $f = $GLOBALS['agent_health_faults'] ?? [];
+    if (!$f)
+        return '';
+    $t = "\n🛠 <b>سرور تست گیر کرده بود</b> (این خرابی سرویس مشتری‌ها نیست)\n";
+    foreach ($f as [$label, $err, $reboot]) {
+        $what = strpos($reboot, 'scheduled') !== false ? 'سرور تست تا ۲ دقیقهٔ دیگر خودکار ری‌استارت می‌شود'
+            : (strpos($reboot, 'already rebooted') !== false ? 'در ۶ ساعت اخیر یک بار ری‌استارت شده؛ اگر ادامه داشت دستی بررسی شود'
+            : 'ری‌استارت خودکار انجام نشد؛ دستی بررسی شود');
+        $t .= '• ' . htmlspecialchars($label) . ": تست نشد — $what\n";
+    }
+    return $t;
+}
+
 function agent_health_main($mode, $chat)
 {
+    $GLOBALS['agent_health_faults'] = [];   // [probe-selfheal]
     $lock = fopen(agent_dir() . '/health.lock', 'c');
     if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
         if ($mode === 'manual' && $chat !== '')
@@ -361,7 +387,11 @@ function agent_health_main($mode, $chat)
         if (!in_array($admin, $sent, true))
             agent_notify_admins(mb_substr($full, 0, 4000), null, 'HTML');
         $st['daily'] = date('Y-m-d', $now);
-    } elseif ($new || $fixed || $added || $removed || ($probeDown && empty($st['probe_down']))) {
+    }
+    $faults = array_keys($GLOBALS['agent_health_faults'] ?? []);   // [probe-selfheal] tell the admin once per fault
+    $newFault = (bool) array_diff($faults, $st['probe_faults'] ?? []);
+    $st['probe_faults'] = $faults;
+    if (!$daily && !$first && ($new || $fixed || $added || $removed || $newFault || ($probeDown && empty($st['probe_down'])))) {
         if (!in_array($admin, $sent, true))
             agent_notify_admins(mb_substr(agent_health_message('alert', $state, $new, $fixed, $still, $added, $removed, $now, $probeDown, $took), 0, 4000), null, 'HTML');
     }

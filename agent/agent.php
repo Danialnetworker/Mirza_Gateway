@@ -748,6 +748,10 @@ function agent_probe($proto, array $sites, $location = '', array $acct = null)
         agent_log('probe failed: ' . substr($out, 0, 200));
         return ['error' => 'probe unavailable'];
     }
+    if (!empty($j[$map[$proto]]['probe_fault'])) {   // [probe-selfheal] our test server was stuck, not the service
+        agent_log('probe fault: ' . substr((string) $j[$map[$proto]]['err'], 0, 160));
+        return ['error' => 'test server fault (not the customer service): the test could not run. Do not conclude anything from it and do not report an outage; continue with the guide and the panel record.'];
+    }
     $sum = agent_probe_summary($proto, $j[$map[$proto]] ?? [], $clean);
     file_put_contents($ck, json_encode($sum, JSON_UNESCAPED_UNICODE));
     return $sum;
